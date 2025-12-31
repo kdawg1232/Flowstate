@@ -10,11 +10,16 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#020617"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.karthik.flowstate"
+      "bundleIdentifier": "com.karthik.flowstate",
+      "privacyPolicyUrl": "https://getflowstate.netlify.app/privacy",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["https", "mailto"]
+      }
     },
     "android": {
       "package": "com.karthik.flowstate",
@@ -27,6 +32,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e74ff9bf-55be-44b8-a593-d696b077c1bd"
+      }
     }
   }
 }

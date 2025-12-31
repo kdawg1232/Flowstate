@@ -3,10 +3,12 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import type { GameType, Tab, UserStats } from './src/types';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { SignUpScreen } from './src/screens/SignUpScreen';
+import { LandingScreen } from './src/screens/LandingScreen';
 import { FeedScreen } from './src/screens/FeedScreen';
 import { ProgressScreen } from './src/screens/ProgressScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
-import { defaultStats, FLOWSTATE_AUTH_KEY, FLOWSTATE_LAST_LOGIN_KEY, FLOWSTATE_STATS_KEY } from './src/initialState';
+import { defaultStats, FLOWSTATE_AUTH_KEY, FLOWSTATE_LAST_LOGIN_KEY, FLOWSTATE_STATS_KEY, FLOWSTATE_CURRENT_USER_KEY } from './src/initialState';
 import { getJson, getString, remove, setJson, setString } from './src/storage';
 import { useFlowstateFonts } from './src/ui/Fonts';
 import { LayoutGrid, BarChart3, User as UserIcon } from 'lucide-react-native';
@@ -23,6 +25,8 @@ export default function App() {
   const fontsLoaded = useFlowstateFonts();
   const [isBooting, setIsBooting] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState<string>('');
+  const [authStage, setAuthStage] = useState<'landing' | 'login' | 'signup'>('landing');
   const [activeTab, setActiveTab] = useState<Tab>('scroll');
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [stats, setStats] = useState<UserStats>(() => defaultStats());
@@ -32,9 +36,13 @@ export default function App() {
     (async () => {
       const auth = await getString(FLOWSTATE_AUTH_KEY);
       const savedStats = await getJson<UserStats>(FLOWSTATE_STATS_KEY);
+      const savedUsername = await getString(FLOWSTATE_CURRENT_USER_KEY);
       if (cancelled) return;
 
-      setIsLoggedIn(auth === 'true');
+      if (auth === 'true') {
+        setIsLoggedIn(true);
+        if (savedUsername) setUsername(savedUsername);
+      }
       if (savedStats) setStats(savedStats);
       setIsBooting(false);
     })();
@@ -64,14 +72,30 @@ export default function App() {
     })();
   }, [isBooting]);
 
-  const handleLoginSuccess = async () => {
+  const handleLoginSuccess = async (username: string) => {
     await setString(FLOWSTATE_AUTH_KEY, 'true');
+    await setString(FLOWSTATE_CURRENT_USER_KEY, username);
+    setUsername(username);
     setIsLoggedIn(true);
   };
 
   const handleLogout = async () => {
     await remove(FLOWSTATE_AUTH_KEY);
+    await remove(FLOWSTATE_CURRENT_USER_KEY);
     setIsLoggedIn(false);
+    setAuthStage('landing');
+  };
+
+  const handleDeleteAccount = async () => {
+    // According to App Store Review Guideline 5.1.1(v), 
+    // we must provide a way to delete the account and all associated data.
+    await remove(FLOWSTATE_AUTH_KEY);
+    await remove(FLOWSTATE_STATS_KEY);
+    await remove(FLOWSTATE_LAST_LOGIN_KEY);
+    await remove(FLOWSTATE_CURRENT_USER_KEY);
+    setStats(defaultStats());
+    setIsLoggedIn(false);
+    setAuthStage('landing');
   };
 
   const handleScrollXp = React.useCallback(() => {}, []);
@@ -131,7 +155,24 @@ export default function App() {
     return (
       <SafeAreaProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
-          <LoginScreen onLoginSuccess={handleLoginSuccess} />
+          {authStage === 'landing' && (
+            <LandingScreen 
+              onGoToLogin={() => setAuthStage('login')} 
+              onGoToSignUp={() => setAuthStage('signup')} 
+            />
+          )}
+          {authStage === 'login' && (
+            <LoginScreen 
+              onLoginSuccess={handleLoginSuccess} 
+              onBack={() => setAuthStage('landing')} 
+            />
+          )}
+          {authStage === 'signup' && (
+            <SignUpScreen 
+              onSignUpSuccess={handleLoginSuccess} 
+              onBack={() => setAuthStage('landing')} 
+            />
+          )}
         </GestureHandlerRootView>
       </SafeAreaProvider>
     );
@@ -144,7 +185,15 @@ export default function App() {
           <View style={{ flex: 1 }}>
             {activeTab === 'scroll' && <FeedScreen theme={theme} onCompleteRep={handleRepComplete} onScrollXp={handleScrollXp} />}
             {activeTab === 'progress' && <ProgressScreen theme={theme} stats={stats} />}
-            {activeTab === 'profile' && <ProfileScreen theme={theme} onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')} onLogout={handleLogout} />}
+            {activeTab === 'profile' && (
+              <ProfileScreen 
+                theme={theme} 
+                username={username}
+                onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')} 
+                onLogout={handleLogout}
+                onDeleteAccount={handleDeleteAccount}
+              />
+            )}
           </View>
 
           <View style={[styles.nav, { backgroundColor: navBg, borderTopColor: navBorder }]}>

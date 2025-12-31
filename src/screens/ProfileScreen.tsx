@@ -1,20 +1,41 @@
 import React from 'react';
-import { View, ScrollView, Pressable, StyleSheet } from 'react-native';
-import { User, Settings, HelpCircle, Sun, Moon, LogOut } from 'lucide-react-native';
+import { View, ScrollView, Pressable, StyleSheet, Linking, Alert } from 'react-native';
+import { User, Settings, HelpCircle, Sun, Moon, LogOut, Shield, FileText, Trash2 } from 'lucide-react-native';
 import { Text } from '../ui/Text';
 
 type Props = {
   theme: 'light' | 'dark';
+  username?: string;
   onToggleTheme: () => void;
   onLogout: () => void;
+  onDeleteAccount: () => void;
 };
 
-export function ProfileScreen({ theme, onToggleTheme, onLogout }: Props) {
+export function ProfileScreen({ theme, username, onToggleTheme, onLogout, onDeleteAccount }: Props) {
   const isDark = theme === 'dark';
   const textColorClass = isDark ? 'text-white' : 'text-slate-900';
   const subTextColorClass = isDark ? 'text-slate-500' : 'text-slate-400';
   const cardBgClass = isDark ? 'bg-slate-900' : 'bg-white border border-slate-200';
   const bgClass = isDark ? 'bg-slate-950' : 'bg-slate-50';
+
+  const handleOpenPrivacy = () => Linking.openURL('https://getflowstate.netlify.app/privacy');
+  const handleOpenTerms = () => Linking.openURL('https://getflowstate.netlify.app/terms');
+  const handleOpenSupport = () => Linking.openURL('https://getflowstate.netlify.app/support');
+  
+  const confirmDelete = () => {
+    Alert.alert(
+      "Delete Account",
+      "This will permanently erase all your progress and data. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete Everything", 
+          style: "destructive", 
+          onPress: onDeleteAccount 
+        }
+      ]
+    );
+  };
 
   return (
     <ScrollView className={`flex-1 ${bgClass}`} contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
@@ -27,8 +48,8 @@ export function ProfileScreen({ theme, onToggleTheme, onLogout }: Props) {
           </View>
           <View className="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-2 border-slate-950 rounded-full" />
         </View>
-        <Text weight="black" className={`text-2xl ${textColorClass}`}>System Admin</Text>
-        <Text weight="bold" variant="mono" className={`${subTextColorClass} text-sm`}>FLOW_ID: 88293-XP</Text>
+        <Text weight="black" className={`text-2xl ${textColorClass}`}>{username || 'Flow Member'}</Text>
+        <Text weight="bold" variant="mono" className={`${subTextColorClass} text-sm`}>FLOW_ID: {Math.floor(Math.random() * 90000) + 10000}-XP</Text>
       </View>
 
       <View className="gap-6">
@@ -62,14 +83,40 @@ export function ProfileScreen({ theme, onToggleTheme, onLogout }: Props) {
         </View>
 
         <View>
+          <Text weight="black" className={`text-xs ${subTextColorClass} uppercase tracking-widest mb-3 ml-1`}>Legal</Text>
+          <View className={`${cardBgClass} rounded-3xl overflow-hidden`}>
+             <Pressable onPress={handleOpenPrivacy} className={`flex-row items-center justify-between p-4 ${isDark ? 'border-b border-slate-800' : 'border-b border-slate-100'}`}>
+               <View className="flex-row items-center gap-3">
+                 <Shield size={18} color="#94a3b8" />
+                 <Text weight="semibold" className={`text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>Privacy Policy</Text>
+               </View>
+             </Pressable>
+             
+             <Pressable onPress={handleOpenTerms} className={`flex-row items-center justify-between p-4 ${isDark ? 'border-b border-slate-800' : 'border-b border-slate-100'}`}>
+               <View className="flex-row items-center gap-3">
+                 <FileText size={18} color="#94a3b8" />
+                 <Text weight="semibold" className={`text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>Terms of Service</Text>
+               </View>
+             </Pressable>
+
+             <Pressable onPress={confirmDelete} className="flex-row items-center justify-between p-4">
+               <View className="flex-row items-center gap-3">
+                 <Trash2 size={18} color="#f43f5e" />
+                 <Text weight="semibold" className="text-sm text-rose-500">Delete Account & Data</Text>
+               </View>
+             </Pressable>
+          </View>
+        </View>
+
+        <View>
           <Text weight="black" className={`text-xs ${subTextColorClass} uppercase tracking-widest mb-3 ml-1`}>Support</Text>
           <View className={`${cardBgClass} rounded-3xl overflow-hidden`}>
-             <View className="flex-row items-center justify-between p-4">
+             <Pressable onPress={handleOpenSupport} className="flex-row items-center justify-between p-4">
                <View className="flex-row items-center gap-3">
                  <HelpCircle size={18} color="#94a3b8" />
-                 <Text weight="semibold" className={`text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>Help Center</Text>
+                 <Text weight="semibold" className={`text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>Help Center & Support</Text>
                </View>
-             </View>
+             </Pressable>
           </View>
         </View>
       </View>

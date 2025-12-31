@@ -3,6 +3,8 @@ import type { UserStats } from './types';
 export const FLOWSTATE_AUTH_KEY = 'flowstate_auth';
 export const FLOWSTATE_STATS_KEY = 'flowstate_stats';
 export const FLOWSTATE_LAST_LOGIN_KEY = 'flowstate_last_login';
+export const FLOWSTATE_USERS_KEY = 'flowstate_users';
+export const FLOWSTATE_CURRENT_USER_KEY = 'flowstate_current_user';
 
 export function defaultStats(): UserStats {
   return {

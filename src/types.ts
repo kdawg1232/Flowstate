@@ -1,3 +1,8 @@
+export interface UserAccount {
+  username: string;
+  password?: string;
+}
+
 export type Tab = 'scroll' | 'progress' | 'profile';
 export type FlowMode = 'mental' | 'physical' | 'mixed';
 export type GameType =
