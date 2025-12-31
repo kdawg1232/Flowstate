@@ -35,19 +35,23 @@ export function ProgressScreen({ theme, stats }: Props) {
   const nextLevelTotalXpNeeded = 5 * level * (level + 1);
   const xpInCurrentLevel = stats.xp - currentLevelTotalXpNeeded;
   const xpNeededForNextLevel = nextLevelTotalXpNeeded - currentLevelTotalXpNeeded;
-  const progressPercent = Math.min(100, Math.max(0, (xpInCurrentLevel / xpNeededForNextLevel) * 100));
+  const progressPercent = xpNeededForNextLevel > 0 
+    ? Math.min(100, Math.max(0, (xpInCurrentLevel / xpNeededForNextLevel) * 100))
+    : 0;
 
   const getStrength = (cat: Category) => {
-    if (cat === 'MEMORY') return Math.min(100, (stats.gameStats.pulse?.bestScore || 0) * 10);
-    if (cat === 'SPEED') return Math.min(100, (stats.gameStats.signal?.bestScore || 0) * 4);
-    if (cat === 'ATTENTION') return Math.min(100, (stats.gameStats.flanker?.bestScore || 0) * 10);
-    if (cat === 'FLEXIBILITY') return Math.min(100, (stats.gameStats.logic_link?.bestScore || 0) * 4);
-    if (cat === 'MATH') return Math.min(100, (stats.gameStats.math_dash?.bestScore || 0) * 5);
+    if (cat === 'MEMORY') return Math.min(100, (stats.gameStats.pulse?.timesPlayed || 0) * 20);
+    if (cat === 'SPEED') return Math.min(100, (stats.gameStats.signal?.timesPlayed || 0) * 20);
+    if (cat === 'ATTENTION') return Math.min(100, (stats.gameStats.flanker?.timesPlayed || 0) * 20);
+    if (cat === 'FLEXIBILITY') return Math.min(100, (stats.gameStats.logic_link?.timesPlayed || 0) * 20);
+    if (cat === 'MATH') return Math.min(100, (stats.gameStats.math_dash?.timesPlayed || 0) * 20);
     if (cat === 'PHYSICAL') {
-      const total = (stats.gameStats.pushups?.bestScore || 0) + (stats.gameStats.situps?.bestScore || 0) + (stats.gameStats.planks?.bestScore || 0);
-      return Math.min(100, total * 2);
+      const totalPlayed = (stats.gameStats.pushups?.timesPlayed || 0) + 
+                          (stats.gameStats.situps?.timesPlayed || 0) + 
+                          (stats.gameStats.planks?.timesPlayed || 0);
+      return Math.min(100, totalPlayed * 20);
     }
-    return 15;
+    return 0;
   };
 
   const activityNodes = useMemo(() => {
@@ -103,10 +107,16 @@ export function ProgressScreen({ theme, stats }: Props) {
          </View>
          <View className={`w-full h-3 ${isDark ? 'bg-slate-800' : 'bg-slate-100'} rounded-full overflow-hidden border ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
             <MotiView 
-              from={{ width: 0 }} 
+              from={{ width: '0%' }} 
               animate={{ width: `${progressPercent}%` }} 
-              className="h-full bg-cyan-500" 
-              style={{ shadowColor: '#06b6d4', shadowOpacity: 0.5, shadowRadius: 10 }}
+              transition={{ type: 'timing', duration: 800 }}
+              style={{ 
+                height: '100%', 
+                backgroundColor: '#06b6d4',
+                shadowColor: '#06b6d4', 
+                shadowOpacity: 0.5, 
+                shadowRadius: 10 
+              }}
             />
          </View>
          <Text weight="semibold" className={`mt-3 text-[9px] ${subTextColorClass} uppercase tracking-[0.2em] text-center italic`}>
@@ -119,7 +129,7 @@ export function ProgressScreen({ theme, stats }: Props) {
           <Text weight="black" className={`text-[10px] ${subTextColorClass} uppercase tracking-[0.3em]`}>Activity Matrix</Text>
           <View className="flex-row gap-2 items-center">
             <View className="w-2 h-2 rounded-sm bg-emerald-500" />
-            <Text weight="bold" className={`text-[8px] ${subTextColorClass} uppercase`}>10+ Reps</Text>
+            <Text weight="bold" className={`text-[8px] ${subTextColorClass} uppercase`}>100+ Reps</Text>
           </View>
         </View>
         <View className="flex-row flex-wrap gap-2 justify-center">
@@ -128,11 +138,11 @@ export function ProgressScreen({ theme, stats }: Props) {
               key={i} 
               style={{ width: (SCREEN_WIDTH - 88) / 7 - 4, height: (SCREEN_WIDTH - 88) / 7 - 4 }}
               className={`rounded-[4px] ${
-                node.reps >= 10 
+                node.reps >= 100 
                 ? 'bg-emerald-500 shadow-sm' 
                 : node.reps > 0 
-                  ? 'bg-emerald-500/30' 
-                  : (isDark ? 'bg-slate-800' : 'bg-slate-100')
+                ? 'bg-emerald-500/30' 
+                : (isDark ? 'bg-slate-800' : 'bg-slate-100')
               }`}
             />
           ))}
@@ -156,10 +166,14 @@ export function ProgressScreen({ theme, stats }: Props) {
                 </View>
                 <View className={`w-full h-1.5 ${isDark ? 'bg-slate-950' : 'bg-slate-100'} rounded-full overflow-hidden`}>
                   <MotiView 
-                    from={{ width: 0 }} 
+                    from={{ width: '0%' }} 
                     animate={{ width: `${strength}%` }} 
-                    style={{ backgroundColor: THEME_MAP[cat] }}
-                    className="h-full rounded-full" 
+                    transition={{ type: 'timing', duration: 800 }}
+                    style={{ 
+                      height: '100%',
+                      backgroundColor: THEME_MAP[cat],
+                      borderRadius: 999
+                    }}
                   />
                 </View>
               </View>

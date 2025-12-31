@@ -66,7 +66,14 @@ export default function App() {
         await setString(FLOWSTATE_LAST_LOGIN_KEY, today);
         setStats((prev) => {
           const newXp = prev.xp + 5;
-          return { ...prev, xp: newXp, dailyReps: 0, level: calculateLevel(newXp) };
+          // When a new day starts, we reset daily reps to 0.
+          // totalReps already tracks all-time reps in real-time.
+          return { 
+            ...prev, 
+            xp: newXp, 
+            dailyReps: 0, 
+            level: calculateLevel(newXp) 
+          };
         });
       }
     })();
