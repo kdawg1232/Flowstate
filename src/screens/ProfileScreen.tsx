@@ -1,22 +1,66 @@
 import React from 'react';
-import { View, ScrollView, Pressable, StyleSheet, Linking, Alert } from 'react-native';
-import { User, Settings, HelpCircle, Sun, Moon, LogOut, Shield, FileText, Trash2 } from 'lucide-react-native';
+import { View, ScrollView, Pressable, StyleSheet, Linking, Alert, Switch } from 'react-native';
+import { User, Settings, HelpCircle, Sun, Moon, LogOut, Shield, FileText, Trash2, Smartphone, Lock } from 'lucide-react-native';
 import { Text } from '../ui/Text';
+import type { UserStats } from '../types';
+import ScreenTime from '../native/ScreenTime';
 
 type Props = {
   theme: 'light' | 'dark';
   username?: string;
+  stats: UserStats;
+  onUpdateStats: (stats: UserStats) => void;
   onToggleTheme: () => void;
   onLogout: () => void;
   onDeleteAccount: () => void;
 };
 
-export function ProfileScreen({ theme, username, onToggleTheme, onLogout, onDeleteAccount }: Props) {
+export function ProfileScreen({ theme, username, stats, onUpdateStats, onToggleTheme, onLogout, onDeleteAccount }: Props) {
   const isDark = theme === 'dark';
   const textColorClass = isDark ? 'text-white' : 'text-slate-900';
   const subTextColorClass = isDark ? 'text-slate-500' : 'text-slate-400';
   const cardBgClass = isDark ? 'bg-slate-900' : 'bg-white border border-slate-200';
   const bgClass = isDark ? 'bg-slate-950' : 'bg-slate-50';
+
+  const screenTime = stats.screenTime || {
+    allocatedMinutes: 0,
+    usedMinutes: 0,
+    restrictedAppTokens: [],
+    isTrackingEnabled: false
+  };
+
+  const toggleScreenTime = async () => {
+    if (!screenTime.isTrackingEnabled) {
+      const authorized = await ScreenTime.requestAuthorization();
+      if (!authorized) {
+        Alert.alert("Permission Required", "FlowState needs Screen Time permission to restrict apps.");
+        return;
+      }
+    }
+
+    onUpdateStats({
+      ...stats,
+      screenTime: {
+        ...screenTime,
+        isTrackingEnabled: !screenTime.isTrackingEnabled
+      }
+    });
+  };
+
+  const selectApps = async () => {
+    try {
+      const tokens = await ScreenTime.selectAppsToRestrict();
+      onUpdateStats({
+        ...stats,
+        screenTime: {
+          ...screenTime,
+          restrictedAppTokens: tokens
+        }
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const handleOpenPrivacy = () => Linking.openURL('https://getflowstate.netlify.app/privacy');
   const handleOpenTerms = () => Linking.openURL('https://getflowstate.netlify.app/terms');
@@ -53,6 +97,60 @@ export function ProfileScreen({ theme, username, onToggleTheme, onLogout, onDele
       </View>
 
       <View className="gap-6">
+        <View>
+          <Text weight="black" className={`text-xs ${subTextColorClass} uppercase tracking-widest mb-3 ml-1`}>Screen Time Control</Text>
+          <View className={`${cardBgClass} rounded-3xl overflow-hidden`}>
+             <View className={`flex-row items-center justify-between p-4 ${isDark ? 'border-b border-slate-800' : 'border-b border-slate-100'}`}>
+               <View className="flex-row items-center gap-3">
+                 <Lock size={18} color="#06b6d4" />
+                 <View>
+                   <Text weight="semibold" className={`text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>Active Enforcement</Text>
+                   <Text className="text-[10px] text-slate-500 uppercase">Blocks apps when reps run out</Text>
+                 </View>
+               </View>
+               <Switch 
+                 value={screenTime.isTrackingEnabled} 
+                 onValueChange={toggleScreenTime}
+                 trackColor={{ false: '#334155', true: '#06b6d4' }}
+                 thumbColor="#ffffff"
+               />
+             </View>
+
+             <Pressable 
+               onPress={selectApps} 
+               disabled={!screenTime.isTrackingEnabled}
+               className={`flex-row items-center justify-between p-4 ${!screenTime.isTrackingEnabled ? 'opacity-40' : ''} ${isDark ? 'border-b border-slate-800' : 'border-b border-slate-100'}`}
+             >
+               <View className="flex-row items-center gap-3">
+                 <Smartphone size={18} color="#94a3b8" />
+                 <Text weight="semibold" className={`text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>Restricted Apps</Text>
+               </View>
+               <View className="flex-row items-center gap-2">
+                 <Text weight="bold" className="text-xs text-cyan-500">{screenTime.restrictedAppTokens.length} Selected</Text>
+               </View>
+             </Pressable>
+
+             <View className="p-4 bg-cyan-500/5">
+                <View className="flex-row justify-between items-end">
+                   <View>
+                     <Text weight="black" variant="mono" className="text-cyan-500 text-lg">{screenTime.allocatedMinutes}m</Text>
+                     <Text weight="bold" className="text-[10px] text-slate-500 uppercase">Daily Budget Earned</Text>
+                   </View>
+                   <View className="items-end">
+                     <Text weight="black" variant="mono" className="text-slate-400 text-lg">{screenTime.usedMinutes}m</Text>
+                     <Text weight="bold" className="text-[10px] text-slate-500 uppercase">Time Consumed</Text>
+                   </View>
+                </View>
+                <View className="h-1.5 w-full bg-slate-800 rounded-full mt-3 overflow-hidden">
+                   <View 
+                     className="h-full bg-cyan-500" 
+                     style={{ width: `${Math.min(100, (screenTime.usedMinutes / (screenTime.allocatedMinutes || 1)) * 100)}%` }} 
+                   />
+                </View>
+             </View>
+          </View>
+        </View>
+
         <View>
           <Text weight="black" className={`text-xs ${subTextColorClass} uppercase tracking-widest mb-3 ml-1`}>Account</Text>
           <View className={`${cardBgClass} rounded-3xl overflow-hidden`}>

@@ -6,6 +6,11 @@ export const FLOWSTATE_LAST_LOGIN_KEY = 'flowstate_last_login';
 export const FLOWSTATE_USERS_KEY = 'flowstate_users';
 export const FLOWSTATE_CURRENT_USER_KEY = 'flowstate_current_user';
 
+export function calculateLevel(xp: number) {
+  const l = Math.floor((-5 + Math.sqrt(25 + 20 * xp)) / 10);
+  return Math.max(1, l + 1);
+}
+
 export function defaultStats(): UserStats {
   return {
     level: 1,
@@ -26,6 +31,16 @@ export function defaultStats(): UserStats {
       situps: { bestScore: 0, timesPlayed: 0, category: 'PHYSICAL' },
       planks: { bestScore: 0, timesPlayed: 0, category: 'PHYSICAL' },
     },
+    screenTime: {
+      allocatedMinutes: 0,
+      usedMinutes: 0,
+      restrictedAppTokens: [],
+      isTrackingEnabled: false,
+    },
+    habits: [],
+    habitHistory: {},
+    sealedDays: {},
+    isDaySealed: false,
   };
 }
 

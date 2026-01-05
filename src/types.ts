@@ -3,8 +3,17 @@ export interface UserAccount {
   password?: string;
 }
 
-export type Tab = 'scroll' | 'progress' | 'profile';
+export type Tab = 'scroll' | 'habits' | 'progress' | 'profile';
 export type FlowMode = 'mental' | 'physical' | 'mixed';
+
+export interface Habit {
+  id: string;
+  title: string;
+  completedToday: boolean;
+  lastCompletedDate: string | null;
+  streak: number;
+  color: string;
+}
 export type GameType =
   | 'pulse'
   | 'signal'
@@ -23,6 +32,13 @@ export interface GameStat {
   category: Category;
 }
 
+export interface ScreenTimeStats {
+  allocatedMinutes: number;
+  usedMinutes: number;
+  restrictedAppTokens: string[]; // Persistent tokens from FamilyControls
+  isTrackingEnabled: boolean;
+}
+
 export interface UserStats {
   level: number;
   xp: number;
@@ -33,6 +49,11 @@ export interface UserStats {
   streak: number;
   activityHistory: Record<string, number>; // Date string YYYY-MM-DD -> total reps
   gameStats: Record<string, GameStat>;
+  screenTime: ScreenTimeStats;
+  habits: Habit[];
+  habitHistory: Record<string, string[]>; // Date string -> Array of completed habit IDs
+  sealedDays: Record<string, boolean>; // Date string -> was sealed
+  isDaySealed: boolean;
 }
 
 export interface LevelConfig {

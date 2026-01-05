@@ -37,6 +37,9 @@
       "eas": {
         "projectId": "e74ff9bf-55be-44b8-a593-d696b077c1bd"
       }
-    }
+    },
+    "plugins": [
+      "./plugins/withScreenTime"
+    ]
   }
 }

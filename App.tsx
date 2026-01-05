@@ -6,20 +6,18 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { SignUpScreen } from './src/screens/SignUpScreen';
 import { LandingScreen } from './src/screens/LandingScreen';
 import { FeedScreen } from './src/screens/FeedScreen';
+import { HabitsScreen } from './src/screens/HabitsScreen';
 import { ProgressScreen } from './src/screens/ProgressScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
-import { defaultStats, FLOWSTATE_AUTH_KEY, FLOWSTATE_LAST_LOGIN_KEY, FLOWSTATE_STATS_KEY, FLOWSTATE_CURRENT_USER_KEY } from './src/initialState';
+import { calculateLevel, defaultStats, FLOWSTATE_AUTH_KEY, FLOWSTATE_LAST_LOGIN_KEY, FLOWSTATE_STATS_KEY, FLOWSTATE_CURRENT_USER_KEY } from './src/initialState';
 import { getJson, getString, remove, setJson, setString } from './src/storage';
 import { useFlowstateFonts } from './src/ui/Fonts';
-import { LayoutGrid, BarChart3, User as UserIcon } from 'lucide-react-native';
+import { LayoutGrid, CheckSquare, BarChart3, User as UserIcon } from 'lucide-react-native';
 import { Text } from './src/ui/Text';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-
-function calculateLevel(xp: number) {
-  const l = Math.floor((-5 + Math.sqrt(25 + 20 * xp)) / 10);
-  return Math.max(1, l + 1);
-}
+import { calculateAllocatedMinutes } from './src/screentime';
+import ScreenTime from './src/native/ScreenTime';
 
 export default function App() {
   const fontsLoaded = useFlowstateFonts();
@@ -43,7 +41,20 @@ export default function App() {
         setIsLoggedIn(true);
         if (savedUsername) setUsername(savedUsername);
       }
-      if (savedStats) setStats(savedStats);
+      if (savedStats) {
+        setStats({
+          ...defaultStats(),
+          ...savedStats,
+          screenTime: {
+            ...defaultStats().screenTime,
+            ...(savedStats.screenTime || {}),
+          },
+          habits: savedStats.habits || [],
+          habitHistory: savedStats.habitHistory || {},
+          sealedDays: savedStats.sealedDays || {},
+          isDaySealed: savedStats.isDaySealed || false,
+        });
+      }
       setIsBooting(false);
     })();
 
@@ -51,6 +62,30 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (isBooting || !isLoggedIn || !stats.screenTime?.isTrackingEnabled) return;
+
+    // Poll for used minutes every 30 seconds when in foreground
+    const interval = setInterval(async () => {
+      try {
+        const used = await ScreenTime.getUsedMinutes();
+        if (used !== stats.screenTime.usedMinutes) {
+          setStats(prev => ({
+            ...prev,
+            screenTime: {
+              ...prev.screenTime,
+              usedMinutes: used
+            }
+          }));
+        }
+      } catch (e) {
+        console.error("Failed to fetch used minutes", e);
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isBooting, isLoggedIn, stats.screenTime.isTrackingEnabled, stats.screenTime.usedMinutes]);
 
   useEffect(() => {
     if (isBooting) return;
@@ -66,13 +101,30 @@ export default function App() {
         await setString(FLOWSTATE_LAST_LOGIN_KEY, today);
         setStats((prev) => {
           const newXp = prev.xp + 5;
-          // When a new day starts, we reset daily reps to 0.
-          // totalReps already tracks all-time reps in real-time.
+          
+          // Yesterday's date string
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toISOString().split('T')[0];
+          
+          // Reset habits for the new day
+          const updatedHabits = (prev.habits || []).map(h => {
+            // If the habit was NOT completed yesterday, reset streak to 0
+            const wasCompletedYesterday = h.lastCompletedDate === yesterdayStr;
+            return {
+              ...h,
+              completedToday: false,
+              streak: wasCompletedYesterday ? h.streak : 0
+            };
+          });
+
           return { 
             ...prev, 
             xp: newXp, 
             dailyReps: 0, 
-            level: calculateLevel(newXp) 
+            level: calculateLevel(newXp),
+            habits: updatedHabits,
+            isDaySealed: false
           };
         });
       }
@@ -123,14 +175,27 @@ export default function App() {
       };
       const newActivity = { ...prev.activityHistory };
       newActivity[today] = (newActivity[today] || 0) + score;
+      
+      const newDailyReps = prev.dailyReps + score;
+      const newAllocatedMinutes = calculateAllocatedMinutes(newDailyReps);
+
+      // Sync with Native Screen Time
+      if (prev.screenTime?.isTrackingEnabled) {
+        ScreenTime.setScreenTimeBudget(newAllocatedMinutes).catch(console.error);
+      }
+
       return {
         ...prev,
         totalReps: prev.totalReps + score,
-        dailyReps: prev.dailyReps + score,
+        dailyReps: newDailyReps,
         mentalReps: prev.mentalReps + (isPhysical ? 0 : score),
         physicalReps: prev.physicalReps + (isPhysical ? score : 0),
         activityHistory: newActivity,
         gameStats: newGameStats,
+        screenTime: {
+          ...(prev.screenTime || defaultStats().screenTime),
+          allocatedMinutes: newAllocatedMinutes,
+        }
       };
     });
   }, []);
@@ -144,6 +209,7 @@ export default function App() {
   const tabs = useMemo(
     () => [
       { id: 'scroll' as const, label: 'Stream', icon: LayoutGrid },
+      { id: 'habits' as const, label: 'Habits', icon: CheckSquare },
       { id: 'progress' as const, label: 'Metrics', icon: BarChart3 },
       { id: 'profile' as const, label: 'Account', icon: UserIcon },
     ],
@@ -191,11 +257,14 @@ export default function App() {
         <View style={[styles.container, { backgroundColor: bg }]}>
           <View style={{ flex: 1 }}>
             {activeTab === 'scroll' && <FeedScreen theme={theme} onCompleteRep={handleRepComplete} onScrollXp={handleScrollXp} />}
+            {activeTab === 'habits' && <HabitsScreen stats={stats} onUpdateStats={setStats} theme={theme} />}
             {activeTab === 'progress' && <ProgressScreen theme={theme} stats={stats} />}
             {activeTab === 'profile' && (
               <ProfileScreen 
                 theme={theme} 
                 username={username}
+                stats={stats}
+                onUpdateStats={setStats}
                 onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')} 
                 onLogout={handleLogout}
                 onDeleteAccount={handleDeleteAccount}
