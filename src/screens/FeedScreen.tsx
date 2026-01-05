@@ -12,6 +12,7 @@ import ArrowFlankerGame from '../components/games/ArrowFlankerGame';
 import LogicLinkGame from '../components/games/LogicLinkGame';
 import MentalMathGame from '../components/games/MentalMathGame';
 import UntangleGame from '../components/games/UntangleGame';
+import BridgesGame from '../components/games/BridgesGame';
 import PushupTracker from '../components/games/PushupTracker';
 import SitupTracker from '../components/games/SitupTracker';
 import PlankTracker from '../components/games/PlankTracker';
@@ -38,7 +39,7 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
   const isDark = theme === 'dark';
 
   const reps = useMemo(() => {
-    const mentalPool: GameType[] = ['pulse', 'signal', 'flanker', 'logic_link', 'math_dash', 'untangle'];
+    const mentalPool: GameType[] = ['pulse', 'signal', 'flanker', 'logic_link', 'math_dash', 'untangle', 'bridges'];
     const physicalPool: GameType[] = ['pushups', 'situps', 'planks'];
     const generated: Rep[] = [];
     let lastType: GameType | null = null;
@@ -89,7 +90,7 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
     );
   };
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<ViewToken<Rep>> }) => {
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<any> }) => {
     // Find the item that is most visible
     const mostVisible = viewableItems.sort((a, b) => (b.itemVisiblePercent || 0) - (a.itemVisiblePercent || 0))[0];
     
@@ -119,6 +120,7 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
         {item.type === 'logic_link' && <LogicLinkGame onComplete={(scr) => onCompleteRep('logic_link', scr)} isActive={isActive} theme={theme} />}
         {item.type === 'math_dash' && <MentalMathGame onComplete={(scr) => onCompleteRep('math_dash', scr)} isActive={isActive} theme={theme} />}
         {item.type === 'untangle' && <UntangleGame onComplete={(scr) => onCompleteRep('untangle', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+        {item.type === 'bridges' && <BridgesGame onComplete={(scr) => onCompleteRep('bridges', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
         
         {item.type === 'pushups' && <PushupTracker onComplete={(reps) => onCompleteRep('pushups', reps)} isActive={isActive} theme={theme} />}
         {item.type === 'situps' && <SitupTracker onComplete={(reps) => onCompleteRep('situps', reps)} isActive={isActive} theme={theme} />}

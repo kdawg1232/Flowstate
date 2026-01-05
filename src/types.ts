@@ -23,7 +23,8 @@ export type GameType =
   | 'pushups'
   | 'situps'
   | 'planks'
-  | 'untangle';
+  | 'untangle'
+  | 'bridges';
 
 export type Category = 'MEMORY' | 'SPEED' | 'ATTENTION' | 'FLEXIBILITY' | 'MATH' | 'PHYSICAL';
 
