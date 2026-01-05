@@ -24,7 +24,8 @@ export type GameType =
   | 'situps'
   | 'planks'
   | 'untangle'
-  | 'bridges';
+  | 'bridges'
+  | 'keen';
 
 export type Category = 'MEMORY' | 'SPEED' | 'ATTENTION' | 'FLEXIBILITY' | 'MATH' | 'PHYSICAL';
 

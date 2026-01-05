@@ -11,7 +11,7 @@ interface Props {
   theme?: 'light' | 'dark';
 }
 
-export default function PlankTracker({ onComplete, isActive, theme = 'dark' }: Props) {
+function PlankTracker({ onComplete, isActive, theme = 'dark' }: Props) {
   const [timeLeft, setTimeLeft] = useState(30);
   const [isStarted, setIsStarted] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -124,3 +124,5 @@ export default function PlankTracker({ onComplete, isActive, theme = 'dark' }: P
     </View>
   );
 }
+
+export default React.memo(PlankTracker);

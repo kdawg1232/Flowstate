@@ -20,7 +20,7 @@ const COLORS = [
   { name: 'PURPLE', hex: '#a855f7' },
 ];
 
-export default function LogicLinkGame({ onComplete, isActive, theme = 'dark' }: Props) {
+function LogicLinkGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(15);
@@ -175,3 +175,5 @@ export default function LogicLinkGame({ onComplete, isActive, theme = 'dark' }: 
     </View>
   );
 }
+
+export default React.memo(LogicLinkGame);

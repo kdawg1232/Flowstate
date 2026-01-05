@@ -39,7 +39,7 @@ const ArrowIcon = ({ dir, color, size = 32 }: { dir: Direction, color: string, s
   );
 };
 
-export default function ArrowFlankerGame({ onComplete, isActive, theme = 'dark' }: Props) {
+function ArrowFlankerGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
   const [nodes, setNodes] = useState<ArrowNode[]>([]);
   const [score, setScore] = useState(0);
@@ -252,3 +252,5 @@ export default function ArrowFlankerGame({ onComplete, isActive, theme = 'dark' 
     </View>
   );
 }
+
+export default React.memo(ArrowFlankerGame);

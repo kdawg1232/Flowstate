@@ -13,6 +13,7 @@ import LogicLinkGame from '../components/games/LogicLinkGame';
 import MentalMathGame from '../components/games/MentalMathGame';
 import UntangleGame from '../components/games/UntangleGame';
 import BridgesGame from '../components/games/BridgesGame';
+import KeenGame from '../components/games/KeenGame';
 import PushupTracker from '../components/games/PushupTracker';
 import SitupTracker from '../components/games/SitupTracker';
 import PlankTracker from '../components/games/PlankTracker';
@@ -24,6 +25,55 @@ type Props = {
   onCompleteRep: (type: GameType, score: number) => void;
   onScrollXp: () => void;
 };
+
+const FeedItem = React.memo(({ 
+  item, 
+  index, 
+  currentIndex, 
+  flatListHeight, 
+  onCompleteRep, 
+  theme, 
+  setScrollEnabled 
+}: {
+  item: Rep;
+  index: number;
+  currentIndex: number;
+  flatListHeight: number;
+  onCompleteRep: (type: GameType, score: number) => void;
+  theme: 'light' | 'dark';
+  setScrollEnabled: (enabled: boolean) => void;
+}) => {
+  const isActive = index === currentIndex;
+  
+  return (
+    <View style={{ height: flatListHeight, width: '100%' }}>
+      {item.type === 'pulse' && <PulsePatternGame onComplete={(lvl) => onCompleteRep('pulse', lvl)} isActive={isActive} theme={theme} />}
+      {item.type === 'signal' && <SignalScanGame onComplete={(scr) => onCompleteRep('signal', scr)} isActive={isActive} theme={theme} />}
+      {item.type === 'flanker' && <ArrowFlankerGame onComplete={(scr) => onCompleteRep('flanker', scr)} isActive={isActive} theme={theme} />}
+      {item.type === 'logic_link' && <LogicLinkGame onComplete={(scr) => onCompleteRep('logic_link', scr)} isActive={isActive} theme={theme} />}
+      {item.type === 'math_dash' && <MentalMathGame onComplete={(scr) => onCompleteRep('math_dash', scr)} isActive={isActive} theme={theme} />}
+      {item.type === 'untangle' && <UntangleGame onComplete={(scr) => onCompleteRep('untangle', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+      {item.type === 'bridges' && <BridgesGame onComplete={(scr) => onCompleteRep('bridges', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+      {item.type === 'keen' && <KeenGame onComplete={(scr) => onCompleteRep('keen', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+      
+      {item.type === 'pushups' && <PushupTracker onComplete={(reps) => onCompleteRep('pushups', reps)} isActive={isActive} theme={theme} />}
+      {item.type === 'situps' && <SitupTracker onComplete={(reps) => onCompleteRep('situps', reps)} isActive={isActive} theme={theme} />}
+      {item.type === 'planks' && <PlankTracker onComplete={(reps) => onCompleteRep('planks', reps)} isActive={isActive} theme={theme} />}
+    </View>
+  );
+}, (prev, next) => {
+  // Only re-render if this item is entering or leaving the active state,
+  // or if global props that affect all items change.
+  const wasActive = prev.index === prev.currentIndex;
+  const isNowActive = next.index === next.currentIndex;
+  
+  if (wasActive !== isNowActive) return false; // activation state changed
+  if (prev.theme !== next.theme) return false;
+  if (prev.flatListHeight !== next.flatListHeight) return false;
+  if (prev.item.id !== next.item.id) return false;
+  
+  return true; // props are effectively the same for this item
+});
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const NAV_HEIGHT = 84;
@@ -39,7 +89,7 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
   const isDark = theme === 'dark';
 
   const reps = useMemo(() => {
-    const mentalPool: GameType[] = ['pulse', 'signal', 'flanker', 'logic_link', 'math_dash', 'untangle', 'bridges'];
+    const mentalPool: GameType[] = ['pulse', 'signal', 'flanker', 'logic_link', 'math_dash', 'untangle', 'bridges', 'keen'];
     const physicalPool: GameType[] = ['pushups', 'situps', 'planks'];
     const generated: Rep[] = [];
     let lastType: GameType | null = null;
@@ -109,25 +159,17 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
     }
   }).current;
 
-  const renderItem = React.useCallback(({ item, index }: { item: Rep, index: number }) => {
-    const isActive = index === currentIndex;
-    
-    return (
-      <View style={{ height: flatListHeight, width: '100%' }}>
-        {item.type === 'pulse' && <PulsePatternGame onComplete={(lvl) => onCompleteRep('pulse', lvl)} isActive={isActive} theme={theme} />}
-        {item.type === 'signal' && <SignalScanGame onComplete={(scr) => onCompleteRep('signal', scr)} isActive={isActive} theme={theme} />}
-        {item.type === 'flanker' && <ArrowFlankerGame onComplete={(scr) => onCompleteRep('flanker', scr)} isActive={isActive} theme={theme} />}
-        {item.type === 'logic_link' && <LogicLinkGame onComplete={(scr) => onCompleteRep('logic_link', scr)} isActive={isActive} theme={theme} />}
-        {item.type === 'math_dash' && <MentalMathGame onComplete={(scr) => onCompleteRep('math_dash', scr)} isActive={isActive} theme={theme} />}
-        {item.type === 'untangle' && <UntangleGame onComplete={(scr) => onCompleteRep('untangle', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-        {item.type === 'bridges' && <BridgesGame onComplete={(scr) => onCompleteRep('bridges', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-        
-        {item.type === 'pushups' && <PushupTracker onComplete={(reps) => onCompleteRep('pushups', reps)} isActive={isActive} theme={theme} />}
-        {item.type === 'situps' && <SitupTracker onComplete={(reps) => onCompleteRep('situps', reps)} isActive={isActive} theme={theme} />}
-        {item.type === 'planks' && <PlankTracker onComplete={(reps) => onCompleteRep('planks', reps)} isActive={isActive} theme={theme} />}
-      </View>
-    );
-  }, [currentIndex, flatListHeight, onCompleteRep, theme]);
+  const renderItem = React.useCallback(({ item, index }: { item: Rep, index: number }) => (
+    <FeedItem 
+      item={item}
+      index={index}
+      currentIndex={currentIndex}
+      flatListHeight={flatListHeight}
+      onCompleteRep={onCompleteRep}
+      theme={theme}
+      setScrollEnabled={setScrollEnabled}
+    />
+  ), [currentIndex, flatListHeight, onCompleteRep, theme, setScrollEnabled]);
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -163,10 +205,10 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
           itemVisiblePercentThreshold: 80, // Be more strict about what's "active"
         }}
         renderItem={renderItem}
-        windowSize={3}
-        initialNumToRender={1}
-        maxToRenderPerBatch={1}
-        removeClippedSubviews={true}
+        windowSize={5}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        removeClippedSubviews={false}
       />
     </View>
   );

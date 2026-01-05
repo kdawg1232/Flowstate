@@ -30,6 +30,7 @@ export function defaultStats(): UserStats {
       pushups: { bestScore: 0, timesPlayed: 0, category: 'PHYSICAL' },
       situps: { bestScore: 0, timesPlayed: 0, category: 'PHYSICAL' },
       planks: { bestScore: 0, timesPlayed: 0, category: 'PHYSICAL' },
+      keen: { bestScore: 0, timesPlayed: 0, category: 'MATH' },
     },
     screenTime: {
       allocatedMinutes: 0,

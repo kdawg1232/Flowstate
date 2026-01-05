@@ -45,7 +45,7 @@ const doIntersect = (p1: Point, p2: Point, p3: Point, p4: Point) => {
   return false;
 };
 
-export default function UntangleGame({ onComplete, isActive, theme = 'dark', onLockScroll }: Props) {
+function UntangleGame({ onComplete, isActive, theme = 'dark', onLockScroll }: Props) {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
   const [nodes, setNodes] = useState<Point[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -351,6 +351,8 @@ export default function UntangleGame({ onComplete, isActive, theme = 'dark', onL
     </View>
   );
 }
+
+export default React.memo(UntangleGame);
 
 function NodeDragHandler({ index, x, y, onMove, onDragStateChange, isSolved }: { 
   index: number, 

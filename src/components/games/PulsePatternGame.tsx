@@ -16,7 +16,7 @@ interface Props {
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_MAX_WIDTH = Math.min(SCREEN_WIDTH - 48, 300);
 
-export default function PulsePatternGame({ onComplete, isActive, theme = 'dark' }: Props) {
+function PulsePatternGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const [internalLevel, setInternalLevel] = useState(1);
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
   const [targetNodes, setTargetNodes] = useState<number[]>([]);
@@ -203,6 +203,8 @@ export default function PulsePatternGame({ onComplete, isActive, theme = 'dark' 
     </View>
   );
 }
+
+export default React.memo(PulsePatternGame);
 
 const styles = StyleSheet.create({
   grid: {

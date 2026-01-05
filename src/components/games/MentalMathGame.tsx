@@ -12,7 +12,7 @@ interface Props {
   theme?: 'light' | 'dark';
 }
 
-export default function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
+function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(20);
@@ -185,3 +185,5 @@ export default function MentalMathGame({ onComplete, isActive, theme = 'dark' }:
     </View>
   );
 }
+
+export default React.memo(MentalMathGame);

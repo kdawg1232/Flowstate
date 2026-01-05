@@ -13,7 +13,7 @@ interface Props {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export default function SitupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
+function SitupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
   const [reps, setReps] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);
   const [isStarted, setIsStarted] = useState(false);
@@ -125,3 +125,5 @@ export default function SitupTracker({ onComplete, isActive, theme = 'dark' }: P
     </View>
   );
 }
+
+export default React.memo(SitupTracker);

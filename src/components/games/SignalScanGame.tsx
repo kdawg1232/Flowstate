@@ -16,7 +16,7 @@ const SYMBOLS = [Zap, Activity, Binary, Cpu, Network];
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ICON_SIZE = Math.min(SCREEN_WIDTH * 0.4, 150);
 
-export default function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
+function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
   const [currentSymbolIdx, setCurrentSymbolIdx] = useState<number | null>(null);
   const [prevSymbolIdx, setPrevSymbolIdx] = useState<number | null>(null);
@@ -167,3 +167,5 @@ export default function SignalScanGame({ onComplete, isActive, theme = 'dark' }:
     </View>
   );
 }
+
+export default React.memo(SignalScanGame);

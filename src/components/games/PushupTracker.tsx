@@ -13,7 +13,7 @@ interface Props {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-export default function PushupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
+function PushupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
   const [reps, setReps] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);
   const [isStarted, setIsStarted] = useState(false);
@@ -143,3 +143,5 @@ export default function PushupTracker({ onComplete, isActive, theme = 'dark' }: 
     </View>
   );
 }
+
+export default React.memo(PushupTracker);

@@ -35,7 +35,7 @@ const CELL_SIZE = Math.min(SCREEN_WIDTH - 80, 320) / GRID_SIZE;
 const GAME_SIZE = CELL_SIZE * GRID_SIZE;
 const ISLAND_RADIUS = CELL_SIZE * 0.35;
 
-export default function BridgesGame({ onComplete, isActive, theme = 'dark', onLockScroll }: Props) {
+function BridgesGame({ onComplete, isActive, theme = 'dark', onLockScroll }: Props) {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
   const [islands, setIslands] = useState<Island[]>([]);
   const [bridges, setBridges] = useState<Bridge[]>([]);
@@ -524,3 +524,5 @@ export default function BridgesGame({ onComplete, isActive, theme = 'dark', onLo
     </View>
   );
 }
+
+export default React.memo(BridgesGame);
