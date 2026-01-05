@@ -22,7 +22,8 @@ export type GameType =
   | 'math_dash'
   | 'pushups'
   | 'situps'
-  | 'planks';
+  | 'planks'
+  | 'untangle';
 
 export type Category = 'MEMORY' | 'SPEED' | 'ATTENTION' | 'FLEXIBILITY' | 'MATH' | 'PHYSICAL';
 
