@@ -17,7 +17,6 @@ export interface Habit {
 export type GameType =
   | 'pulse'
   | 'signal'
-  | 'flanker'
   | 'logic_link'
   | 'math_dash'
   | 'pushups'
@@ -25,9 +24,12 @@ export type GameType =
   | 'planks'
   | 'untangle'
   | 'bridges'
-  | 'keen';
+  | 'keen'
+  | 'color_memory'
+  | 'number_hunt'
+  | 'map';
 
-export type Category = 'MEMORY' | 'SPEED' | 'ATTENTION' | 'FLEXIBILITY' | 'MATH' | 'PHYSICAL';
+export type Category = 'MEMORY' | 'SPEED' | 'ATTENTION' | 'FLEXIBILITY' | 'MATH' | 'PHYSICAL' | 'LOGIC';
 
 export interface GameStat {
   bestScore: number;

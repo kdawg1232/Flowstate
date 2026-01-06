@@ -8,12 +8,14 @@ import { Text } from '../ui/Text';
 // Ported Games
 import PulsePatternGame from '../components/games/PulsePatternGame';
 import SignalScanGame from '../components/games/SignalScanGame';
-import ArrowFlankerGame from '../components/games/ArrowFlankerGame';
 import LogicLinkGame from '../components/games/LogicLinkGame';
 import MentalMathGame from '../components/games/MentalMathGame';
 import UntangleGame from '../components/games/UntangleGame';
 import BridgesGame from '../components/games/BridgesGame';
 import KeenGame from '../components/games/KeenGame';
+import ColorMemoryGame from '../components/games/ColorMemoryGame';
+import NumberHuntGame from '../components/games/NumberHuntGame';
+import MapGame from '../components/games/MapGame';
 import PushupTracker from '../components/games/PushupTracker';
 import SitupTracker from '../components/games/SitupTracker';
 import PlankTracker from '../components/games/PlankTracker';
@@ -49,12 +51,14 @@ const FeedItem = React.memo(({
     <View style={{ height: flatListHeight, width: '100%' }}>
       {item.type === 'pulse' && <PulsePatternGame onComplete={(lvl) => onCompleteRep('pulse', lvl)} isActive={isActive} theme={theme} />}
       {item.type === 'signal' && <SignalScanGame onComplete={(scr) => onCompleteRep('signal', scr)} isActive={isActive} theme={theme} />}
-      {item.type === 'flanker' && <ArrowFlankerGame onComplete={(scr) => onCompleteRep('flanker', scr)} isActive={isActive} theme={theme} />}
       {item.type === 'logic_link' && <LogicLinkGame onComplete={(scr) => onCompleteRep('logic_link', scr)} isActive={isActive} theme={theme} />}
       {item.type === 'math_dash' && <MentalMathGame onComplete={(scr) => onCompleteRep('math_dash', scr)} isActive={isActive} theme={theme} />}
       {item.type === 'untangle' && <UntangleGame onComplete={(scr) => onCompleteRep('untangle', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
       {item.type === 'bridges' && <BridgesGame onComplete={(scr) => onCompleteRep('bridges', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
       {item.type === 'keen' && <KeenGame onComplete={(scr) => onCompleteRep('keen', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+      {item.type === 'color_memory' && <ColorMemoryGame onComplete={(scr) => onCompleteRep('color_memory', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+      {item.type === 'number_hunt' && <NumberHuntGame onComplete={(scr) => onCompleteRep('number_hunt', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+      {item.type === 'map' && <MapGame onComplete={(scr) => onCompleteRep('map', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
       
       {item.type === 'pushups' && <PushupTracker onComplete={(reps) => onCompleteRep('pushups', reps)} isActive={isActive} theme={theme} />}
       {item.type === 'situps' && <SitupTracker onComplete={(reps) => onCompleteRep('situps', reps)} isActive={isActive} theme={theme} />}
@@ -89,7 +93,7 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
   const isDark = theme === 'dark';
 
   const reps = useMemo(() => {
-    const mentalPool: GameType[] = ['pulse', 'signal', 'flanker', 'logic_link', 'math_dash', 'untangle', 'bridges', 'keen'];
+    const mentalPool: GameType[] = ['pulse', 'signal', 'logic_link', 'math_dash', 'untangle', 'bridges', 'keen', 'color_memory', 'number_hunt', 'map'];
     const physicalPool: GameType[] = ['pushups', 'situps', 'planks'];
     const generated: Rep[] = [];
     let lastType: GameType | null = null;

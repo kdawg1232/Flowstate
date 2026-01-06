@@ -1,11 +1,113 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { View, Pressable, StyleSheet, Dimensions, PanResponder, Animated } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { View, Pressable, Dimensions, StyleSheet, PanResponder, GestureResponderEvent, PanResponderGestureState } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
-import { Shuffle, Timer, Zap, Check, Play, ChevronDown, ArrowRight } from 'lucide-react-native';
-import Svg, { Line, Circle as SvgCircle } from 'react-native-svg';
+import Svg, { Line } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Maximize, RotateCcw, Play, Zap, ChevronDown, Eye, Check, Layout } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
+
+/**
+ * Untangle Engine: Optimized for 6-node planar graphs with random starting layouts
+ */
+
+interface Node {
+  id: number;
+  x: number;
+  y: number;
+  solvedX: number;
+  solvedY: number;
+}
+
+interface Edge {
+  a: number;
+  b: number;
+}
+
+interface PuzzleData {
+  nodes: Node[];
+  edges: Edge[];
+}
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const GRID_SIZE = Math.min(SCREEN_WIDTH - 48, 320);
+
+const segmentsIntersect = (
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+  p3: { x: number; y: number },
+  p4: { x: number; y: number }
+) => {
+  const ccw = (A: { x: number; y: number }, B: { x: number; y: number }, C: { x: number; y: number }) => {
+    return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x);
+  };
+  
+  // Shared endpoints don't count as intersection
+  if (
+    (p1.x === p3.x && p1.y === p3.y) ||
+    (p1.x === p4.x && p1.y === p4.y) ||
+    (p2.x === p3.x && p2.y === p3.y) ||
+    (p2.x === p4.x && p2.y === p4.y)
+  ) {
+    return false;
+  }
+
+  return ccw(p1, p3, p4) !== ccw(p2, p3, p4) && ccw(p1, p2, p3) !== ccw(p1, p2, p4);
+};
+
+const generateUntangle = (numNodes: number = 6): PuzzleData => {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+  const solvedPositions: { x: number; y: number }[] = [];
+  const gridSize = 4;
+  const usedCoords = new Set<string>();
+
+  // Generate solved positions on a grid
+  while (solvedPositions.length < numNodes) {
+    const rx = Math.floor(Math.random() * gridSize);
+    const ry = Math.floor(Math.random() * gridSize);
+    const key = `${rx},${ry}`;
+    if (!usedCoords.has(key)) {
+      usedCoords.add(key);
+      solvedPositions.push({
+        x: 25 + (rx / (gridSize - 1)) * 50,
+        y: 25 + (ry / (gridSize - 1)) * 50,
+      });
+    }
+  }
+
+  // Add edges greedily (ensuring initial planarity in solved state)
+  for (let i = 0; i < numNodes; i++) {
+    for (let j = i + 1; j < numNodes; j++) {
+      const p1 = solvedPositions[i];
+      const p2 = solvedPositions[j];
+      let crosses = false;
+      for (const edge of edges) {
+        if (segmentsIntersect(p1, p2, solvedPositions[edge.a], solvedPositions[edge.b])) {
+          crosses = true;
+          break;
+        }
+      }
+      if (!crosses && edges.length < numNodes * 1.5) {
+        edges.push({ a: i, b: j });
+      }
+    }
+  }
+
+  // Create nodes with random tangled positions
+  for (let i = 0; i < numNodes; i++) {
+    nodes.push({
+      id: i,
+      x: 15 + Math.random() * 70,
+      y: 15 + Math.random() * 70,
+      solvedX: solvedPositions[i].x,
+      solvedY: solvedPositions[i].y,
+    });
+  }
+
+  return { nodes, edges };
+};
 
 interface Props {
   onComplete: (score: number) => void;
@@ -14,419 +116,461 @@ interface Props {
   onLockScroll?: (enabled: boolean) => void;
 }
 
-interface Point {
-  x: number;
-  y: number;
+// Draggable Node Component using PanResponder
+interface DraggableNodeProps {
+  node: Node;
+  isFinished: boolean;
+  isDark: boolean;
+  onDragStart: () => void;
+  onDrag: (id: number, x: number, y: number) => void;
+  onDragEnd: () => void;
 }
 
-interface Edge {
-  from: number;
-  to: number;
-}
+const DraggableNode: React.FC<DraggableNodeProps> = React.memo(({
+  node,
+  isFinished,
+  isDark,
+  onDragStart,
+  onDrag,
+  onDragEnd,
+}) => {
+  const startPosRef = useRef({ x: 0, y: 0 });
+  const nodeIdRef = useRef(node.id);
+  const currentPosRef = useRef({ x: node.x, y: node.y });
+  const [isDragging, setIsDragging] = useState(false);
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const GAME_SIZE = Math.min(SCREEN_WIDTH - 60, 320);
-const NODE_RADIUS = 15;
+  // Update refs without recreating PanResponder
+  nodeIdRef.current = node.id;
+  currentPosRef.current = { x: node.x, y: node.y };
 
-// Helper to check if two line segments (p1, p2) and (p3, p4) intersect
-const doIntersect = (p1: Point, p2: Point, p3: Point, p4: Point) => {
-  const ccw = (a: Point, b: Point, c: Point) => {
-    const val = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y);
-    if (Math.abs(val) < 0.0001) return 0;
-    return val > 0 ? 1 : 2;
-  };
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => !isFinished,
+    onMoveShouldSetPanResponder: () => !isFinished,
+    onPanResponderGrant: () => {
+      startPosRef.current = { x: currentPosRef.current.x, y: currentPosRef.current.y };
+      setIsDragging(true);
+      onDragStart();
+    },
+    onPanResponderMove: (_evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
+      // Convert pixel delta to percentage delta
+      const deltaXPercent = (gestureState.dx / GRID_SIZE) * 100;
+      const deltaYPercent = (gestureState.dy / GRID_SIZE) * 100;
 
-  const o1 = ccw(p1, p2, p3);
-  const o2 = ccw(p1, p2, p4);
-  const o3 = ccw(p3, p4, p1);
-  const o4 = ccw(p3, p4, p2);
+      // Calculate new position
+      const newX = Math.max(8, Math.min(92, startPosRef.current.x + deltaXPercent));
+      const newY = Math.max(8, Math.min(92, startPosRef.current.y + deltaYPercent));
 
-  if (o1 !== o2 && o3 !== o4) return true;
-  return false;
-};
+      onDrag(nodeIdRef.current, newX, newY);
+    },
+    onPanResponderRelease: () => {
+      setIsDragging(false);
+      onDragEnd();
+    },
+    onPanResponderTerminate: () => {
+      setIsDragging(false);
+      onDragEnd();
+    },
+  }), [isFinished, onDragStart, onDrag, onDragEnd]);
 
-function UntangleGame({ onComplete, isActive, theme = 'dark', onLockScroll }: Props) {
-  const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
-  const [nodes, setNodes] = useState<Point[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
-  const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(30);
-  const [crossings, setCrossings] = useState(-1);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  
-  const isDark = theme === 'dark';
-  const insets = useSafeAreaInsets();
-
-  const generatePlanarGraph = useCallback(() => {
-    const numNodes = 7 + Math.floor(score / 2);
-    const newEdges: Edge[] = [];
-    const solvedNodes: Point[] = [];
-    
-    // 1. Generate nodes in random positions that are guaranteed to have a planar layout
-    // We'll generate random points and greedily add non-intersecting edges
-    for (let i = 0; i < numNodes; i++) {
-      solvedNodes.push({
-        x: Math.random() * (GAME_SIZE - 60) + 30,
-        y: Math.random() * (GAME_SIZE - 60) + 30,
-      });
-    }
-
-    // Sort edges by length to prefer shorter edges (makes the graph look cleaner)
-    const possibleEdges: Edge[] = [];
-    for (let i = 0; i < numNodes; i++) {
-      for (let j = i + 1; j < numNodes; j++) {
-        possibleEdges.push({ from: i, to: j });
-      }
-    }
-
-    possibleEdges.sort((a, b) => {
-      const distA = Math.pow(solvedNodes[a.from].x - solvedNodes[a.to].x, 2) + Math.pow(solvedNodes[a.from].y - solvedNodes[a.to].y, 2);
-      const distB = Math.pow(solvedNodes[b.from].x - solvedNodes[b.to].x, 2) + Math.pow(solvedNodes[b.from].y - solvedNodes[b.to].y, 2);
-      return distA - distB;
-    });
-
-    for (const edge of possibleEdges) {
-      const p1 = solvedNodes[edge.from];
-      const p2 = solvedNodes[edge.to];
-      
-      let crosses = false;
-      for (const existing of newEdges) {
-        const p3 = solvedNodes[existing.from];
-        const p4 = solvedNodes[existing.to];
-        
-        // Don't count edges sharing a vertex
-        if (edge.from === existing.from || edge.from === existing.to || edge.to === existing.from || edge.to === existing.to) continue;
-        
-        if (doIntersect(p1, p2, p3, p4)) {
-          crosses = true;
-          break;
-        }
-      }
-
-      // Max edges for a planar graph is 3n-6. We'll stop a bit earlier for clarity.
-      if (!crosses && newEdges.length < numNodes * 1.5) {
-        newEdges.push(edge);
-      }
-    }
-
-    // 2. Scramble the node positions for the player
-    const scrambledNodes = solvedNodes.map(() => ({
-      x: Math.random() * (GAME_SIZE - 40) + 20,
-      y: Math.random() * (GAME_SIZE - 40) + 20,
-    }));
-
-    setNodes(scrambledNodes);
-    setEdges(newEdges);
-    setCrossings(-1);
-    setGameState(GameState.PLAYING);
-  }, [score]);
-
-  const countCrossings = useCallback((currentNodes: Point[]) => {
-    if (currentNodes.length === 0) return 0;
-    let count = 0;
-    for (let i = 0; i < edges.length; i++) {
-      for (let j = i + 1; j < edges.length; j++) {
-        const e1 = edges[i];
-        const e2 = edges[j];
-        
-        // Don't count edges sharing a vertex
-        if (e1.from === e2.from || e1.from === e2.to || e1.to === e2.from || e1.to === e2.to) continue;
-        
-        const p1 = currentNodes[e1.from];
-        const p2 = currentNodes[e1.to];
-        const p3 = currentNodes[e2.from];
-        const p4 = currentNodes[e2.to];
-        
-        if (!p1 || !p2 || !p3 || !p4) continue;
-        
-        if (doIntersect(p1, p2, p3, p4)) {
-          count++;
-        }
-      }
-    }
-    return count;
-  }, [edges]);
-
-  // Use a separate effect for level completion to avoid loops
-  useEffect(() => {
-    if (gameState === GameState.PLAYING && nodes.length > 0) {
-      const c = countCrossings(nodes);
-      setCrossings(c);
-      
-      if (c === 0) {
-        setGameState(GameState.SUCCESS); // Transition to success state first
-        setScore(30); // Award the reps immediately in the UI
-        if (timerRef.current) clearInterval(timerRef.current);
-        
-        const timer = setTimeout(() => {
-          setGameState(GameState.FINISHED);
-          setTimeout(() => onComplete(30), 100);
-        }, 1200);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [nodes, edges, countCrossings, gameState]); // Removed generatePlanarGraph from dependencies
-
-  const startGame = () => {
-    setScore(0);
-    setTimeLeft(30);
-    generatePlanarGraph();
-  };
-
-  useEffect(() => {
-    if (!isActive) setGameState(GameState.IDLE);
-  }, [isActive]);
-
-  useEffect(() => {
-    if (gameState === GameState.PLAYING && timeLeft > 0) {
-      timerRef.current = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-    } else if (timeLeft <= 0 && gameState === GameState.PLAYING) {
-      setGameState(GameState.FINISHED);
-      if (timerRef.current) clearInterval(timerRef.current);
-      setTimeout(() => onComplete(score), 100);
-    }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [gameState, timeLeft, score, onComplete]);
-
-  const handleNodeMove = useCallback((index: number, x: number, y: number) => {
-    setNodes(prevNodes => {
-      const newNodes = [...prevNodes];
-      newNodes[index] = { 
-        x: Math.max(0, Math.min(GAME_SIZE, x)), 
-        y: Math.max(0, Math.min(GAME_SIZE, y)) 
-      };
-      return newNodes;
-    });
-  }, []);
-
-  const textColorClass = isDark ? 'text-white' : 'text-slate-900';
-  const cardBgClass = isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200';
-  const subTextColorClass = isDark ? 'text-slate-500' : 'text-slate-400';
-
-  return (
-    <View className={`flex-1 px-6 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
-      <AnimatePresence exitBeforeEnter>
-        {gameState === GameState.IDLE ? (
-          <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center justify-center">
-            <View className={`w-20 h-20 ${isDark ? 'bg-indigo-500/20 border-indigo-500/40' : 'bg-white border-indigo-100'} rounded-3xl items-center justify-center mb-6 border`}>
-              <Shuffle color="#6366f1" size={40} />
-            </View>
-            <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase ${textColorClass}`}>Untangle</Text>
-            <Text className={`${subTextColorClass} text-[10px] uppercase tracking-[0.2em] mb-10 text-center max-w-[280px]`}>
-              Move the nodes so that no lines cross each other.
-            </Text>
-            <Pressable onPress={startGame} className="bg-indigo-500 px-12 py-4 rounded-2xl flex-row items-center gap-3 shadow-xl">
-              <Play color="white" size={20} fill="white" />
-              <Text weight="black" className="text-white uppercase">INITIALIZE</Text>
-            </Pressable>
-          </MotiView>
-        ) : gameState === GameState.FINISHED ? (
-          <MotiView key="finished" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center justify-center">
-            <View className={`w-16 h-16 rounded-full items-center justify-center mb-6 border ${score > 0 ? 'bg-emerald-500/20 border-emerald-500/40' : 'bg-rose-500/20 border-rose-500/40'}`}>
-              {score > 0 ? <Check color="#10b981" size={32} /> : <Zap color="#f43f5e" size={32} />}
-            </View>
-            <Text weight="black" className={`text-3xl italic mb-6 uppercase tracking-tighter text-center ${textColorClass}`}>
-              {score > 0 ? 'NETWORK UNTANGLED' : 'SIGNAL LOST'}
-            </Text>
-            
-            <View className={`w-full max-w-[240px] ${isDark ? 'bg-indigo-950/40 border-indigo-500/20' : 'bg-white border-indigo-100'} border-2 py-8 rounded-[2.5rem] items-center mb-10 shadow-xl`}>
-              <Text variant="mono" className={`${score > 0 ? 'text-indigo-400' : 'text-slate-500'} text-5xl mb-2 tracking-widest`}>{score}</Text>
-              <Text weight="black" className={`${isDark ? 'text-indigo-500/60' : 'text-indigo-400'} text-[10px] uppercase tracking-[0.4em]`}>MENTAL REPS</Text>
-            </View>
-
-            <View className="items-center gap-8">
-               <View className={`${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200'} px-8 py-4 rounded-2xl flex-row items-center gap-3 border shadow-sm`}>
-                  <Text weight="black" className="text-emerald-500 uppercase tracking-widest">NEXT GAME READY</Text>
-                  <ArrowRight color="#10b981" size={18} />
-               </View>
-               
-               <View className="items-center gap-3 opacity-40">
-                 <Text weight="bold" className={`${subTextColorClass} text-[10px] uppercase tracking-[0.4em]`}>Scroll to continue</Text>
-                 <MotiView
-                   from={{ translateY: -5 }}
-                   animate={{ translateY: 5 }}
-                   transition={{ loop: true, type: 'timing', duration: 1000 }}
-                 >
-                   <ChevronDown color={isDark ? "#94a3b8" : "#64748b"} size={20} />
-                 </MotiView>
-               </View>
-            </View>
-          </MotiView>
-        ) : (
-          <MotiView key="play" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center">
-             <View style={{ marginTop: insets.top + 80 }} className="w-full flex-row justify-between mb-8">
-                <View className={`flex-row items-center gap-2 ${cardBgClass} px-4 py-2 rounded-full border`}>
-                  <Timer size={14} color="#6366f1" />
-                  <Text variant="mono" className="text-indigo-500 text-sm">{timeLeft}s</Text>
-                </View>
-                <View className={`flex-row items-center gap-2 ${cardBgClass} px-4 py-2 rounded-full border`}>
-                  <Zap size={14} color="#eab308" />
-                  <Text variant="mono" className="text-yellow-500 text-sm">{score}</Text>
-                </View>
-              </View>
-
-              <View 
-                style={{ width: GAME_SIZE, height: GAME_SIZE }} 
-                className={`rounded-[2.5rem] ${cardBgClass} border-2 overflow-hidden items-center justify-center shadow-lg relative`}
-              >
-                <Svg width={GAME_SIZE} height={GAME_SIZE} style={StyleSheet.absoluteFill}>
-                  {edges.map((edge, i) => {
-                    const p1 = nodes[edge.from];
-                    const p2 = nodes[edge.to];
-                    if (!p1 || !p2) return null;
-                    
-                    // Check if this specific edge is crossing any other edge
-                    let isCrossing = false;
-                    for (let j = 0; j < edges.length; j++) {
-                      if (i === j) continue;
-                      const e2 = edges[j];
-                      if (edge.from === e2.from || edge.from === e2.to || edge.to === e2.from || edge.to === e2.to) continue;
-                      if (doIntersect(p1, p2, nodes[e2.from], nodes[e2.to])) {
-                        isCrossing = true;
-                        break;
-                      }
-                    }
-
-                    return (
-                      <Line
-                        key={`edge-${i}`}
-                        x1={p1.x}
-                        y1={p1.y}
-                        x2={p2.x}
-                        y2={p2.y}
-                        stroke={isCrossing ? "#ef4444" : (gameState === GameState.SUCCESS ? "#10b981" : "#6366f1")}
-                        strokeWidth={isCrossing ? 3 : 2}
-                        opacity={isCrossing ? 1 : 0.6}
-                      />
-                    );
-                  })}
-                  {nodes.map((node, i) => (
-                    <SvgCircle
-                      key={`node-bg-${i}`}
-                      cx={node.x}
-                      cy={node.y}
-                      r={NODE_RADIUS}
-                      fill={isDark ? "#0f172a" : "#f1f5f9"}
-                      stroke={gameState === GameState.SUCCESS ? "#10b981" : "#6366f1"}
-                      strokeWidth={2}
-                    />
-                  ))}
-                </Svg>
-
-                {nodes.map((node, i) => (
-                  <NodeDragHandler
-                    key={`node-handler-${i}`}
-                    index={i}
-                    x={node.x}
-                    y={node.y}
-                    onMove={(x, y) => handleNodeMove(i, x, y)}
-                    onDragStateChange={(isDragging) => onLockScroll?.(!isDragging)}
-                    isSolved={gameState === GameState.SUCCESS}
-                  />
-                ))}
-                
-                {gameState === GameState.SUCCESS && (
-                  <MotiView
-                    from={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="absolute inset-0 bg-emerald-500/10 items-center justify-center pointer-events-none"
-                  >
-                    <View className="bg-emerald-500 rounded-full p-4 shadow-lg shadow-emerald-500/50">
-                      <Check color="white" size={40} strokeWidth={4} />
-                    </View>
-                  </MotiView>
-                )}
-              </View>
-
-              <View className="mt-8 items-center">
-                <View className={`px-6 py-3 rounded-2xl ${isDark ? 'bg-slate-900/50' : 'bg-slate-200/50'} border border-slate-800/20`}>
-                  <Text weight="black" className={`${gameState === GameState.SUCCESS ? 'text-emerald-500' : 'text-rose-500'} text-xs uppercase tracking-[0.3em]`}>
-                    {gameState === GameState.SUCCESS ? "INTERFERENCE CLEARED" : (crossings === -1 ? "CALCULATING..." : `${crossings} CROSSINGS DETECTED`)}
-                  </Text>
-                </View>
-              </View>
-          </MotiView>
-        )}
-      </AnimatePresence>
-    </View>
-  );
-}
-
-export default React.memo(UntangleGame);
-
-function NodeDragHandler({ index, x, y, onMove, onDragStateChange, isSolved }: { 
-  index: number, 
-  x: number, 
-  y: number, 
-  onMove: (x: number, y: number) => void,
-  onDragStateChange?: (isDragging: boolean) => void,
-  isSolved?: boolean
-}) {
-  const posRef = useRef({ x, y });
-  const startPos = useRef({ x, y });
-  const onMoveRef = useRef(onMove);
-  const onDragStateChangeRef = useRef(onDragStateChange);
-
-  useEffect(() => {
-    posRef.current = { x, y };
-  }, [x, y]);
-
-  useEffect(() => {
-    onMoveRef.current = onMove;
-  }, [onMove]);
-
-  useEffect(() => {
-    onDragStateChangeRef.current = onDragStateChange;
-  }, [onDragStateChange]);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
-      onPanResponderGrant: () => {
-        onDragStateChangeRef.current?.(true);
-        startPos.current = { x: posRef.current.x, y: posRef.current.y };
-      },
-      onPanResponderMove: (_, gestureState) => {
-        onMoveRef.current(startPos.current.x + gestureState.dx, startPos.current.y + gestureState.dy);
-      },
-      onPanResponderRelease: () => {
-        onDragStateChangeRef.current?.(false);
-      },
-      onPanResponderTerminate: () => {
-        onDragStateChangeRef.current?.(false);
-      },
-    })
-  ).current;
+  const nodeColor = isFinished ? '#10b981' : (isDark ? '#f59e0b' : '#d97706');
+  const pixelX = (node.x / 100) * GRID_SIZE;
+  const pixelY = (node.y / 100) * GRID_SIZE;
 
   return (
     <View
       {...panResponder.panHandlers}
       style={{
         position: 'absolute',
-        left: x - NODE_RADIUS * 2,
-        top: y - NODE_RADIUS * 2,
-        width: NODE_RADIUS * 4,
-        height: NODE_RADIUS * 4,
+        left: pixelX - 22,
+        top: pixelY - 22,
+        width: 44,
+        height: 44,
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 50,
+        zIndex: isDragging ? 100 : 20,
       }}
     >
-      <View 
+      <View
         style={{
-          width: NODE_RADIUS * 0.8,
-          height: NODE_RADIUS * 0.8,
-          borderRadius: 10,
-          backgroundColor: isSolved ? '#10b981' : '#6366f1',
-          shadowColor: isSolved ? '#10b981' : '#6366f1',
+          width: isDragging ? 18 : 14,
+          height: isDragging ? 18 : 14,
+          borderRadius: isDragging ? 9 : 7,
+          borderWidth: 1.5,
+          borderColor: nodeColor,
+          backgroundColor: isFinished ? '#10b981' : (isDark ? '#0f172a' : '#ffffff'),
+          shadowColor: nodeColor,
           shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.5,
-          shadowRadius: 5,
-        }} 
+          shadowOpacity: isDragging ? 0.8 : 0.5,
+          shadowRadius: isDragging ? 12 : 8,
+          elevation: isDragging ? 10 : 5,
+        }}
       />
     </View>
   );
-}
+});
+
+const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLockScroll }) => {
+  const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
+  const [isAutoSolved, setIsAutoSolved] = useState(false);
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+  const insets = useSafeAreaInsets();
+  
+  // Store edges in a ref for the planarity check to avoid stale closure
+  const edgesRef = useRef<Edge[]>([]);
+  edgesRef.current = edges;
+
+  const isDark = theme === 'dark';
+  const textColor = isDark ? 'text-white' : 'text-slate-900';
+  const subTextColor = isDark ? 'text-slate-500' : 'text-slate-400';
+
+  const checkPlanarity = useCallback((currentNodes: Node[]) => {
+    const currentEdges = edgesRef.current;
+    if (currentNodes.length === 0 || currentEdges.length === 0) return false;
+    
+    for (let i = 0; i < currentEdges.length; i++) {
+      for (let j = i + 1; j < currentEdges.length; j++) {
+        const e1 = currentEdges[i];
+        const e2 = currentEdges[j];
+        
+        // Skip if edges share a node
+        if (e1.a === e2.a || e1.a === e2.b || e1.b === e2.a || e1.b === e2.b) continue;
+        
+        const n1a = currentNodes[e1.a];
+        const n1b = currentNodes[e1.b];
+        const n2a = currentNodes[e2.a];
+        const n2b = currentNodes[e2.b];
+        
+        if (!n1a || !n1b || !n2a || !n2b) continue;
+        
+        if (segmentsIntersect(n1a, n1b, n2a, n2b)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }, []);
+
+  const initGame = useCallback(() => {
+    const puzzle = generateUntangle(6);
+    setNodes(puzzle.nodes);
+    setEdges(puzzle.edges);
+    edgesRef.current = puzzle.edges;
+    setGameState(GameState.PLAYING);
+    setIsAutoSolved(false);
+    setShowSuccessOverlay(false);
+  }, []);
+
+  const handleDragStart = useCallback(() => {
+    onLockScroll?.(false);
+  }, [onLockScroll]);
+
+  const handleDrag = useCallback((id: number, x: number, y: number) => {
+    setNodes(prev => prev.map(n => (n.id === id ? { ...n, x, y } : n)));
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    onLockScroll?.(true);
+    
+    // Check planarity after a short delay to ensure state is settled
+    setTimeout(() => {
+      setNodes(currentNodes => {
+        if (checkPlanarity(currentNodes)) {
+          // Schedule victory state changes
+          setTimeout(() => {
+            setGameState(GameState.FINISHED);
+            onComplete(50);
+            setTimeout(() => setShowSuccessOverlay(true), 1000);
+          }, 0);
+        }
+        return currentNodes;
+      });
+    }, 50);
+  }, [checkPlanarity, onComplete, onLockScroll]);
+
+  const handleAutoSolve = useCallback(() => {
+    setNodes(prev => prev.map(n => ({ ...n, x: n.solvedX, y: n.solvedY })));
+    setIsAutoSolved(true);
+    setGameState(GameState.FINISHED);
+    setShowSuccessOverlay(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isActive) {
+      setGameState(GameState.IDLE);
+    }
+  }, [isActive]);
+
+  return (
+    <View className={`flex-1 w-full ${isDark ? 'bg-[#05070a]' : 'bg-slate-50'} px-6 pb-24 relative overflow-hidden`}>
+      <AnimatePresence exitBeforeEnter>
+        {gameState === GameState.IDLE ? (
+          <MotiView
+            key="idle"
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: 'timing', duration: 300 }}
+            className="flex-1 items-center justify-center"
+          >
+            <View
+              className={`w-20 h-20 ${
+                isDark ? 'bg-amber-500/20 border-amber-500/40' : 'bg-white border-amber-100'
+              } rounded-3xl items-center justify-center mb-6 border`}
+            >
+              <Maximize color="#f59e0b" size={40} />
+            </View>
+            <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase text-center ${textColor}`}>
+              Planar Shift
+            </Text>
+            <Text className={`${subTextColor} text-xs uppercase tracking-[0.2em] mb-10 max-w-[240px] text-center leading-relaxed`}>
+              Resolve the neural tangle. Reposition nodes until no paths cross.
+            </Text>
+            <Pressable
+              onPress={initGame}
+              className="bg-amber-500 px-12 py-4 rounded-2xl flex-row items-center gap-3 shadow-xl active:scale-95"
+            >
+              <Play color="white" size={20} fill="white" />
+              <Text weight="black" className="text-white uppercase">
+                INITIATE LINK
+              </Text>
+            </Pressable>
+          </MotiView>
+        ) : (
+          <MotiView
+            key="playing"
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: 'timing', duration: 300 }}
+            className="flex-1 items-center"
+            style={{ paddingTop: insets.top + 80 }}
+          >
+            {/* Game Board Section */}
+            <View className="flex-1 w-full items-center justify-center mb-10">
+              <View className="relative w-full items-center">
+                <View
+                  style={{ width: GRID_SIZE, height: GRID_SIZE }}
+                  className={`rounded-[3rem] overflow-hidden border ${
+                    gameState === GameState.FINISHED
+                      ? 'bg-emerald-500/5 border-emerald-500/50'
+                      : isDark
+                      ? 'bg-slate-900/40 border-white/5'
+                      : 'bg-white border-slate-200 shadow-inner'
+                  }`}
+                >
+                  {/* SVG Edges */}
+                  <Svg style={StyleSheet.absoluteFill} viewBox="0 0 100 100">
+                    {edges.map((e, idx) => {
+                      const n1 = nodes[e.a];
+                      const n2 = nodes[e.b];
+                      if (!n1 || !n2) return null;
+                      const isFinished = gameState === GameState.FINISHED;
+                      const color = isFinished ? '#10b981' : isDark ? '#06b6d4' : '#0891b2';
+
+                      return (
+                        <Line
+                          key={idx}
+                          x1={n1.x}
+                          y1={n1.y}
+                          x2={n2.x}
+                          y2={n2.y}
+                          stroke={color}
+                          strokeWidth="1.2"
+                          strokeOpacity={isFinished ? 0.8 : 0.4}
+                          strokeLinecap="round"
+                        />
+                      );
+                    })}
+                  </Svg>
+
+                  {/* Draggable Nodes */}
+                  {nodes.map((node) => (
+                    <DraggableNode
+                      key={node.id}
+                      node={node}
+                      isFinished={gameState === GameState.FINISHED}
+                      isDark={isDark}
+                      onDragStart={handleDragStart}
+                      onDrag={handleDrag}
+                      onDragEnd={handleDragEnd}
+                    />
+                  ))}
+                </View>
+
+                {/* Victory Overlay */}
+                <AnimatePresence>
+                  {showSuccessOverlay && (
+                    <MotiView
+                      from={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ type: 'timing', duration: 300 }}
+                      style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(5, 7, 10, 0.9)', borderRadius: 48 }]}
+                      className="items-center justify-center z-50 p-8"
+                    >
+                      <View className="w-20 h-20 rounded-full bg-emerald-500 items-center justify-center mb-8 border-4 border-emerald-400">
+                        <Check color="white" size={44} strokeWidth={3} />
+                      </View>
+                      <Text weight="black" className="text-4xl text-white italic uppercase tracking-tighter text-center mb-2">
+                        REP LOGGED
+                      </Text>
+                      <Text variant="mono" className="text-cyan-400 text-3xl tracking-widest mb-12 text-center">
+                        +50 LOGIC XP
+                      </Text>
+
+                      <Pressable
+                        onPress={() => setShowSuccessOverlay(false)}
+                        className="w-full py-4 bg-white/5 border border-white/20 rounded-[2rem] flex-row items-center justify-center gap-3"
+                      >
+                        <Eye color="white" size={18} />
+                        <Text weight="black" className="text-white text-[11px] uppercase tracking-widest">
+                          Inspect Grid
+                        </Text>
+                      </Pressable>
+
+                      <View className="items-center gap-6 opacity-60 mt-12">
+                        <Text weight="bold" className="text-white text-[10px] uppercase tracking-[0.5em]">
+                          Swipe for next rep
+                        </Text>
+                        <MotiView
+                          from={{ translateY: 0 }}
+                          animate={{ translateY: 10 }}
+                          transition={{ loop: true, type: 'timing', duration: 1000 }}
+                        >
+                          <ChevronDown color="white" size={28} />
+                        </MotiView>
+                      </View>
+                    </MotiView>
+                  )}
+                </AnimatePresence>
+
+                {/* Layout Button */}
+                {gameState === GameState.FINISHED && !isAutoSolved && !showSuccessOverlay && (
+                  <MotiView
+                    from={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'timing', duration: 200 }}
+                    className="absolute top-6 right-6 z-40"
+                  >
+                    <Pressable
+                      onPress={() => setShowSuccessOverlay(true)}
+                      className="p-4 bg-emerald-500 rounded-3xl shadow-2xl active:scale-90"
+                    >
+                      <Layout color="black" size={24} />
+                    </Pressable>
+                  </MotiView>
+                )}
+              </View>
+            </View>
+
+            {/* Bottom Controls */}
+            <View className="w-full items-center mb-8">
+              <AnimatePresence exitBeforeEnter>
+                {gameState === GameState.PLAYING ? (
+                  <MotiView
+                    key="controls"
+                    from={{ opacity: 0, translateY: 10 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    exit={{ opacity: 0, translateY: 10 }}
+                    transition={{ type: 'timing', duration: 200 }}
+                    className="w-full items-center px-4"
+                  >
+                    <Text
+                      weight="black"
+                      className={`${subTextColor} text-[10px] uppercase tracking-[0.5em] mb-10 text-center opacity-70`}
+                    >
+                      Untangle the neural pathways
+                    </Text>
+                    <View className="flex-row gap-4 w-full max-w-[320px]">
+                      <Pressable
+                        onPress={initGame}
+                        className={`flex-1 py-5 rounded-[1.5rem] border flex-row items-center justify-center gap-3 ${
+                          isDark ? 'border-slate-800 bg-slate-900/60' : 'border-slate-200 bg-white shadow-sm'
+                        }`}
+                      >
+                        <RotateCcw color={isDark ? '#64748b' : '#94a3b8'} size={16} />
+                        <Text
+                          weight="black"
+                          className={`text-[11px] uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
+                        >
+                          Reset
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={handleAutoSolve}
+                        className={`flex-1 py-5 rounded-[1.5rem] border flex-row items-center justify-center gap-3 ${
+                          isDark ? 'border-slate-800 bg-slate-900/60' : 'border-slate-200 bg-white shadow-sm'
+                        }`}
+                      >
+                        <Zap color={isDark ? '#64748b' : '#94a3b8'} size={16} />
+                        <Text
+                          weight="black"
+                          className={`text-[11px] uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
+                        >
+                          Solution
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </MotiView>
+                ) : (
+                  <MotiView
+                    key="finished-state"
+                    from={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ type: 'timing', duration: 300 }}
+                    className="items-center"
+                  >
+                    {isAutoSolved ? (
+                      <View className="items-center">
+                        <View className="w-14 h-14 rounded-full bg-amber-500/20 items-center justify-center mb-6 border border-amber-500/40">
+                          <Eye color="#f59e0b" size={28} />
+                        </View>
+                        <Text weight="black" className={`text-2xl italic mb-2 uppercase tracking-tighter ${textColor}`}>
+                          BYPASS LOGGED
+                        </Text>
+                        <Text weight="bold" className="text-slate-500 text-[11px] uppercase tracking-widest mb-10">
+                          Neural Rep skipped
+                        </Text>
+                        <MotiView
+                          from={{ translateY: 0 }}
+                          animate={{ translateY: 10 }}
+                          transition={{ loop: true, type: 'timing', duration: 1000 }}
+                        >
+                          <ChevronDown color="#475569" size={32} />
+                        </MotiView>
+                      </View>
+                    ) : (
+                      <View className="items-center gap-4">
+                        <Text weight="black" className="text-emerald-500 text-[12px] uppercase tracking-[0.4em] mb-6">
+                          PLANAR RESOLUTION ACHIEVED
+                        </Text>
+                        <Pressable
+                          onPress={initGame}
+                          className={`px-10 py-4 rounded-2xl border flex-row items-center justify-center gap-3 ${
+                            isDark ? 'border-slate-800 bg-slate-900/40' : 'border-slate-200 bg-white'
+                          }`}
+                        >
+                          <RotateCcw color={isDark ? '#94a3b8' : '#64748b'} size={16} />
+                          <Text
+                            weight="black"
+                            className={`text-[11px] uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}
+                          >
+                            New Puzzle
+                          </Text>
+                        </Pressable>
+                      </View>
+                    )}
+                  </MotiView>
+                )}
+              </AnimatePresence>
+            </View>
+          </MotiView>
+        )}
+      </AnimatePresence>
+    </View>
+  );
+};
+
+export default React.memo(UntangleGame);

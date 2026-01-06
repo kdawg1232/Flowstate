@@ -186,10 +186,12 @@ export default function App() {
 
       return {
         ...prev,
-        totalReps: prev.totalReps + score,
+        totalReps: prev.totalReps + (score > 0 ? 1 : 0),
         dailyReps: newDailyReps,
-        mentalReps: prev.mentalReps + (isPhysical ? 0 : score),
-        physicalReps: prev.physicalReps + (isPhysical ? score : 0),
+        xp: prev.xp + 10,
+        level: calculateLevel(prev.xp + 10),
+        mentalReps: prev.mentalReps + (isPhysical ? 0 : 1),
+        physicalReps: prev.physicalReps + (isPhysical ? 1 : 0),
         activityHistory: newActivity,
         gameStats: newGameStats,
         screenTime: {

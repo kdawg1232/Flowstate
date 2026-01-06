@@ -10,12 +10,12 @@ type Props = {
   stats: UserStats;
 };
 
-const CATEGORIES: Category[] = ['MEMORY', 'SPEED', 'ATTENTION', 'FLEXIBILITY', 'MATH', 'PHYSICAL'];
+const CATEGORIES: Category[] = ['MEMORY', 'SPEED', 'LOGIC', 'FLEXIBILITY', 'MATH', 'PHYSICAL'];
 
 const THEME_MAP: Record<Category, string> = {
   'MEMORY': '#06b6d4',
   'SPEED': '#f59e0b',
-  'ATTENTION': '#6366f1',
+  'LOGIC': '#6366f1',
   'FLEXIBILITY': '#f43f5e',
   'MATH': '#3b82f6',
   'PHYSICAL': '#10b981'
@@ -42,7 +42,11 @@ export function ProgressScreen({ theme, stats }: Props) {
   const getStrength = (cat: Category) => {
     if (cat === 'MEMORY') return Math.min(100, (stats.gameStats.pulse?.timesPlayed || 0) * 20);
     if (cat === 'SPEED') return Math.min(100, (stats.gameStats.signal?.timesPlayed || 0) * 20);
-    if (cat === 'ATTENTION') return Math.min(100, (stats.gameStats.flanker?.timesPlayed || 0) * 20);
+    if (cat === 'LOGIC') {
+      const totalPlayed = (stats.gameStats.keen?.timesPlayed || 0) + 
+                          (stats.gameStats.bridges?.timesPlayed || 0);
+      return Math.min(100, totalPlayed * 20);
+    }
     if (cat === 'FLEXIBILITY') return Math.min(100, (stats.gameStats.logic_link?.timesPlayed || 0) * 20);
     if (cat === 'MATH') return Math.min(100, (stats.gameStats.math_dash?.timesPlayed || 0) * 20);
     if (cat === 'PHYSICAL') {
