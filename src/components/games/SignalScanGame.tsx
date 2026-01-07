@@ -80,11 +80,11 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const controlBgClass = isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200';
 
   return (
-    <View className={`flex-1 px-6 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-slate-50'}`}>
       <AnimatePresence exitBeforeEnter>
         {gameState === GameState.IDLE ? (
-          <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center justify-center">
-            <View className={`w-20 h-20 ${isDark ? 'bg-amber-500/20 border-amber-500/40' : 'bg-white border-amber-100'} rounded-3xl items-center justify-center mb-6 border`}>
+          <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center justify-center px-6">
+            <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-amber-100'} rounded-3xl items-center justify-center mb-6 border`}>
               <Activity color="#f59e0b" size={40} />
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase ${textColorClass}`}>Signal Scan</Text>
@@ -139,7 +139,7 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
               </View>
           </MotiView>
         ) : (
-          <MotiView key="finished" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center justify-center">
+          <MotiView key="finished" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center justify-center px-6">
             <View className="w-16 h-16 rounded-full bg-emerald-500/20 items-center justify-center mb-6 border border-emerald-500/40">
               <Check color="#10b981" size={32} />
             </View>

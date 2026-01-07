@@ -53,29 +53,37 @@ function SitupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
 
   return (
     <View className="flex-1 bg-black items-center justify-center relative overflow-hidden">
-      <View className="absolute inset-0 items-center justify-center opacity-10">
-        <Activity color="#10b981" size={400} />
-      </View>
+      <View className="absolute inset-0 z-20">
+        <AnimatePresence>
+          {isStarted && !isFinished && (
+            <MotiView 
+              from={{ opacity: 0, translateY: -20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              exit={{ opacity: 0, translateY: -20 }}
+              style={{ marginTop: insets.top + 80 }} 
+              className="flex-row justify-between w-full px-6"
+            >
+               <View className="bg-black/40 px-4 py-2 rounded-full border border-white/10 flex-row items-center gap-2">
+                 <Timer size={16} color="#34d399" />
+                 <Text weight="black" variant="mono" className="text-emerald-400">{timeLeft}s</Text>
+               </View>
+               <View className="bg-black/40 px-4 py-2 rounded-full border border-white/10 flex-row items-center gap-2">
+                 <Activity size={16} color="white" />
+                 <Text weight="black" variant="mono" className="text-white text-[10px] uppercase">Situps</Text>
+               </View>
+            </MotiView>
+          )}
+        </AnimatePresence>
 
-      <View className="absolute inset-0 z-20 p-6">
-        <View style={{ marginTop: insets.top + 80 }} className="flex-row justify-between w-full">
-           <View className="bg-black/40 px-4 py-2 rounded-full border border-white/10 flex-row items-center gap-2">
-             <Timer size={16} color="#34d399" />
-             <Text weight="black" variant="mono" className="text-emerald-400">{timeLeft}s</Text>
-           </View>
-           <View className="bg-black/40 px-4 py-2 rounded-full border border-white/10 flex-row items-center gap-2">
-             <Activity size={16} color="white" />
-             <Text weight="black" variant="mono" className="text-white text-[10px] uppercase">Situps</Text>
-           </View>
-        </View>
-
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center justify-center px-6">
           <AnimatePresence exitBeforeEnter>
             {!isStarted && !isFinished ? (
-              <MotiView key="intro" from={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-black/80 p-8 rounded-[2.5rem] border border-white/10 items-center">
-                 <Layers color="#10b981" size={48} className="mb-4" />
-                 <Text weight="black" className="text-white text-2xl italic uppercase tracking-tighter mb-2 text-center">Situps</Text>
-                 <Text className="text-slate-400 text-xs uppercase tracking-widest mb-8 text-center">Maintain shoulder-to-knee compression.</Text>
+              <MotiView key="intro" from={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="items-center">
+                 <View className="w-20 h-20 bg-black rounded-3xl items-center justify-center mb-8 border border-white/10">
+                    <Layers color="#10b981" size={48} />
+                 </View>
+                 <Text weight="black" className="text-white text-3xl italic uppercase tracking-tighter mb-4 text-center">Situps</Text>
+                 <Text className="text-slate-400 text-xs uppercase tracking-widest mb-10 text-center max-w-[240px]">Maintain shoulder-to-knee compression.</Text>
                  <Pressable onPress={() => setIsStarted(true)} className="bg-emerald-500 px-12 py-4 rounded-2xl flex-row items-center gap-3 shadow-xl">
                     <Play color="black" size={20} fill="black" />
                     <Text weight="black" className="text-black uppercase">START SET</Text>

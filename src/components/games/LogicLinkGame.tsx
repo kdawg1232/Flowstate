@@ -90,11 +90,11 @@ function LogicLinkGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const subTextColorClass = isDark ? 'text-slate-500' : 'text-slate-400';
 
   return (
-    <View className={`flex-1 px-6 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-slate-50'}`}>
       <AnimatePresence exitBeforeEnter>
         {gameState === GameState.IDLE ? (
-          <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center justify-center">
-            <View className={`w-20 h-20 ${isDark ? 'bg-rose-500/20 border-rose-500/40' : 'bg-white border-rose-100'} rounded-3xl items-center justify-center mb-6 border`}>
+          <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center justify-center px-6">
+            <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-rose-100'} rounded-3xl items-center justify-center mb-6 border`}>
               <Layers color="#f43f5e" size={40} />
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase ${textColorClass}`}>Logic Link</Text>
@@ -107,7 +107,7 @@ function LogicLinkGame({ onComplete, isActive, theme = 'dark' }: Props) {
             </Pressable>
           </MotiView>
         ) : gameState === GameState.FINISHED ? (
-          <MotiView key="finished" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center justify-center">
+          <MotiView key="finished" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center justify-center px-6">
             <View className="w-16 h-16 rounded-full bg-emerald-500/20 items-center justify-center mb-6 border border-emerald-500/40">
               <Check color="#10b981" size={32} />
             </View>

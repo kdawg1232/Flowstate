@@ -129,7 +129,7 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
     >
-      <View className={`flex-1 w-full ${isDark ? 'bg-slate-950' : 'bg-slate-50'} px-6 pb-24 relative overflow-hidden`}>
+      <View className={`flex-1 w-full ${isDark ? 'bg-black' : 'bg-slate-50'} relative overflow-hidden`}>
         <AnimatePresence exitBeforeEnter>
           {gameState === GameState.IDLE ? (
             <MotiView 
@@ -138,9 +138,9 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
               animate={{ opacity: 1 }} 
               exit={{ opacity: 0 }}
               transition={{ type: 'timing', duration: 300 }}
-              className="flex-1 items-center justify-center"
+              className="flex-1 items-center justify-center px-6"
             >
-              <View className={`w-20 h-20 ${isDark ? 'bg-indigo-500/20 border-indigo-500/40 shadow-[0_0_30px_rgba(99,102,241,0.2)]' : 'bg-white border-indigo-100 shadow-sm'} rounded-3xl items-center justify-center mb-6 border`}>
+              <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10 shadow-[0_0_30px_rgba(99,102,241,0.2)]' : 'bg-white border-indigo-100 shadow-sm'} rounded-3xl items-center justify-center mb-6 border`}>
                 <Target color="#6366f1" size={40} />
               </View>
               <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase text-center ${textColor}`}>Number Hunt</Text>
@@ -235,7 +235,7 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
               animate={{ opacity: 1 }} 
               exit={{ opacity: 0 }}
               transition={{ type: 'timing', duration: 300 }}
-              className="flex-1 items-center justify-center"
+              className="flex-1 items-center justify-center px-6"
             >
               <View className="w-20 h-20 rounded-full bg-emerald-500/20 items-center justify-center mb-8 border border-emerald-500/40">
                 <AlertTriangle color="#10b981" size={40} />

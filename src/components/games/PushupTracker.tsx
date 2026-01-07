@@ -53,37 +53,38 @@ function PushupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
 
   return (
     <View className="flex-1 bg-black items-center justify-center relative overflow-hidden">
-      {/* Background Decor Grid */}
-      <View className="absolute inset-0 opacity-20">
-        <View className="absolute inset-0 border-[0.5px] border-emerald-500/20 flex-row flex-wrap">
-          {Array.from({ length: 144 }).map((_, i) => (
-            <View key={i} style={{ width: SCREEN_WIDTH / 12, height: SCREEN_HEIGHT / 12 }} className="border-[0.5px] border-emerald-500/10" />
-          ))}
-        </View>
-      </View>
+      <View className="absolute inset-0 z-20">
+        <AnimatePresence>
+          {isStarted && !isFinished && (
+            <MotiView 
+              from={{ opacity: 0, translateY: -20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              exit={{ opacity: 0, translateY: -20 }}
+              style={{ marginTop: insets.top + 80 }} 
+              className="flex-row justify-between w-full px-6"
+            >
+               <View className="bg-black/60 px-4 py-2 rounded-full border border-white/10 flex-row items-center gap-2 shadow-2xl">
+                 <Timer size={16} color="#34d399" />
+                 <Text weight="black" variant="mono" className="text-emerald-400">{timeLeft}s</Text>
+               </View>
+               
+               <View className="px-4 py-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 flex-row items-center gap-2">
+                 <Cpu size={16} color="#34d399" />
+                 <Text weight="black" variant="mono" className="text-white text-[10px] uppercase tracking-widest">Manual Protocol</Text>
+               </View>
+            </MotiView>
+          )}
+        </AnimatePresence>
 
-      <View className="absolute inset-0 z-20 p-6">
-        <View style={{ marginTop: insets.top + 80 }} className="flex-row justify-between w-full">
-           <View className="bg-black/60 px-4 py-2 rounded-full border border-white/10 flex-row items-center gap-2 shadow-2xl">
-             <Timer size={16} color="#34d399" />
-             <Text weight="black" variant="mono" className="text-emerald-400">{timeLeft}s</Text>
-           </View>
-           
-           <View className="px-4 py-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 flex-row items-center gap-2">
-             <Cpu size={16} color="#34d399" />
-             <Text weight="black" variant="mono" className="text-white text-[10px] uppercase tracking-widest">Manual Protocol</Text>
-           </View>
-        </View>
-
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center justify-center px-6">
           <AnimatePresence exitBeforeEnter>
             {!isStarted && !isFinished ? (
-              <MotiView key="intro" from={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-black/90 p-8 rounded-[3rem] border border-white/10 items-center text-center max-w-[340px] shadow-2xl">
-                 <View className="w-20 h-20 bg-emerald-500/20 rounded-3xl items-center justify-center mb-8 border border-emerald-500/30">
+              <MotiView key="intro" from={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="items-center text-center max-w-[340px]">
+                 <View className="w-20 h-20 bg-black rounded-3xl items-center justify-center mb-8 border border-white/10">
                     <Dumbbell color="#34d399" size={36} />
                  </View>
                  <Text weight="black" className="text-white text-3xl italic uppercase tracking-tighter mb-4 text-center">Pushups</Text>
-                 <View className="space-y-4 mb-10 px-2">
+                 <View className="space-y-4 mb-10 px-2 items-center">
                     <View className="flex-row items-center gap-3">
                       <View className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                       <Text className="text-slate-400 text-[11px] font-medium uppercase tracking-wide">Perform as many reps.</Text>

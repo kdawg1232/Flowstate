@@ -111,11 +111,11 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const subTextColorClass = isDark ? 'text-slate-500' : 'text-slate-400';
 
   return (
-    <View className={`flex-1 items-center justify-center p-6 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+    <View className={`flex-1 items-center justify-center ${isDark ? 'bg-black' : 'bg-slate-50'}`}>
       <AnimatePresence exitBeforeEnter>
         {gameState === GameState.IDLE ? (
-          <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center">
-            <View className={`w-20 h-20 ${isDark ? 'bg-blue-500/20 border-blue-500/40' : 'bg-white border-blue-100'} rounded-3xl items-center justify-center mb-6 border`}>
+          <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center px-6">
+            <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-blue-100'} rounded-3xl items-center justify-center mb-6 border`}>
               <Calculator color="#3b82f6" size={40} />
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase ${textColorClass}`}>Math Dash</Text>
@@ -128,7 +128,7 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
             </Pressable>
           </MotiView>
         ) : gameState === GameState.FINISHED ? (
-          <MotiView key="finished" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center">
+          <MotiView key="finished" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center px-6">
             <View className="w-16 h-16 rounded-full bg-emerald-500/20 items-center justify-center mb-6 border border-emerald-500/40">
               <Check color="#10b981" size={32} />
             </View>

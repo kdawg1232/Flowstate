@@ -97,11 +97,11 @@ function PulsePatternGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const nodeBaseColor = isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-200/50 border-slate-300';
 
   return (
-    <View className={`flex-1 items-center justify-center p-6 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+    <View className={`flex-1 items-center justify-center ${isDark ? 'bg-black' : 'bg-slate-50'}`}>
       <AnimatePresence exitBeforeEnter>
         {(gameState === GameState.IDLE && !hasInitialized.current) ? (
-          <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="items-center z-20">
-            <View className={`w-20 h-20 ${isDark ? 'bg-cyan-500/20 border-cyan-500/40' : 'bg-white border-cyan-100'} rounded-3xl items-center justify-center mb-6 border`}>
+          <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="items-center z-20 px-6">
+            <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-cyan-100'} rounded-3xl items-center justify-center mb-6 border`}>
               <Zap color="#06b6d4" size={40} />
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase ${textColorClass}`}>Pulse Pattern</Text>
@@ -112,7 +112,7 @@ function PulsePatternGame({ onComplete, isActive, theme = 'dark' }: Props) {
             </Pressable>
           </MotiView>
         ) : gameState === GameState.FINISHED || gameState === GameState.FAILURE ? (
-          <MotiView key="end" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center justify-center">
+          <MotiView key="end" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center justify-center px-6">
             <View className={`w-16 h-16 rounded-full items-center justify-center mb-6 border ${gameState === GameState.FINISHED ? 'bg-emerald-500/20 border-emerald-500/40' : 'bg-rose-500/20 border-rose-500/40'}`}>
               {gameState === GameState.FINISHED ? <Zap color="#10b981" /> : <AlertTriangle color="#f43f5e" />}
             </View>

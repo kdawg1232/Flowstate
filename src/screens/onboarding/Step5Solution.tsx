@@ -11,8 +11,8 @@ interface Props {
 
 const MILESTONES = [
   { val: 250, label: "The Focus Node", perk: "10 mins/hr of access", icon: Zap },
-  { val: 500, label: "Sustained Momentum", perk: "20 mins/hr of access", icon: Zap },
-  { val: 750, label: "High-Performance", perk: "30 mins/hr of access", icon: Zap },
+  { val: 500, label: "Sustained Momentum", perk: "15 mins/hr of access", icon: Zap },
+  { val: 750, label: "High-Performance", perk: "20 mins/hr of access", icon: Zap },
   { val: 1000, label: "Total Calibration", perk: "Unlimited Protocol Access", icon: Shield }
 ];
 

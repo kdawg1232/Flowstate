@@ -388,7 +388,7 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
   };
 
   return (
-    <View className={`flex-1 w-full ${isDark ? 'bg-[#05070a]' : 'bg-slate-50'} p-6 pb-24 relative overflow-hidden`}>
+    <View className={`flex-1 w-full ${isDark ? 'bg-black' : 'bg-slate-50'} relative overflow-hidden`}>
       <AnimatePresence exitBeforeEnter>
         {gameState === GameState.IDLE ? (
           <MotiView
@@ -397,9 +397,9 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ type: 'timing', duration: 300 }}
-            className="flex-1 items-center justify-center"
+            className="flex-1 items-center justify-center px-6"
           >
-            <View className={`w-20 h-20 ${isDark ? 'bg-indigo-500/20 border-indigo-500/40' : 'bg-white border-indigo-100'} rounded-3xl items-center justify-center mb-6 border`}>
+            <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-indigo-100'} rounded-3xl items-center justify-center mb-6 border`}>
               <Network color="#6366f1" size={40} />
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase text-center ${textColor}`}>Neural Bridges</Text>

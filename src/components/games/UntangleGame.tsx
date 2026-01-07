@@ -303,7 +303,7 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
   }, [isActive]);
 
   return (
-    <View className={`flex-1 w-full ${isDark ? 'bg-[#05070a]' : 'bg-slate-50'} px-6 pb-24 relative overflow-hidden`}>
+    <View className={`flex-1 w-full ${isDark ? 'bg-black' : 'bg-slate-50'} relative overflow-hidden`}>
       <AnimatePresence exitBeforeEnter>
         {gameState === GameState.IDLE ? (
           <MotiView
@@ -312,11 +312,11 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ type: 'timing', duration: 300 }}
-            className="flex-1 items-center justify-center"
+            className="flex-1 items-center justify-center px-6"
           >
             <View
               className={`w-20 h-20 ${
-                isDark ? 'bg-amber-500/20 border-amber-500/40' : 'bg-white border-amber-100'
+                isDark ? 'bg-black border-white/10' : 'bg-white border-amber-100'
               } rounded-3xl items-center justify-center mb-6 border`}
             >
               <Maximize color="#f59e0b" size={40} />

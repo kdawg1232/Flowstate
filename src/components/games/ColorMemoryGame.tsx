@@ -123,7 +123,7 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
   };
 
   return (
-    <View className={`flex-1 w-full ${isDark ? 'bg-[#05070a]' : 'bg-slate-50'} px-6 pb-24 relative overflow-hidden`}>
+    <View className={`flex-1 w-full ${isDark ? 'bg-black' : 'bg-slate-50'} relative overflow-hidden`}>
       <AnimatePresence exitBeforeEnter>
         {gameState === GameState.IDLE ? (
           <MotiView 
@@ -132,9 +132,9 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
             transition={{ type: 'timing', duration: 300 }}
-            className="flex-1 items-center justify-center"
+            className="flex-1 items-center justify-center px-6"
           >
-            <View className={`w-20 h-20 ${isDark ? 'bg-indigo-500/20 border-indigo-500/40' : 'bg-white border-indigo-100 shadow-sm'} rounded-3xl items-center justify-center mb-6 border`}>
+            <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-indigo-100 shadow-sm'} rounded-3xl items-center justify-center mb-6 border`}>
               <Brain color="#6366f1" size={40} />
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase text-center ${textColor}`}>Color Memory</Text>
@@ -156,7 +156,7 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
             transition={{ type: 'timing', duration: 300 }}
-            className="flex-1 items-center justify-center"
+            className="flex-1 items-center justify-center px-6"
           >
             <View className="w-20 h-20 rounded-full bg-rose-500/20 items-center justify-center mb-8 border border-rose-500/40">
               <X color="#f43f5e" size={40} />
