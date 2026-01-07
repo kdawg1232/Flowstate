@@ -1,10 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
+
+// Disable Reanimated strict mode to silence "Reading from value during component render" warnings 
+// which often trigger from third-party libraries like Moti or NativeWind.
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false,
+});
+
 import type { GameType, Tab, UserStats } from './src/types';
-import { LoginScreen } from './src/screens/LoginScreen';
-import { SignUpScreen } from './src/screens/SignUpScreen';
-import { LandingScreen } from './src/screens/LandingScreen';
 import { FeedScreen } from './src/screens/FeedScreen';
 import { HabitsScreen } from './src/screens/HabitsScreen';
 import { ProgressScreen } from './src/screens/ProgressScreen';
@@ -19,12 +25,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { calculateAllocatedMinutes } from './src/screentime';
 import ScreenTime from './src/native/ScreenTime';
 
+import OnboardingFlow from './src/screens/onboarding/OnboardingFlow';
+
 export default function App() {
   const fontsLoaded = useFlowstateFonts();
   const [isBooting, setIsBooting] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState<string>('');
-  const [authStage, setAuthStage] = useState<'landing' | 'login' | 'signup'>('landing');
   const [activeTab, setActiveTab] = useState<Tab>('scroll');
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [stats, setStats] = useState<UserStats>(() => defaultStats());
@@ -142,7 +149,6 @@ export default function App() {
     await remove(FLOWSTATE_AUTH_KEY);
     await remove(FLOWSTATE_CURRENT_USER_KEY);
     setIsLoggedIn(false);
-    setAuthStage('landing');
   };
 
   const handleDeleteAccount = async () => {
@@ -154,7 +160,6 @@ export default function App() {
     await remove(FLOWSTATE_CURRENT_USER_KEY);
     setStats(defaultStats());
     setIsLoggedIn(false);
-    setAuthStage('landing');
   };
 
   const handleScrollXp = React.useCallback(() => {}, []);
@@ -230,24 +235,9 @@ export default function App() {
     return (
       <SafeAreaProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
-          {authStage === 'landing' && (
-            <LandingScreen 
-              onGoToLogin={() => setAuthStage('login')} 
-              onGoToSignUp={() => setAuthStage('signup')} 
-            />
-          )}
-          {authStage === 'login' && (
-            <LoginScreen 
-              onLoginSuccess={handleLoginSuccess} 
-              onBack={() => setAuthStage('landing')} 
-            />
-          )}
-          {authStage === 'signup' && (
-            <SignUpScreen 
-              onSignUpSuccess={handleLoginSuccess} 
-              onBack={() => setAuthStage('landing')} 
-            />
-          )}
+          <OnboardingFlow 
+            onComplete={() => handleLoginSuccess('FlowState User')}
+          />
         </GestureHandlerRootView>
       </SafeAreaProvider>
     );
