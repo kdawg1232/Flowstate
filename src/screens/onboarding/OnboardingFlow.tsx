@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowLeft } from 'lucide-react-native';
+import { MotiView, AnimatePresence } from 'moti';
 import Landing from './Landing';
 import Step1Hook from './Step1Hook';
 import NewStep2Definition from './NewStep2Definition';
@@ -11,6 +13,7 @@ import Step5Solution from './Step5Solution';
 import Step6Proof from './Step6Proof';
 import Step7Arsenal from './Step7Arsenal';
 import Step8Payoff from './Step8Payoff';
+import { ProgressBar } from './ProgressBar';
 
 interface Props {
   onComplete: () => void;
@@ -18,10 +21,17 @@ interface Props {
 
 const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState(1); // 1 for forward, -1 for back
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  const nextStep = () => setStep(prev => prev + 1);
-  const prevStep = () => setStep(prev => Math.max(0, prev - 1));
+  const nextStep = () => {
+    setDirection(1);
+    setStep(prev => prev + 1);
+  };
+  const prevStep = () => {
+    setDirection(-1);
+    setStep(prev => Math.max(0, prev - 1));
+  };
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
@@ -66,7 +76,42 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.content}>
-        {renderStep()}
+        {step > 0 && (
+          <View className="absolute top-16 left-6 right-6 flex-row items-center z-[200]">
+            <Pressable 
+              onPress={prevStep}
+              className="p-2 mr-4"
+            >
+              <ArrowLeft size={24} color="#64748b" />
+            </Pressable>
+            <ProgressBar progress={step / 9} />
+          </View>
+        )}
+        
+        <AnimatePresence exitBeforeEnter>
+          <MotiView
+            key={step}
+            from={{ 
+              opacity: 0, 
+              translateX: direction * 50 
+            }}
+            animate={{ 
+              opacity: 1, 
+              translateX: 0 
+            }}
+            exit={{ 
+              opacity: 0, 
+              translateX: -direction * 50 
+            }}
+            transition={{ 
+              type: 'timing', 
+              duration: 400,
+            }}
+            style={StyleSheet.absoluteFill}
+          >
+            {renderStep()}
+          </MotiView>
+        </AnimatePresence>
       </SafeAreaView>
     </View>
   );

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Pressable, ScrollView } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
-import { AlertCircle, ArrowLeft, Check, Lock, Zap, Shield } from 'lucide-react-native';
+import { AlertCircle, Check, Lock, Zap, Shield } from 'lucide-react-native';
 import { Text } from '../../ui/Text';
 
 interface Props {
@@ -28,15 +28,7 @@ const Step5Solution: React.FC<Props> = ({ onNext, onBack }) => {
   const isComplete = visibleCount === MILESTONES.length;
 
   return (
-    <View className="flex-1 w-full bg-[#0a0a0c] px-6 pt-12">
-      {/* Back button */}
-      <Pressable 
-        onPress={onBack}
-        className="absolute top-12 left-6 p-2 z-[120]"
-      >
-        <ArrowLeft size={24} color="#64748b" />
-      </Pressable>
-
+    <View className="flex-1 w-full bg-[#0a0a0c] px-6 pt-32">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Header section */}
         <View className="mt-12 mb-10 items-center px-2">
@@ -152,7 +144,7 @@ const Step5Solution: React.FC<Props> = ({ onNext, onBack }) => {
         <Pressable 
           onPress={onNext}
           disabled={!isComplete}
-          className={`w-full py-5 rounded-2xl items-center transition-all ${
+          className={`w-full py-5 rounded-full items-center transition-all ${
             isComplete 
               ? 'bg-cyan-500 shadow-lg' 
               : 'bg-white/5 opacity-20'

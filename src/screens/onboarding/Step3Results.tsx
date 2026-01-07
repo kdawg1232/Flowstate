@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
 import { MotiView } from 'moti';
-import { AlertCircle, ArrowLeft, ChevronDown } from 'lucide-react-native';
+import { AlertCircle, ChevronDown } from 'lucide-react-native';
 import { Text } from '../../ui/Text';
 
 interface Props {
@@ -11,13 +11,6 @@ interface Props {
 
 const Step3Results: React.FC<Props> = ({ onNext, onBack }) => (
   <View className="flex-1 items-center justify-center px-6 bg-[#0a0a0c]">
-    <Pressable 
-      onPress={onBack}
-      className="absolute top-12 left-6 p-2 z-[120]"
-    >
-      <ArrowLeft size={24} color="#64748b" />
-    </Pressable>
-
     <View className="mb-10 items-center justify-center">
       <MotiView
         animate={{ 

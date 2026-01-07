@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Pressable, Dimensions } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
 import { Easing } from 'react-native-reanimated';
-import { Brain, ArrowRight, ArrowLeft } from 'lucide-react-native';
+import { Brain, ArrowRight } from 'lucide-react-native';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { Text } from '../../ui/Text';
 
@@ -80,22 +80,6 @@ const Step1Hook: React.FC<Props> = ({ onNext, onBack }) => {
           className="h-32 w-full bg-cyan-400"
         />
       </View>
-
-      {/* Top Progress Bar - As seen in web version screenshots */}
-      <View className="absolute top-16 left-6 right-6 h-[2px] bg-white/5 overflow-hidden rounded-full">
-        <MotiView 
-          animate={{ width: `${((textIndex + 1) / messages.length) * 10}%` }}
-          transition={{ type: 'timing', duration: 500 }}
-          className="h-full bg-[#10b981]"
-        />
-      </View>
-
-      <Pressable 
-        onPress={onBack}
-        className="absolute top-12 left-6 p-2 z-50"
-      >
-        <ArrowLeft size={24} color="#64748b" />
-      </Pressable>
 
       <View className="mb-20 items-center justify-center">
         {/* Diffuse Brain Glow using SVG Radial Gradient */}

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Pressable, Dimensions } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
 import { Easing } from 'react-native-reanimated';
-import { Brain, ArrowLeft } from 'lucide-react-native';
+import { Brain } from 'lucide-react-native';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { Text } from '../../ui/Text';
 
@@ -56,20 +56,7 @@ const NewStep2Definition: React.FC<Props> = ({ onNext, onBack }) => {
         <MotiView from={{ translateY: SCREEN_HEIGHT }} animate={{ translateY: -120 }} transition={{ type: 'timing', duration: 5000, loop: true, delay: 800, easing: Easing.linear }} className="h-32 w-full bg-cyan-400" />
       </View>
 
-      {/* Top Progress Bar */}
-      <View className="absolute top-16 left-6 right-6 h-[2px] bg-white/5 overflow-hidden rounded-full">
-        <MotiView 
-          animate={{ width: `${(2 / 10) * 100}%` }}
-          transition={{ type: 'timing', duration: 500 }}
-          className="h-full bg-[#10b981]"
-        />
-      </View>
-
-      <Pressable onPress={onBack} className="absolute top-12 left-6 p-2 z-[120]">
-        <ArrowLeft size={24} color="#64748b" />
-      </Pressable>
-
-      <View className="mb-8 mt-12">
+      <View className="mb-8 mt-24">
         <Text weight="black" className="text-[17px] italic tracking-tight uppercase text-center text-white">
           What does <Text weight="black" className="text-[#06b6d4]">Flowstate</Text> mean?
         </Text>
@@ -199,7 +186,7 @@ const NewStep2Definition: React.FC<Props> = ({ onNext, onBack }) => {
       <View className="mt-8 w-full">
         <Pressable 
           onPress={onNext}
-          className="w-full py-5 bg-cyan-500 rounded-2xl items-center shadow-lg active:scale-95"
+          className="w-full py-5 bg-cyan-500 rounded-full items-center shadow-lg active:scale-95"
           style={{
             shadowColor: '#06b6d4',
             shadowOffset: { width: 0, height: 0 },

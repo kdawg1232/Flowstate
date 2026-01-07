@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Pressable, ScrollView } from 'react-native';
-import { Brain, Dumbbell, Lock, BarChart3, ArrowLeft } from 'lucide-react-native';
+import { Brain, Dumbbell, Lock, BarChart3 } from 'lucide-react-native';
 import { Text } from '../../ui/Text';
 
 interface Props {
@@ -9,14 +9,7 @@ interface Props {
 }
 
 const Step7Arsenal: React.FC<Props> = ({ onNext, onBack }) => (
-  <View className="flex-1 px-6 bg-[#0a0a0c] pt-12">
-    <Pressable 
-      onPress={onBack}
-      className="absolute top-12 left-6 p-2 z-50"
-    >
-      <ArrowLeft size={24} color="#64748b" />
-    </Pressable>
-
+  <View className="flex-1 px-6 bg-[#0a0a0c] pt-32">
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
       <View className="mt-12 mb-10">
         <Text weight="black" className="text-3xl italic tracking-tighter uppercase text-white leading-tight">
@@ -49,7 +42,7 @@ const Step7Arsenal: React.FC<Props> = ({ onNext, onBack }) => (
 
       <Pressable 
         onPress={onNext}
-        className="w-full py-5 bg-cyan-500 rounded-2xl items-center shadow-lg active:scale-95"
+        className="w-full py-5 bg-cyan-500 rounded-full items-center shadow-lg active:scale-95"
         style={{
           shadowColor: '#06b6d4',
           shadowOffset: { width: 0, height: 0 },

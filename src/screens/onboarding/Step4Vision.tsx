@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
 import { MotiView } from 'moti';
-import { Brain, ArrowLeft } from 'lucide-react-native';
+import { Brain } from 'lucide-react-native';
 import { Text } from '../../ui/Text';
 
 interface Props {
@@ -11,14 +11,6 @@ interface Props {
 
 const Step4Vision: React.FC<Props> = ({ onNext, onBack }) => (
   <View className="flex-1 items-center justify-center px-6 bg-[#0a0a0c] relative">
-    {/* Back Button */}
-    <Pressable 
-      onPress={onBack}
-      className="absolute top-12 left-6 p-2 z-[120]"
-    >
-      <ArrowLeft size={24} color="#64748b" />
-    </Pressable>
-
     {/* Centered Headline */}
     <View className="mb-8 items-center">
       <Text weight="black" className="text-3xl italic tracking-tighter uppercase leading-tight text-white text-center">
@@ -104,7 +96,7 @@ const Step4Vision: React.FC<Props> = ({ onNext, onBack }) => (
     {/* Action Button */}
     <Pressable 
       onPress={onNext}
-      className="w-full py-5 bg-cyan-500 rounded-2xl items-center shadow-lg active:scale-95"
+      className="w-full py-5 bg-cyan-500 rounded-full items-center shadow-lg active:scale-95"
       style={{
         shadowColor: '#06b6d4',
         shadowOffset: { width: 0, height: 0 },

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Pressable, Dimensions } from 'react-native';
 import { MotiView } from 'moti';
 import { Easing } from 'react-native-reanimated';
-import { Brain, ArrowLeft } from 'lucide-react-native';
+import { Brain } from 'lucide-react-native';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { Text } from '../../ui/Text';
 
@@ -48,13 +48,6 @@ const Step8Payoff: React.FC<Props> = ({ onComplete, onBack }) => (
         className="h-32 w-full bg-amber-400"
       />
     </View>
-
-    <Pressable 
-      onPress={onBack}
-      className="absolute top-12 left-6 p-2 z-[120]"
-    >
-      <ArrowLeft size={24} color="#64748b" />
-    </Pressable>
 
     <View className="relative mb-12 items-center justify-center">
       {/* 
@@ -118,7 +111,7 @@ const Step8Payoff: React.FC<Props> = ({ onComplete, onBack }) => (
 
       <Pressable 
         onPress={onComplete}
-        className="w-full py-6 bg-cyan-500 rounded-2xl items-center shadow-2xl active:scale-95"
+        className="w-full py-6 bg-cyan-500 rounded-full items-center shadow-2xl active:scale-95"
         style={{
           shadowColor: '#06b6d4',
           shadowOffset: { width: 0, height: 0 },

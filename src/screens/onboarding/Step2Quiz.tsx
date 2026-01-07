@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Pressable, ScrollView } from 'react-native';
 import { MotiView } from 'moti';
-import { Check, ArrowLeft } from 'lucide-react-native';
+import { Check } from 'lucide-react-native';
 import { Text } from '../../ui/Text';
 
 interface Props {
@@ -21,14 +21,7 @@ const Step2Quiz: React.FC<Props> = ({ onNext, onBack, selectedTags, toggleTag })
   ];
 
   return (
-    <View className="flex-1 px-6 bg-[#0a0a0c] pt-12">
-      <Pressable 
-        onPress={onBack}
-        className="absolute top-12 left-6 p-2 z-50"
-      >
-        <ArrowLeft size={24} color="#64748b" />
-      </Pressable>
-
+    <View className="flex-1 px-6 bg-[#0a0a0c] pt-32">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="mt-12 mb-2">
           <Text weight="black" className="text-3xl italic tracking-tighter uppercase text-white">
@@ -76,7 +69,7 @@ const Step2Quiz: React.FC<Props> = ({ onNext, onBack, selectedTags, toggleTag })
         <Pressable 
           onPress={onNext}
           disabled={selectedTags.length === 0}
-          className={`w-full py-5 rounded-2xl items-center transition-all ${
+          className={`w-full py-5 rounded-full items-center transition-all ${
             selectedTags.length > 0 
               ? 'bg-cyan-500 shadow-lg' 
               : 'bg-white/5 opacity-50'
