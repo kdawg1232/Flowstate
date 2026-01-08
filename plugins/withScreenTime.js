@@ -42,11 +42,177 @@ module.exports = function withScreenTime(config) {
     const projectRoot = config.modRequest.projectRoot;
     const iosRoot = path.join(projectRoot, 'ios');
     const extensionRoot = path.join(iosRoot, extensionName);
+    const mainAppName = config.modRequest.projectName || 'FlowState';
+    const mainAppRoot = path.join(iosRoot, mainAppName);
 
     // Create Extension Directory if it doesn't exist
     if (!fs.existsSync(extensionRoot)) {
       fs.mkdirSync(extensionRoot, { recursive: true });
     }
+
+    // ========================================
+    // COPY NATIVE MODULE FILES TO MAIN APP
+    // ========================================
+    const nativeSourceDir = path.join(projectRoot, 'native-ios', 'ScreenTime');
+    
+    // Copy FlowStateScreenTime.swift to main app
+    const swiftModuleSource = path.join(nativeSourceDir, 'FlowStateScreenTime.swift');
+    const swiftModuleDest = path.join(mainAppRoot, 'FlowStateScreenTime.swift');
+    if (fs.existsSync(swiftModuleSource)) {
+      fs.copyFileSync(swiftModuleSource, swiftModuleDest);
+    }
+
+    // Copy FlowStateScreenTime.m (Obj-C bridge) to main app
+    const objcModuleSource = path.join(nativeSourceDir, 'FlowStateScreenTime.m');
+    const objcModuleDest = path.join(mainAppRoot, 'FlowStateScreenTime.m');
+    if (fs.existsSync(objcModuleSource)) {
+      fs.copyFileSync(objcModuleSource, objcModuleDest);
+    }
+
+    // Add native module files to the main app target
+    const pbxFileReference = project.hash.project.objects['PBXFileReference'];
+    const pbxBuildFile = project.hash.project.objects['PBXBuildFile'];
+
+    // Find main app target and its sources build phase
+    const nativeTargets = project.hash.project.objects['PBXNativeTarget'];
+    let mainTargetKey = null;
+    let mainSourcesBuildPhaseKey = null;
+
+    for (const key in nativeTargets) {
+      const target = nativeTargets[key];
+      if (target && typeof target === 'object' && target.name === `"${mainAppName}"`) {
+        mainTargetKey = key;
+        // Find the sources build phase for main target
+        if (target.buildPhases) {
+          for (const phase of target.buildPhases) {
+            const phaseKey = typeof phase === 'object' ? phase.value : phase;
+            const pbxSourcesBuildPhase = project.hash.project.objects['PBXSourcesBuildPhase'];
+            if (pbxSourcesBuildPhase && pbxSourcesBuildPhase[phaseKey]) {
+              mainSourcesBuildPhaseKey = phaseKey;
+              break;
+            }
+          }
+        }
+        break;
+      }
+    }
+
+    // Add Swift module file to main target
+    if (mainSourcesBuildPhaseKey) {
+      const swiftModuleFileUuid = generateUuid();
+      const swiftModuleBuildFileUuid = generateUuid();
+
+      pbxFileReference[swiftModuleFileUuid] = {
+        isa: 'PBXFileReference',
+        lastKnownFileType: 'sourcecode.swift',
+        name: 'FlowStateScreenTime.swift',
+        path: `${mainAppName}/FlowStateScreenTime.swift`,
+        sourceTree: '"<group>"',
+      };
+      pbxFileReference[swiftModuleFileUuid + '_comment'] = 'FlowStateScreenTime.swift';
+
+      pbxBuildFile[swiftModuleBuildFileUuid] = {
+        isa: 'PBXBuildFile',
+        fileRef: swiftModuleFileUuid,
+        fileRef_comment: 'FlowStateScreenTime.swift',
+      };
+      pbxBuildFile[swiftModuleBuildFileUuid + '_comment'] = 'FlowStateScreenTime.swift in Sources';
+
+      const mainSourcesBuildPhase = project.hash.project.objects['PBXSourcesBuildPhase'][mainSourcesBuildPhaseKey];
+      if (mainSourcesBuildPhase && mainSourcesBuildPhase.files) {
+        mainSourcesBuildPhase.files.push({
+          value: swiftModuleBuildFileUuid,
+          comment: 'FlowStateScreenTime.swift in Sources',
+        });
+      }
+
+      // Add Obj-C bridge file to main target
+      const objcModuleFileUuid = generateUuid();
+      const objcModuleBuildFileUuid = generateUuid();
+
+      pbxFileReference[objcModuleFileUuid] = {
+        isa: 'PBXFileReference',
+        lastKnownFileType: 'sourcecode.c.objc',
+        name: 'FlowStateScreenTime.m',
+        path: `${mainAppName}/FlowStateScreenTime.m`,
+        sourceTree: '"<group>"',
+      };
+      pbxFileReference[objcModuleFileUuid + '_comment'] = 'FlowStateScreenTime.m';
+
+      pbxBuildFile[objcModuleBuildFileUuid] = {
+        isa: 'PBXBuildFile',
+        fileRef: objcModuleFileUuid,
+        fileRef_comment: 'FlowStateScreenTime.m',
+      };
+      pbxBuildFile[objcModuleBuildFileUuid + '_comment'] = 'FlowStateScreenTime.m in Sources';
+
+      if (mainSourcesBuildPhase && mainSourcesBuildPhase.files) {
+        mainSourcesBuildPhase.files.push({
+          value: objcModuleBuildFileUuid,
+          comment: 'FlowStateScreenTime.m in Sources',
+        });
+      }
+
+      // Find main app group and add files to it
+      const mainAppGroup = project.findPBXGroupKey({ name: mainAppName }) || 
+                           project.findPBXGroupKey({ path: mainAppName });
+      if (mainAppGroup) {
+        const pbxGroup = project.hash.project.objects['PBXGroup'][mainAppGroup];
+        if (pbxGroup && pbxGroup.children) {
+          pbxGroup.children.push({ value: swiftModuleFileUuid, comment: 'FlowStateScreenTime.swift' });
+          pbxGroup.children.push({ value: objcModuleFileUuid, comment: 'FlowStateScreenTime.m' });
+        }
+      }
+    }
+
+    // Add required frameworks to main app target's frameworks build phase
+    let mainFrameworksBuildPhaseKey = null;
+    if (mainTargetKey && nativeTargets[mainTargetKey].buildPhases) {
+      for (const phase of nativeTargets[mainTargetKey].buildPhases) {
+        const phaseKey = typeof phase === 'object' ? phase.value : phase;
+        const pbxFrameworksBuildPhase = project.hash.project.objects['PBXFrameworksBuildPhase'];
+        if (pbxFrameworksBuildPhase && pbxFrameworksBuildPhase[phaseKey]) {
+          mainFrameworksBuildPhaseKey = phaseKey;
+          break;
+        }
+      }
+    }
+
+    if (mainFrameworksBuildPhaseKey) {
+      const mainAppFrameworks = ['FamilyControls', 'ManagedSettings', 'DeviceActivity'];
+      const mainFrameworksBuildPhase = project.hash.project.objects['PBXFrameworksBuildPhase'][mainFrameworksBuildPhaseKey];
+
+      for (const frameworkName of mainAppFrameworks) {
+        const fwFileUuid = generateUuid();
+        const fwBuildFileUuid = generateUuid();
+
+        pbxFileReference[fwFileUuid] = {
+          isa: 'PBXFileReference',
+          lastKnownFileType: 'wrapper.framework',
+          name: `${frameworkName}.framework`,
+          path: `System/Library/Frameworks/${frameworkName}.framework`,
+          sourceTree: 'SDKROOT',
+        };
+        pbxFileReference[fwFileUuid + '_comment'] = `${frameworkName}.framework`;
+
+        pbxBuildFile[fwBuildFileUuid] = {
+          isa: 'PBXBuildFile',
+          fileRef: fwFileUuid,
+          fileRef_comment: `${frameworkName}.framework`,
+        };
+        pbxBuildFile[fwBuildFileUuid + '_comment'] = `${frameworkName}.framework in Frameworks`;
+
+        if (mainFrameworksBuildPhase && mainFrameworksBuildPhase.files) {
+          mainFrameworksBuildPhase.files.push({
+            value: fwBuildFileUuid,
+            comment: `${frameworkName}.framework in Frameworks`,
+          });
+        }
+      }
+    }
+    // ========================================
+    // END OF NATIVE MODULE SETUP
+    // ========================================
 
     // A. Create Extension Info.plist
     const appVersion = config.version || '1.0.0';
@@ -146,7 +312,6 @@ module.exports = function withScreenTime(config) {
     pbxFrameworksBuildPhase[frameworksBuildPhaseUuid + '_comment'] = 'Frameworks';
     
     // Add build phases to target
-    let nativeTargets = project.hash.project.objects['PBXNativeTarget'];
     for (const key in nativeTargets) {
       if (nativeTargets[key] && nativeTargets[key].name === `"${extensionName}"`) {
         nativeTargets[key].buildPhases = [
@@ -165,9 +330,6 @@ module.exports = function withScreenTime(config) {
     // Add Swift file to Sources build phase
     const swiftFileUuid = generateUuid();
     const swiftBuildFileUuid = generateUuid();
-    
-    const pbxFileReference = project.hash.project.objects['PBXFileReference'];
-    const pbxBuildFile = project.hash.project.objects['PBXBuildFile'];
     
     pbxFileReference[swiftFileUuid] = {
       isa: 'PBXFileReference',

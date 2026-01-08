@@ -36,19 +36,25 @@ export function ProfileScreen({ theme, username, stats, onUpdateStats, onToggleT
   };
 
   const toggleScreenTime = async () => {
-    if (!screenTime.isTrackingEnabled) {
+    const turningOn = !screenTime.isTrackingEnabled;
+    
+    if (turningOn) {
       const authorized = await ScreenTime.requestAuthorization();
       if (!authorized) {
         Alert.alert("Permission Required", "FlowState needs Screen Time permission to restrict apps.");
         return;
       }
+      
+      // Set initial budget based on current milestone (or 0 if no milestone reached)
+      const currentAllocatedMinutes = screenTime.allocatedMinutes || 0;
+      await ScreenTime.setScreenTimeBudget(currentAllocatedMinutes);
     }
 
     onUpdateStats({
       ...stats,
       screenTime: {
         ...screenTime,
-        isTrackingEnabled: !screenTime.isTrackingEnabled
+        isTrackingEnabled: turningOn
       }
     });
   };

@@ -10,19 +10,21 @@ import Step2Quiz from './Step2Quiz';
 import Step3Results from './Step3Results';
 import Step4Vision from './Step4Vision';
 import Step5Solution from './Step5Solution';
+import Step5bScreenTime from './Step5bScreenTime';
 import Step6Proof from './Step6Proof';
 import Step7Arsenal from './Step7Arsenal';
 import Step8Payoff from './Step8Payoff';
 import { ProgressBar } from './ProgressBar';
 
 interface Props {
-  onComplete: () => void;
+  onComplete: (screenTimeEnabled?: boolean) => void;
 }
 
 const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1); // 1 for forward, -1 for back
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [screenTimeEnabled, setScreenTimeEnabled] = useState(false);
 
   const nextStep = () => {
     setDirection(1);
@@ -63,11 +65,13 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       case 6:
         return <Step5Solution onNext={nextStep} onBack={prevStep} />;
       case 7:
-        return <Step6Proof onNext={nextStep} onBack={prevStep} />;
+        return <Step5bScreenTime onNext={nextStep} onBack={prevStep} onScreenTimeEnabled={setScreenTimeEnabled} />;
       case 8:
-        return <Step7Arsenal onNext={nextStep} onBack={prevStep} />;
+        return <Step6Proof onNext={nextStep} onBack={prevStep} />;
       case 9:
-        return <Step8Payoff onComplete={onComplete} onBack={prevStep} />;
+        return <Step7Arsenal onNext={nextStep} onBack={prevStep} />;
+      case 10:
+        return <Step8Payoff onComplete={() => onComplete(screenTimeEnabled)} onBack={prevStep} />;
       default:
         return <Landing onNext={nextStep} />;
     }
@@ -84,7 +88,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
             >
               <ArrowLeft size={24} color="#64748b" />
             </Pressable>
-            <ProgressBar progress={step / 9} />
+            <ProgressBar progress={step / 10} />
           </View>
         )}
         

@@ -63,6 +63,12 @@ export default function App() {
         });
       }
       setIsBooting(false);
+      
+      // Restore Screen Time budget on startup if enabled
+      if (savedStats?.screenTime?.isTrackingEnabled) {
+        const allocatedMinutes = savedStats.screenTime.allocatedMinutes || 0;
+        ScreenTime.setScreenTimeBudget(allocatedMinutes).catch(console.error);
+      }
     })();
 
     return () => {
@@ -176,11 +182,22 @@ export default function App() {
     })();
   }, [isBooting]);
 
-  const handleLoginSuccess = async (username: string) => {
+  const handleLoginSuccess = async (username: string, screenTimeEnabled?: boolean) => {
     await setString(FLOWSTATE_AUTH_KEY, 'true');
     await setString(FLOWSTATE_CURRENT_USER_KEY, username);
     setUsername(username);
     setIsLoggedIn(true);
+    
+    // If Screen Time was enabled during onboarding, update stats
+    if (screenTimeEnabled) {
+      setStats(prev => ({
+        ...prev,
+        screenTime: {
+          ...prev.screenTime,
+          isTrackingEnabled: true,
+        }
+      }));
+    }
   };
 
   const handleLogout = async () => {
@@ -277,7 +294,7 @@ export default function App() {
       <SafeAreaProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <OnboardingFlow 
-            onComplete={() => handleLoginSuccess('FlowState User')}
+            onComplete={(screenTimeEnabled) => handleLoginSuccess('FlowState User', screenTimeEnabled)}
           />
         </GestureHandlerRootView>
       </SafeAreaProvider>
