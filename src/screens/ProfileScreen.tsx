@@ -4,6 +4,10 @@ import { User, Settings, HelpCircle, Sun, Moon, LogOut, Shield, FileText, Trash2
 import { Text } from '../ui/Text';
 import type { UserStats } from '../types';
 import ScreenTime from '../native/ScreenTime';
+import { getMilestoneForReps } from '../screentime';
+
+const handleOpenPrivacy = () => Linking.openURL('https://getflowstate.netlify.app/privacy');
+const handleOpenTerms = () => Linking.openURL('https://getflowstate.netlify.app/terms');
 
 type Props = {
   theme: 'light' | 'dark';
@@ -21,6 +25,8 @@ export function ProfileScreen({ theme, username, stats, onUpdateStats, onToggleT
   const subTextColorClass = isDark ? 'text-slate-500' : 'text-slate-400';
   const cardBgClass = isDark ? 'bg-slate-900' : 'bg-white border border-slate-200';
   const bgClass = isDark ? 'bg-slate-950' : 'bg-slate-50';
+
+  const handleOpenSupport = () => Linking.openURL('https://getflowstate.netlify.app/support');
 
   const screenTime = stats.screenTime || {
     allocatedMinutes: 0,
@@ -62,10 +68,10 @@ export function ProfileScreen({ theme, username, stats, onUpdateStats, onToggleT
     }
   };
 
-  const handleOpenPrivacy = () => Linking.openURL('https://getflowstate.netlify.app/privacy');
-  const handleOpenTerms = () => Linking.openURL('https://getflowstate.netlify.app/terms');
-  const handleOpenSupport = () => Linking.openURL('https://getflowstate.netlify.app/support');
-  
+  const currentMilestone = getMilestoneForReps(stats.maxDailyReps || 0);
+  const protocolName = currentMilestone ? `${currentMilestone.label.toUpperCase()} PROTOCOL` : 'BASE PROTOCOL';
+  const displayMinutes = screenTime.allocatedMinutes === 60 ? '∞' : `${screenTime.allocatedMinutes}m/hr`;
+
   const confirmDelete = () => {
     Alert.alert(
       "Delete Account",
@@ -105,7 +111,7 @@ export function ProfileScreen({ theme, username, stats, onUpdateStats, onToggleT
                  <Lock size={18} color="#06b6d4" />
                  <View>
                    <Text weight="semibold" className={`text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>Active Enforcement</Text>
-                   <Text className="text-[10px] text-slate-500 uppercase">Blocks apps when reps run out</Text>
+                   <Text weight="black" className="text-[9px] text-slate-500 uppercase tracking-widest">Blocks apps when reps run out</Text>
                  </View>
                </View>
                <Switch 
@@ -133,12 +139,12 @@ export function ProfileScreen({ theme, username, stats, onUpdateStats, onToggleT
              <View className="p-4 bg-cyan-500/5">
                 <View className="flex-row justify-between items-end">
                    <View>
-                     <Text weight="black" variant="mono" className="text-cyan-500 text-lg">{screenTime.allocatedMinutes}m</Text>
-                     <Text weight="bold" className="text-[10px] text-slate-500 uppercase">Daily Budget Earned</Text>
+                     <Text weight="black" variant="mono" className="text-cyan-500 text-lg">{displayMinutes}</Text>
+                     <Text weight="bold" className="text-[10px] text-slate-500 uppercase">{protocolName}</Text>
                    </View>
                    <View className="items-end">
                      <Text weight="black" variant="mono" className="text-slate-400 text-lg">{screenTime.usedMinutes}m</Text>
-                     <Text weight="bold" className="text-[10px] text-slate-500 uppercase">Time Consumed</Text>
+                     <Text weight="bold" className="text-[10px] text-slate-500 uppercase">Hourly Consumption</Text>
                    </View>
                 </View>
                 <View className="h-1.5 w-full bg-slate-800 rounded-full mt-3 overflow-hidden">

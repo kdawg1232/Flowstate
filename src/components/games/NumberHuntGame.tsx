@@ -18,7 +18,7 @@ interface FloatingNumber {
 }
 
 interface Props {
-  onComplete: (reps: number) => void;
+  onComplete: (reps: number, isClean: boolean) => void;
   isActive: boolean;
   theme?: 'light' | 'dark';
   onLockScroll?: (lock: boolean) => void;
@@ -109,7 +109,7 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
       setFeedback('wrong');
       setTimeout(() => {
         setGameState(GameState.FINISHED);
-        onComplete(level * 10); // Level * 10 reps as requested
+        onComplete(level * 10, true); // Level * 10 reps as requested
       }, 600);
     }
   };

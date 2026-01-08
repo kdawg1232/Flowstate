@@ -8,7 +8,7 @@ import { LEVELS } from '../../constants';
 import { Text } from '../../ui/Text';
 
 interface Props {
-  onComplete: (level: number) => void;
+  onComplete: (level: number, isClean: boolean) => void;
   isActive: boolean;
   theme?: 'light' | 'dark';
 }
@@ -65,7 +65,7 @@ function PulsePatternGame({ onComplete, isActive, theme = 'dark' }: Props) {
     
     if (!targetNodes.includes(index)) { 
       setGameState(GameState.FAILURE); 
-      setTimeout(() => onComplete(internalLevel - 1), 100);
+      setTimeout(() => onComplete(internalLevel - 1, true), 100);
       return; 
     }
     
@@ -77,7 +77,7 @@ function PulsePatternGame({ onComplete, isActive, theme = 'dark' }: Props) {
           hasInitialized.current = true;
         } else {
           setGameState(GameState.FINISHED);
-          setTimeout(() => onComplete(10), 100);
+          setTimeout(() => onComplete(10, true), 100);
         }
       }, 1000);
     }

@@ -6,7 +6,7 @@ import { Timer, Play, CheckCircle2, ChevronDown, Activity, ShieldCheck, Square, 
 import { Text } from '../../ui/Text';
 
 interface Props {
-  onComplete: (reps: number) => void;
+  onComplete: (reps: number, isClean: boolean) => void;
   isActive: boolean;
   theme?: 'light' | 'dark';
 }
@@ -39,7 +39,7 @@ function PlankTracker({ onComplete, isActive, theme = 'dark' }: Props) {
 
   useEffect(() => {
     if (isFinished) {
-      const timer = setTimeout(() => onComplete(30 - timeLeft), 100);
+      const timer = setTimeout(() => onComplete(30 - timeLeft, true), 100);
       return () => clearTimeout(timer);
     }
   }, [isFinished, onComplete, timeLeft]);

@@ -131,7 +131,7 @@ const generateBridges = (w: number = 7, h: number = 7): PuzzleData => {
 };
 
 interface Props {
-  onComplete: (score: number) => void;
+  onComplete: (score: number, isClean: boolean) => void;
   isActive: boolean;
   theme?: 'light' | 'dark';
   onLockScroll?: (lock: boolean) => void;
@@ -167,6 +167,7 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
       setUserBridges([...puzzle.solution]);
       setIsAutoSolved(true);
       setGameState(GameState.FINISHED);
+      onComplete(0, false);
     }
   };
 
@@ -195,7 +196,7 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
 
     if (fullyConnected) {
       setGameState(GameState.FINISHED);
-      onComplete(50);
+      onComplete(50, true);
     }
   }, [userBridges, puzzle, onComplete, isAutoSolved]);
 

@@ -129,7 +129,7 @@ const generateKeen = (w: number = 4): PuzzleData => {
 };
 
 interface Props {
-  onComplete: (score: number) => void;
+  onComplete: (score: number, isClean: boolean) => void;
   isActive: boolean;
   theme?: 'light' | 'dark';
   onLockScroll?: (lock: boolean) => void;
@@ -164,6 +164,7 @@ const KeenGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLoc
       setUserGrid([...puzzle.solution]);
       setIsAutoSolved(true);
       setGameState(GameState.FINISHED);
+      onComplete(0, false);
     }
   };
 
@@ -202,7 +203,7 @@ const KeenGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLoc
 
     if (validCages) {
       setGameState(GameState.FINISHED);
-      onComplete(10);
+      onComplete(10, true);
     }
   }, [userGrid, puzzle, onComplete, isAutoSolved]);
 

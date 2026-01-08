@@ -7,7 +7,7 @@ import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
 
 interface Props {
-  onComplete: (score: number) => void;
+  onComplete: (score: number, isClean: boolean) => void;
   isActive: boolean;
   theme?: 'light' | 'dark';
 }
@@ -89,7 +89,7 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
     } else if (timeLeft <= 0 && gameState === GameState.PLAYING) {
       setGameState(GameState.FINISHED);
       if (timerRef.current) clearInterval(timerRef.current);
-      setTimeout(() => onComplete(score), 100);
+      setTimeout(() => onComplete(score, true), 100);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [gameState, timeLeft, score, onComplete]);

@@ -141,7 +141,7 @@ const generateMapPuzzle = (w: number, h: number, n: number): MapData => {
 };
 
 interface Props {
-  onComplete: (score: number) => void;
+  onComplete: (score: number, isClean: boolean) => void;
   isActive: boolean;
   theme?: 'light' | 'dark';
   onLockScroll?: (lock: boolean) => void;
@@ -193,7 +193,7 @@ const MapGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLock
 
       if (isValid) {
         setGameState(GameState.FINISHED);
-        onComplete(25);
+        onComplete(25, true);
         setTimeout(() => setShowSuccessOverlay(true), 800);
       }
     }
@@ -204,6 +204,7 @@ const MapGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLock
     setUserColors([...puzzle.solution]);
     setGameState(GameState.FINISHED);
     setIsAutoSolved(true);
+    onComplete(0, false);
   };
 
   const colorMap = isDark 

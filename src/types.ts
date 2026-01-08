@@ -34,6 +34,7 @@ export type Category = 'MEMORY' | 'SPEED' | 'ATTENTION' | 'FLEXIBILITY' | 'MATH'
 export interface GameStat {
   bestScore: number;
   timesPlayed: number;
+  cleanFinishes: number;
   category: Category;
 }
 
@@ -42,6 +43,8 @@ export interface ScreenTimeStats {
   usedMinutes: number;
   restrictedAppTokens: string[]; // Persistent tokens from FamilyControls
   isTrackingEnabled: boolean;
+  maxMilestoneReached: number; // The highest rep count milestone reached today
+  lastUpdateTimestamp: number; // For neural decay calculations
 }
 
 export interface UserStats {
@@ -49,6 +52,7 @@ export interface UserStats {
   xp: number;
   totalReps: number;
   dailyReps: number;
+  maxDailyReps: number; // The peak reps achieved today before decay
   mentalReps: number;
   physicalReps: number;
   streak: number;

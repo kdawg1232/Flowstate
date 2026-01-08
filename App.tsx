@@ -71,6 +71,36 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (isBooting || !isLoggedIn) return;
+
+    // Neural Decay: -1 rep per minute
+    const decayInterval = setInterval(() => {
+      setStats(prev => {
+        const now = Date.now();
+        const lastUpdate = prev.screenTime?.lastUpdateTimestamp || now;
+        const minutesElapsed = Math.floor((now - lastUpdate) / 60000);
+
+        if (minutesElapsed >= 1) {
+          const decayAmount = minutesElapsed;
+          const newDailyReps = Math.max(0, prev.dailyReps - decayAmount);
+          
+          return {
+            ...prev,
+            dailyReps: newDailyReps,
+            screenTime: {
+              ...prev.screenTime,
+              lastUpdateTimestamp: now,
+            }
+          };
+        }
+        return prev;
+      });
+    }, 30000); // Check every 30s
+
+    return () => clearInterval(decayInterval);
+  }, [isBooting, isLoggedIn]);
+
+  useEffect(() => {
     if (isBooting || !isLoggedIn || !stats.screenTime?.isTrackingEnabled) return;
 
     // Poll for used minutes every 30 seconds when in foreground
@@ -128,10 +158,18 @@ export default function App() {
           return { 
             ...prev, 
             xp: newXp, 
-            dailyReps: 0, 
+            dailyReps: 0,
+            maxDailyReps: 0, // Reset milestone progress for the new day
             level: calculateLevel(newXp),
             habits: updatedHabits,
-            isDaySealed: false
+            isDaySealed: false,
+            screenTime: {
+              ...prev.screenTime,
+              allocatedMinutes: 0, // Reset hourly allocation
+              usedMinutes: 0,
+              maxMilestoneReached: 0, // Reset milestone tracker
+              lastUpdateTimestamp: Date.now(),
+            }
           };
         });
       }
@@ -164,25 +202,27 @@ export default function App() {
 
   const handleScrollXp = React.useCallback(() => {}, []);
 
-  const handleRepComplete = React.useCallback((type: GameType, score: number) => {
+  const handleRepComplete = React.useCallback((type: GameType, score: number, isClean: boolean = true) => {
     const today = new Date().toISOString().split('T')[0];
     setStats((prev) => {
       const isPhysical = ['pushups', 'situps', 'planks'].includes(type);
       const gameKey = type as string;
-      const currentStats = prev.gameStats[gameKey] || { bestScore: 0, timesPlayed: 0, category: 'MEMORY' as const };
+      const currentStats = prev.gameStats[gameKey] || { bestScore: 0, timesPlayed: 0, cleanFinishes: 0, category: 'MEMORY' as const };
       const newGameStats = {
         ...prev.gameStats,
         [gameKey]: {
           ...currentStats,
           bestScore: Math.max(currentStats.bestScore, score),
           timesPlayed: currentStats.timesPlayed + 1,
+          cleanFinishes: currentStats.cleanFinishes + (isClean ? 1 : 0),
         },
       };
       const newActivity = { ...prev.activityHistory };
       newActivity[today] = (newActivity[today] || 0) + score;
       
       const newDailyReps = prev.dailyReps + score;
-      const newAllocatedMinutes = calculateAllocatedMinutes(newDailyReps);
+      const newMaxDailyReps = Math.max(prev.maxDailyReps || 0, newDailyReps);
+      const newAllocatedMinutes = calculateAllocatedMinutes(newMaxDailyReps);
 
       // Sync with Native Screen Time
       if (prev.screenTime?.isTrackingEnabled) {
@@ -191,17 +231,18 @@ export default function App() {
 
       return {
         ...prev,
-        totalReps: prev.totalReps + (score > 0 ? 1 : 0),
+        totalReps: prev.totalReps + score,
         dailyReps: newDailyReps,
-        xp: prev.xp + 10,
-        level: calculateLevel(prev.xp + 10),
-        mentalReps: prev.mentalReps + (isPhysical ? 0 : 1),
-        physicalReps: prev.physicalReps + (isPhysical ? 1 : 0),
+        maxDailyReps: newMaxDailyReps,
+        mentalReps: prev.mentalReps + (isPhysical ? 0 : score),
+        physicalReps: prev.physicalReps + (isPhysical ? score : 0),
         activityHistory: newActivity,
         gameStats: newGameStats,
         screenTime: {
           ...(prev.screenTime || defaultStats().screenTime),
           allocatedMinutes: newAllocatedMinutes,
+          maxMilestoneReached: Math.max(prev.screenTime?.maxMilestoneReached || 0, newMaxDailyReps),
+          lastUpdateTimestamp: Date.now(),
         }
       };
     });

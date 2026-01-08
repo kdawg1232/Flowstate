@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Dimensions, FlatList, Pressable, StyleSheet, View, ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { FlowMode, GameType } from '../types';
+import type { FlowMode, GameType, UserStats } from '../types';
 import { Brain, Dumbbell, Zap } from 'lucide-react-native';
 import { Text } from '../ui/Text';
 
@@ -24,7 +24,7 @@ type Rep = { id: string; type: GameType };
 
 type Props = {
   theme: 'light' | 'dark';
-  onCompleteRep: (type: GameType, score: number) => void;
+  onCompleteRep: (type: GameType, score: number, isClean?: boolean) => void;
   onScrollXp: () => void;
 };
 
@@ -41,7 +41,7 @@ const FeedItem = React.memo(({
   index: number;
   currentIndex: number;
   flatListHeight: number;
-  onCompleteRep: (type: GameType, score: number) => void;
+  onCompleteRep: (type: GameType, score: number, isClean?: boolean) => void;
   theme: 'light' | 'dark';
   setScrollEnabled: (enabled: boolean) => void;
 }) => {
@@ -49,20 +49,20 @@ const FeedItem = React.memo(({
   
   return (
     <View style={{ height: flatListHeight, width: '100%' }}>
-      {item.type === 'pulse' && <PulsePatternGame onComplete={(lvl) => onCompleteRep('pulse', lvl)} isActive={isActive} theme={theme} />}
-      {item.type === 'signal' && <SignalScanGame onComplete={(scr) => onCompleteRep('signal', scr)} isActive={isActive} theme={theme} />}
-      {item.type === 'logic_link' && <LogicLinkGame onComplete={(scr) => onCompleteRep('logic_link', scr)} isActive={isActive} theme={theme} />}
-      {item.type === 'math_dash' && <MentalMathGame onComplete={(scr) => onCompleteRep('math_dash', scr)} isActive={isActive} theme={theme} />}
-      {item.type === 'untangle' && <UntangleGame onComplete={(scr) => onCompleteRep('untangle', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-      {item.type === 'bridges' && <BridgesGame onComplete={(scr) => onCompleteRep('bridges', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-      {item.type === 'keen' && <KeenGame onComplete={(scr) => onCompleteRep('keen', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-      {item.type === 'color_memory' && <ColorMemoryGame onComplete={(scr) => onCompleteRep('color_memory', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-      {item.type === 'number_hunt' && <NumberHuntGame onComplete={(scr) => onCompleteRep('number_hunt', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-      {item.type === 'map' && <MapGame onComplete={(scr) => onCompleteRep('map', scr)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+      {item.type === 'pulse' && <PulsePatternGame onComplete={(lvl) => onCompleteRep('pulse', lvl, true)} isActive={isActive} theme={theme} />}
+      {item.type === 'signal' && <SignalScanGame onComplete={(scr) => onCompleteRep('signal', scr, true)} isActive={isActive} theme={theme} />}
+      {item.type === 'logic_link' && <LogicLinkGame onComplete={(scr, clean) => onCompleteRep('logic_link', scr, clean)} isActive={isActive} theme={theme} />}
+      {item.type === 'math_dash' && <MentalMathGame onComplete={(scr) => onCompleteRep('math_dash', scr, true)} isActive={isActive} theme={theme} />}
+      {item.type === 'untangle' && <UntangleGame onComplete={(scr, clean) => onCompleteRep('untangle', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+      {item.type === 'bridges' && <BridgesGame onComplete={(scr, clean) => onCompleteRep('bridges', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+      {item.type === 'keen' && <KeenGame onComplete={(scr, clean) => onCompleteRep('keen', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+      {item.type === 'color_memory' && <ColorMemoryGame onComplete={(scr, clean) => onCompleteRep('color_memory', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+      {item.type === 'number_hunt' && <NumberHuntGame onComplete={(scr, clean) => onCompleteRep('number_hunt', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+      {item.type === 'map' && <MapGame onComplete={(scr, clean) => onCompleteRep('map', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
       
-      {item.type === 'pushups' && <PushupTracker onComplete={(reps) => onCompleteRep('pushups', reps)} isActive={isActive} theme={theme} />}
-      {item.type === 'situps' && <SitupTracker onComplete={(reps) => onCompleteRep('situps', reps)} isActive={isActive} theme={theme} />}
-      {item.type === 'planks' && <PlankTracker onComplete={(reps) => onCompleteRep('planks', reps)} isActive={isActive} theme={theme} />}
+      {item.type === 'pushups' && <PushupTracker onComplete={(reps) => onCompleteRep('pushups', reps, true)} isActive={isActive} theme={theme} />}
+      {item.type === 'situps' && <SitupTracker onComplete={(reps) => onCompleteRep('situps', reps, true)} isActive={isActive} theme={theme} />}
+      {item.type === 'planks' && <PlankTracker onComplete={(reps) => onCompleteRep('planks', reps, true)} isActive={isActive} theme={theme} />}
     </View>
   );
 }, (prev, next) => {

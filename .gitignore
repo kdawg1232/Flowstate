@@ -45,3 +45,8 @@ ios/Pods/
 ios/build/
 ios/**/*.xcuserdata
 ios/**/*.xcuserdatad
+
+# Local signing credentials (do not commit)
+credentials.json
+profiles/
+certs/

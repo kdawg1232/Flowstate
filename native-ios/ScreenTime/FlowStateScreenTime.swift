@@ -3,15 +3,32 @@ import FamilyControls
 import ManagedSettings
 import DeviceActivity
 import Combine
+import SwiftUI
 
 @objc(ScreenTimeModule)
 class ScreenTimeModule: NSObject {
     private let center = AuthorizationCenter.shared
     private let store = ManagedSettingsStore()
     private let activityCenter = DeviceActivityCenter()
+    private var cancellables = Set<AnyCancellable>()
     
+    // For storing the selection across calls
+    private var selection = FamilyActivitySelection() {
+        didSet {
+            saveSelection(selection)
+        }
+    }
+
     @objc static func requiresMainQueueSetup() -> Bool {
         return true
+    }
+
+    private func saveSelection(_ selection: FamilyActivitySelection) {
+        let defaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
+        let encoder = JSONEncoder()
+        if let encoded = try? encoder.encode(selection) {
+            defaults?.set(encoded, forKey: "selectedApps")
+        }
     }
 
     @objc
@@ -29,27 +46,32 @@ class ScreenTimeModule: NSObject {
     @objc
     func setScreenTimeBudget(_ minutes: Int, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
         let sharedDefaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
-        sharedDefaults?.set(minutes, forKey: "allocatedMinutes")
+        sharedDefaults?.set(minutes, forKey: "hourlyQuota")
         
-        // If minutes > usedMinutes, ensure shield is removed
-        let used = sharedDefaults?.integer(forKey: "usedMinutes") ?? 0
-        if minutes > used {
+        // If minutes are high (e.g. 60), we remove any existing shield immediately
+        if minutes >= 60 {
             store.shield.applications = nil
             store.shield.applicationCategories = nil
-            store.shield.webDomains = nil
         }
-
-        let schedule = DeviceActivitySchedule(
-            intervalStart: DateComponents(hour: 0, minute: 0),
-            intervalEnd: DateComponents(hour: 23, minute: 59),
+        
+        let hourlySchedule = DeviceActivitySchedule(
+            intervalStart: DateComponents(minute: 0),
+            intervalEnd: DateComponents(minute: 59),
             repeats: true
         )
         
-        let threshold = DeviceActivityThreshold(duration: Double(minutes) * 60)
+        // Create an event with a threshold
+        let events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [
+            .reachedLimit: DeviceActivityEvent(
+                applications: selection.applicationTokens,
+                categories: selection.categoryTokens,
+                webDomains: selection.webDomainTokens,
+                threshold: DateComponents(minute: minutes)
+            )
+        ]
         
         do {
-            // Overwrites previous monitoring for .dailyBudget
-            try activityCenter.startMonitoring(.dailyBudget, recurring: true, schedule: schedule, threshold: threshold)
+            try activityCenter.startMonitoring(.hourlyBudget, during: hourlySchedule, events: events)
             resolve(nil)
         } catch {
             reject("MONITOR_FAILED", "Failed to start monitoring", error)
@@ -58,12 +80,19 @@ class ScreenTimeModule: NSObject {
 
     @objc
     func selectAppsToRestrict(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-        // This usually requires showing a View Controller which is harder in a pure native module.
-        // In a real Expo app, we'd use a custom view or a callback to the main thread.
         DispatchQueue.main.async {
-            // Placeholder: In a real implementation, we'd present FamilyActivityPicker
-            // For now, return empty as we are waiting for the picker bridge.
-            resolve([])
+            let picker = FamilyActivityPicker(selection: Binding(
+                get: { self.selection },
+                set: { self.selection = $0 }
+            ))
+            
+            let hostingController = UIHostingController(rootView: picker)
+            if let rootVC = UIApplication.shared.keyWindow?.rootViewController {
+                rootVC.present(hostingController, animated: true)
+                resolve(true)
+            } else {
+                reject("NO_ROOT_VC", "Could not find root view controller", nil)
+            }
         }
     }
 
@@ -77,4 +106,9 @@ class ScreenTimeModule: NSObject {
 
 extension DeviceActivityName {
     static let dailyBudget = Self("dailyBudget")
+    static let hourlyBudget = Self("hourlyBudget")
+}
+
+extension DeviceActivityEvent.Name {
+    static let reachedLimit = Self("reachedLimit")
 }

@@ -8,7 +8,7 @@ import { Brain, Play, ChevronDown, Check, X, Zap, ArrowRight } from 'lucide-reac
 import { Text } from '../../ui/Text';
 
 interface Props {
-  onComplete: (reps: number) => void;
+  onComplete: (reps: number, isClean: boolean) => void;
   isActive: boolean;
   theme?: 'light' | 'dark';
   onLockScroll?: (lock: boolean) => void;
@@ -71,7 +71,7 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
     const currentIndex = nextUserSequence.length - 1;
     if (nextUserSequence[currentIndex] !== sequence[currentIndex]) {
       setGameState(GameState.FAILURE);
-      onComplete((level - 1) * 10);
+      onComplete((level - 1) * 10, true);
       return;
     }
 

@@ -6,7 +6,7 @@ import { Timer, Play, CheckCircle2, ChevronDown, Dumbbell, Cpu, Plus, ArrowRight
 import { Text } from '../../ui/Text';
 
 interface Props {
-  onComplete: (reps: number) => void;
+  onComplete: (reps: number, isClean: boolean) => void;
   isActive: boolean;
   theme?: 'light' | 'dark';
 }
@@ -40,7 +40,7 @@ function PushupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
 
   useEffect(() => {
     if (isFinished) {
-      const timer = setTimeout(() => onComplete(reps), 100);
+      const timer = setTimeout(() => onComplete(reps, true), 100);
       return () => clearTimeout(timer);
     }
   }, [isFinished, reps, onComplete]);

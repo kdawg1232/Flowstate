@@ -110,7 +110,7 @@ const generateUntangle = (numNodes: number = 6): PuzzleData => {
 };
 
 interface Props {
-  onComplete: (score: number) => void;
+  onComplete: (score: number, isClean: boolean) => void;
   isActive: boolean;
   theme?: 'light' | 'dark';
   onLockScroll?: (enabled: boolean) => void;
@@ -280,7 +280,7 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
           // Schedule victory state changes
           setTimeout(() => {
             setGameState(GameState.FINISHED);
-            onComplete(50);
+            onComplete(50, true);
             setTimeout(() => setShowSuccessOverlay(true), 1000);
           }, 0);
         }
@@ -294,7 +294,8 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
     setIsAutoSolved(true);
     setGameState(GameState.FINISHED);
     setShowSuccessOverlay(false);
-  }, []);
+    onComplete(0, false);
+  }, [onComplete]);
 
   useEffect(() => {
     if (!isActive) {

@@ -4,6 +4,7 @@ import { MotiView } from 'moti';
 import { Shield, Flame, Brain, Zap, Target, Dumbbell, BarChart3, Layers, Calculator, CheckCircle2 } from 'lucide-react-native';
 import type { UserStats, Category } from '../types';
 import { Text } from '../ui/Text';
+import FlowPressure from '../components/FlowPressure';
 
 type Props = {
   theme: 'light' | 'dark';
@@ -31,29 +32,26 @@ export function ProgressScreen({ theme, stats }: Props) {
 
   // Progression Logic
   const level = stats.level;
-  const currentLevelTotalXpNeeded = 5 * (level - 1) * level;
-  const nextLevelTotalXpNeeded = 5 * level * (level + 1);
-  const xpInCurrentLevel = stats.xp - currentLevelTotalXpNeeded;
-  const xpNeededForNextLevel = nextLevelTotalXpNeeded - currentLevelTotalXpNeeded;
-  const progressPercent = xpNeededForNextLevel > 0 
-    ? Math.min(100, Math.max(0, (xpInCurrentLevel / xpNeededForNextLevel) * 100))
-    : 0;
+  const xpRequiredForCurrentLevelStart = 5 * (level - 1) * level;
+  const xpNeededToPassCurrentLevel = level * 10;
+  const xpInCurrentLevel = Math.max(0, stats.xp - xpRequiredForCurrentLevelStart);
+  const progressPercent = Math.min(100, (xpInCurrentLevel / xpNeededToPassCurrentLevel) * 100);
 
   const getStrength = (cat: Category) => {
-    if (cat === 'MEMORY') return Math.min(100, (stats.gameStats.pulse?.timesPlayed || 0) * 20);
-    if (cat === 'SPEED') return Math.min(100, (stats.gameStats.signal?.timesPlayed || 0) * 20);
+    if (cat === 'MEMORY') return Math.min(100, (stats.gameStats.pulse?.cleanFinishes || 0) * 20);
+    if (cat === 'SPEED') return Math.min(100, (stats.gameStats.signal?.cleanFinishes || 0) * 20);
     if (cat === 'LOGIC') {
-      const totalPlayed = (stats.gameStats.keen?.timesPlayed || 0) + 
-                          (stats.gameStats.bridges?.timesPlayed || 0);
-      return Math.min(100, totalPlayed * 20);
+      const totalClean = (stats.gameStats.keen?.cleanFinishes || 0) + 
+                         (stats.gameStats.bridges?.cleanFinishes || 0);
+      return Math.min(100, totalClean * 20);
     }
-    if (cat === 'FLEXIBILITY') return Math.min(100, (stats.gameStats.logic_link?.timesPlayed || 0) * 20);
-    if (cat === 'MATH') return Math.min(100, (stats.gameStats.math_dash?.timesPlayed || 0) * 20);
+    if (cat === 'FLEXIBILITY') return Math.min(100, (stats.gameStats.logic_link?.cleanFinishes || 0) * 20);
+    if (cat === 'MATH') return Math.min(100, (stats.gameStats.math_dash?.cleanFinishes || 0) * 20);
     if (cat === 'PHYSICAL') {
-      const totalPlayed = (stats.gameStats.pushups?.timesPlayed || 0) + 
-                          (stats.gameStats.situps?.timesPlayed || 0) + 
-                          (stats.gameStats.planks?.timesPlayed || 0);
-      return Math.min(100, totalPlayed * 20);
+      const totalClean = (stats.gameStats.pushups?.cleanFinishes || 0) + 
+                         (stats.gameStats.situps?.cleanFinishes || 0) + 
+                         (stats.gameStats.planks?.cleanFinishes || 0);
+      return Math.min(100, totalClean * 20);
     }
     return 0;
   };
@@ -86,6 +84,12 @@ export function ProgressScreen({ theme, stats }: Props) {
         </View>
       </View>
 
+      <FlowPressure 
+        dailyReps={stats.dailyReps} 
+        maxDailyReps={stats.maxDailyReps || 0} 
+        theme={theme} 
+      />
+
       <View className="flex-row gap-4 mb-6">
         <View className={`flex-1 ${cardBgClass} p-5 rounded-3xl relative overflow-hidden border`}>
           <Target size={32} color="#06b6d4" style={{ position: 'absolute', right: -8, top: -8, opacity: 0.1 }} />
@@ -106,7 +110,7 @@ export function ProgressScreen({ theme, stats }: Props) {
              <Text weight="black" className={`text-xl tracking-tight ${textColorClass}`}>LEVEL {level}</Text>
            </View>
            <Text variant="mono" className={`text-xs ${subTextColorClass}`}>
-             {xpInCurrentLevel} / {xpNeededForNextLevel} <Text weight="bold" className="text-[10px] opacity-50 ml-1 uppercase">XP</Text>
+             {xpInCurrentLevel} / {xpNeededToPassCurrentLevel} <Text weight="bold" className="text-[10px] opacity-50 ml-1 uppercase">XP</Text>
            </Text>
          </View>
          <View className={`w-full h-3 ${isDark ? 'bg-slate-800' : 'bg-slate-100'} rounded-full overflow-hidden border ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
@@ -123,17 +127,24 @@ export function ProgressScreen({ theme, stats }: Props) {
               }}
             />
          </View>
-         <Text weight="semibold" className={`mt-3 text-[9px] ${subTextColorClass} uppercase tracking-[0.2em] text-center italic`}>
-           Next Calibration at {nextLevelTotalXpNeeded} Total XP
-         </Text>
       </View>
 
       <View className={`${cardBgClass} p-6 rounded-3xl mb-8 border`}>
         <View className="flex-row justify-between items-center mb-6">
           <Text weight="black" className={`text-[10px] ${subTextColorClass} uppercase tracking-[0.3em]`}>Activity Matrix</Text>
-          <View className="flex-row gap-2 items-center">
-            <View className="w-2 h-2 rounded-sm bg-emerald-500" />
-            <Text weight="bold" className={`text-[8px] ${subTextColorClass} uppercase`}>100+ Reps</Text>
+          <View className="flex-row gap-3 items-center">
+            <View className="flex-row gap-1 items-center">
+              <View className="w-1.5 h-1.5 rounded-sm bg-emerald-500/30" />
+              <Text weight="bold" className={`text-[7px] ${subTextColorClass} uppercase`}>100+</Text>
+            </View>
+            <View className="flex-row gap-1 items-center">
+              <View className="w-1.5 h-1.5 rounded-sm bg-emerald-500/60" />
+              <Text weight="bold" className={`text-[7px] ${subTextColorClass} uppercase`}>500+</Text>
+            </View>
+            <View className="flex-row gap-1 items-center">
+              <View className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
+              <Text weight="bold" className={`text-[7px] ${subTextColorClass} uppercase`}>1000+</Text>
+            </View>
           </View>
         </View>
         <View className="flex-row flex-wrap gap-2 justify-center">
@@ -142,9 +153,11 @@ export function ProgressScreen({ theme, stats }: Props) {
               key={i} 
               style={{ width: (SCREEN_WIDTH - 88) / 7 - 4, height: (SCREEN_WIDTH - 88) / 7 - 4 }}
               className={`rounded-[4px] ${
-                node.reps >= 100 
+                node.reps >= 1000 
                 ? 'bg-emerald-500 shadow-sm' 
-                : node.reps > 0 
+                : node.reps >= 500 
+                ? 'bg-emerald-500/60' 
+                : node.reps >= 100 
                 ? 'bg-emerald-500/30' 
                 : (isDark ? 'bg-slate-800' : 'bg-slate-100')
               }`}
@@ -184,43 +197,6 @@ export function ProgressScreen({ theme, stats }: Props) {
             );
           })}
         </View>
-      </View>
-
-      <View className="gap-3">
-        <Text weight="black" className={`text-[10px] ${subTextColorClass} uppercase tracking-[0.3em] mb-4 ml-1`}>Rep Log</Text>
-        {Object.entries(stats.gameStats).map(([game, data]) => (
-          <View key={game} className={`${cardBgClass} p-4 rounded-[1.5rem] flex-row items-center justify-between border`}>
-            <View className="flex-row items-center gap-4">
-              <View 
-                style={{ backgroundColor: THEME_MAP[data.category] }}
-                className="w-10 h-10 rounded-xl items-center justify-center"
-              >
-                {data.category === 'MEMORY' && <Brain size={18} color="#000" />}
-                {data.category === 'SPEED' && <Zap size={18} color="#000" />}
-                {data.category === 'ATTENTION' && <Target size={18} color="#000" />}
-                {data.category === 'FLEXIBILITY' && <Layers size={18} color="#000" />}
-                {data.category === 'MATH' && <Calculator size={18} color="#000" />}
-                {data.category === 'PHYSICAL' && <Dumbbell size={18} color="#000" />}
-              </View>
-              <View>
-                <Text weight="black" className={`text-xs ${textColorClass} uppercase tracking-tighter italic`}>
-                  {game.replace('_', ' ')}
-                </Text>
-                <Text weight="bold" className={`text-[8px] ${subTextColorClass} tracking-widest uppercase`}>
-                  {data.category}
-                </Text>
-              </View>
-            </View>
-            <View className="items-end">
-              <Text weight="bold" className={`text-[9px] ${subTextColorClass} uppercase tracking-widest`}>
-                Max: <Text variant="mono" className={textColorClass}>{data.bestScore}</Text>
-              </Text>
-              <Text weight="bold" className={`text-[9px] ${subTextColorClass} uppercase tracking-widest`}>
-                Plays: <Text variant="mono" className={textColorClass}>{data.timesPlayed}</Text>
-              </Text>
-            </View>
-          </View>
-        ))}
       </View>
     </ScrollView>
   );
