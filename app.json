@@ -16,6 +16,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#020617"
     },
+    "plugins": [
+      "./plugins/withScreenTime.js"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.karthik.flowstate",

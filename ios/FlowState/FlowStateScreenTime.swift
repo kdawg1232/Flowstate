@@ -26,12 +26,6 @@ class ScreenTimeModule: NSObject {
         return true
     }
 
-    override init() {
-        super.init()
-        logger.log("ScreenTimeModule initialized")
-        logger.log("Initial authorization status: \(self.center.authorizationStatus.rawValue)")
-    }
-
     private func saveSelection(_ selection: FamilyActivitySelection) {
         logger.log("Saving selection to shared UserDefaults")
         let defaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
@@ -71,10 +65,6 @@ class ScreenTimeModule: NSObject {
             store.shield.applications = nil
             store.shield.applicationCategories = nil
         }
-
-        if selection.applicationTokens.isEmpty && selection.categoryTokens.isEmpty && selection.webDomainTokens.isEmpty {
-            logger.error("setScreenTimeBudget called with EMPTY selection. Shielding will not work until apps/categories are chosen.")
-        }
         
         let hourlySchedule = DeviceActivitySchedule(
             intervalStart: DateComponents(minute: 0),
@@ -113,18 +103,12 @@ class ScreenTimeModule: NSObject {
             ))
             
             let hostingController = UIHostingController(rootView: picker)
-            let rootVC = UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap { $0.windows }
-                .first { $0.isKeyWindow }?
-                .rootViewController
-
-            if let vc = rootVC {
-                vc.present(hostingController, animated: true)
-                self.logger.log("Picker presented")
+            if let rootVC = UIApplication.shared.keyWindow?.rootViewController {
+                rootVC.present(hostingController, animated: true)
+                logger.log("Picker presented")
                 resolve(true)
             } else {
-                self.logger.error("Failed to find root view controller to present picker")
+                logger.error("Failed to find root view controller to present picker")
                 reject("NO_ROOT_VC", "Could not find root view controller", nil)
             }
         }

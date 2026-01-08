@@ -39,6 +39,7 @@ export function ProfileScreen({ theme, username, stats, onUpdateStats, onToggleT
     const turningOn = !screenTime.isTrackingEnabled;
     
     if (turningOn) {
+      console.log('[ScreenTime] Toggle ON requested');
       const authorized = await ScreenTime.requestAuthorization();
       if (!authorized) {
         Alert.alert("Permission Required", "FlowState needs Screen Time permission to restrict apps.");
@@ -47,8 +48,10 @@ export function ProfileScreen({ theme, username, stats, onUpdateStats, onToggleT
       
       // Set initial budget based on current milestone (or 0 if no milestone reached)
       const currentAllocatedMinutes = screenTime.allocatedMinutes || 0;
+      console.log('[ScreenTime] Setting initial budget from Profile toggle:', currentAllocatedMinutes);
       await ScreenTime.setScreenTimeBudget(currentAllocatedMinutes);
     }
+    console.log('[ScreenTime] Setting isTrackingEnabled to', turningOn);
 
     onUpdateStats({
       ...stats,

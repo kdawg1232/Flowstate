@@ -17,6 +17,7 @@ const Step5bScreenTime: React.FC<Props> = ({ onNext, onBack, onScreenTimeEnabled
   const [selectedApps, setSelectedApps] = useState(false);
 
   const handleEnableScreenTime = async () => {
+    console.log('Step5b: Requesting Screen Time authorization...');
     if (Platform.OS !== 'ios') {
       Alert.alert('Platform Not Supported', 'Screen Time controls are only available on iOS devices.');
       return;
@@ -24,7 +25,16 @@ const Step5bScreenTime: React.FC<Props> = ({ onNext, onBack, onScreenTimeEnabled
 
     setIsRequesting(true);
     try {
+      // Check if ScreenTime is the dummy implementation
+      if (ScreenTime.requestAuthorization.toString().includes('dummyImplementation')) {
+        console.warn('ScreenTime is using dummy implementation!');
+        Alert.alert('Internal Error', 'Native ScreenTime module not linked correctly. Please rebuild the app.');
+        setIsRequesting(false);
+        return;
+      }
+
       const result = await ScreenTime.requestAuthorization();
+      console.log('Step5b: Authorization result:', result);
       if (result) {
         setAuthorized(true);
       } else {

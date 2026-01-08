@@ -2,6 +2,12 @@ import { NativeModules, Platform } from 'react-native';
 
 const { ScreenTimeModule } = NativeModules;
 
+if (!ScreenTimeModule && Platform.OS === 'ios') {
+  console.warn('ScreenTimeModule not found in NativeModules. Using dummy implementation.');
+} else if (ScreenTimeModule) {
+  console.log('ScreenTimeModule successfully loaded from NativeModules.');
+}
+
 export interface ScreenTimeInterface {
   requestAuthorization(): Promise<boolean>;
   setScreenTimeBudget(minutes: number): Promise<void>;

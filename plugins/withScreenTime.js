@@ -3,15 +3,6 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * Helper to generate a unique UUID for pbxproj
- */
-function generateUuid() {
-  return 'XXXXXXXXXXXXXXXXXXXXXXXX'.replace(/X/g, () => 
-    '0123456789ABCDEF'.charAt(Math.floor(Math.random() * 16))
-  );
-}
-
-/**
  * Expo Config Plugin to enable Screen Time APIs and the Device Activity Monitor Extension.
  */
 module.exports = function withScreenTime(config) {
@@ -51,169 +42,58 @@ module.exports = function withScreenTime(config) {
     }
 
     // ========================================
-    // COPY NATIVE MODULE FILES TO MAIN APP
+    // 1. SETUP MAIN APP NATIVE MODULE
     // ========================================
     const nativeSourceDir = path.join(projectRoot, 'native-ios', 'ScreenTime');
-    
-    // Copy FlowStateScreenTime.swift to main app
-    const swiftModuleSource = path.join(nativeSourceDir, 'FlowStateScreenTime.swift');
     const swiftModuleDest = path.join(mainAppRoot, 'FlowStateScreenTime.swift');
-    if (fs.existsSync(swiftModuleSource)) {
-      fs.copyFileSync(swiftModuleSource, swiftModuleDest);
-    }
-
-    // Copy FlowStateScreenTime.m (Obj-C bridge) to main app
-    const objcModuleSource = path.join(nativeSourceDir, 'FlowStateScreenTime.m');
     const objcModuleDest = path.join(mainAppRoot, 'FlowStateScreenTime.m');
-    if (fs.existsSync(objcModuleSource)) {
-      fs.copyFileSync(objcModuleSource, objcModuleDest);
-    }
+    
+    fs.copyFileSync(path.join(nativeSourceDir, 'FlowStateScreenTime.swift'), swiftModuleDest);
+    fs.copyFileSync(path.join(nativeSourceDir, 'FlowStateScreenTime.m'), objcModuleDest);
 
-    // Add native module files to the main app target
-    const pbxFileReference = project.hash.project.objects['PBXFileReference'];
-    const pbxBuildFile = project.hash.project.objects['PBXBuildFile'];
-
-    // Find main app target and its sources build phase
-    const nativeTargets = project.hash.project.objects['PBXNativeTarget'];
+    const mainAppGroup = project.findPBXGroupKey({ name: mainAppName }) || project.findPBXGroupKey({ path: mainAppName });
+    
+    const targets = project.pbxNativeTargetSection();
     let mainTargetKey = null;
-    let mainSourcesBuildPhaseKey = null;
-
-    for (const key in nativeTargets) {
-      const target = nativeTargets[key];
-      if (target && typeof target === 'object' && target.name === `"${mainAppName}"`) {
+    for (const key in targets) {
+      if (targets[key].name === `"${mainAppName}"` || targets[key].name === mainAppName) {
         mainTargetKey = key;
-        // Find the sources build phase for main target
-        if (target.buildPhases) {
-          for (const phase of target.buildPhases) {
-            const phaseKey = typeof phase === 'object' ? phase.value : phase;
-            const pbxSourcesBuildPhase = project.hash.project.objects['PBXSourcesBuildPhase'];
-            if (pbxSourcesBuildPhase && pbxSourcesBuildPhase[phaseKey]) {
-              mainSourcesBuildPhaseKey = phaseKey;
-              break;
-            }
-          }
-        }
         break;
       }
     }
 
-    // Add Swift module file to main target
-    if (mainSourcesBuildPhaseKey) {
-      const swiftModuleFileUuid = generateUuid();
-      const swiftModuleBuildFileUuid = generateUuid();
+    if (mainAppGroup && mainTargetKey) {
+      // Use addSourceFile which handles the build phase correctly
+      project.addSourceFile(`${mainAppName}/FlowStateScreenTime.swift`, { target: mainTargetKey }, mainAppGroup);
+      project.addSourceFile(`${mainAppName}/FlowStateScreenTime.m`, { target: mainTargetKey }, mainAppGroup);
+    }
 
-      pbxFileReference[swiftModuleFileUuid] = {
-        isa: 'PBXFileReference',
-        lastKnownFileType: 'sourcecode.swift',
-        name: 'FlowStateScreenTime.swift',
-        path: `${mainAppName}/FlowStateScreenTime.swift`,
-        sourceTree: '"<group>"',
-      };
-      pbxFileReference[swiftModuleFileUuid + '_comment'] = 'FlowStateScreenTime.swift';
-
-      pbxBuildFile[swiftModuleBuildFileUuid] = {
-        isa: 'PBXBuildFile',
-        fileRef: swiftModuleFileUuid,
-        fileRef_comment: 'FlowStateScreenTime.swift',
-      };
-      pbxBuildFile[swiftModuleBuildFileUuid + '_comment'] = 'FlowStateScreenTime.swift in Sources';
-
-      const mainSourcesBuildPhase = project.hash.project.objects['PBXSourcesBuildPhase'][mainSourcesBuildPhaseKey];
-      if (mainSourcesBuildPhase && mainSourcesBuildPhase.files) {
-        mainSourcesBuildPhase.files.push({
-          value: swiftModuleBuildFileUuid,
-          comment: 'FlowStateScreenTime.swift in Sources',
+    // Add required frameworks to main app target
+    const mainAppFrameworks = ['FamilyControls', 'ManagedSettings', 'DeviceActivity'];
+    if (mainTargetKey) {
+      for (const framework of mainAppFrameworks) {
+        project.addFramework(`System/Library/Frameworks/${framework}.framework`, {
+          target: mainTargetKey,
+          customFramework: true
         });
       }
+    }
 
-      // Add Obj-C bridge file to main target
-      const objcModuleFileUuid = generateUuid();
-      const objcModuleBuildFileUuid = generateUuid();
-
-      pbxFileReference[objcModuleFileUuid] = {
-        isa: 'PBXFileReference',
-        lastKnownFileType: 'sourcecode.c.objc',
-        name: 'FlowStateScreenTime.m',
-        path: `${mainAppName}/FlowStateScreenTime.m`,
-        sourceTree: '"<group>"',
-      };
-      pbxFileReference[objcModuleFileUuid + '_comment'] = 'FlowStateScreenTime.m';
-
-      pbxBuildFile[objcModuleBuildFileUuid] = {
-        isa: 'PBXBuildFile',
-        fileRef: objcModuleFileUuid,
-        fileRef_comment: 'FlowStateScreenTime.m',
-      };
-      pbxBuildFile[objcModuleBuildFileUuid + '_comment'] = 'FlowStateScreenTime.m in Sources';
-
-      if (mainSourcesBuildPhase && mainSourcesBuildPhase.files) {
-        mainSourcesBuildPhase.files.push({
-          value: objcModuleBuildFileUuid,
-          comment: 'FlowStateScreenTime.m in Sources',
-        });
-      }
-
-      // Find main app group and add files to it
-      const mainAppGroup = project.findPBXGroupKey({ name: mainAppName }) || 
-                           project.findPBXGroupKey({ path: mainAppName });
-      if (mainAppGroup) {
-        const pbxGroup = project.hash.project.objects['PBXGroup'][mainAppGroup];
-        if (pbxGroup && pbxGroup.children) {
-          pbxGroup.children.push({ value: swiftModuleFileUuid, comment: 'FlowStateScreenTime.swift' });
-          pbxGroup.children.push({ value: objcModuleFileUuid, comment: 'FlowStateScreenTime.m' });
-        }
+    // Update Bridging Header
+    const bridgingHeaderPath = path.join(mainAppRoot, 'FlowState-Bridging-Header.h');
+    if (fs.existsSync(bridgingHeaderPath)) {
+      let content = fs.readFileSync(bridgingHeaderPath, 'utf8');
+      if (!content.includes('#import <React/RCTBridgeModule.h>')) {
+        content += '\n#import <React/RCTBridgeModule.h>\n';
+        content += '#import <React/RCTEventEmitter.h>\n';
+        fs.writeFileSync(bridgingHeaderPath, content);
       }
     }
 
-    // Add required frameworks to main app target's frameworks build phase
-    let mainFrameworksBuildPhaseKey = null;
-    if (mainTargetKey && nativeTargets[mainTargetKey].buildPhases) {
-      for (const phase of nativeTargets[mainTargetKey].buildPhases) {
-        const phaseKey = typeof phase === 'object' ? phase.value : phase;
-        const pbxFrameworksBuildPhase = project.hash.project.objects['PBXFrameworksBuildPhase'];
-        if (pbxFrameworksBuildPhase && pbxFrameworksBuildPhase[phaseKey]) {
-          mainFrameworksBuildPhaseKey = phaseKey;
-          break;
-        }
-      }
-    }
-
-    if (mainFrameworksBuildPhaseKey) {
-      const mainAppFrameworks = ['FamilyControls', 'ManagedSettings', 'DeviceActivity'];
-      const mainFrameworksBuildPhase = project.hash.project.objects['PBXFrameworksBuildPhase'][mainFrameworksBuildPhaseKey];
-
-      for (const frameworkName of mainAppFrameworks) {
-        const fwFileUuid = generateUuid();
-        const fwBuildFileUuid = generateUuid();
-
-        pbxFileReference[fwFileUuid] = {
-          isa: 'PBXFileReference',
-          lastKnownFileType: 'wrapper.framework',
-          name: `${frameworkName}.framework`,
-          path: `System/Library/Frameworks/${frameworkName}.framework`,
-          sourceTree: 'SDKROOT',
-        };
-        pbxFileReference[fwFileUuid + '_comment'] = `${frameworkName}.framework`;
-
-        pbxBuildFile[fwBuildFileUuid] = {
-          isa: 'PBXBuildFile',
-          fileRef: fwFileUuid,
-          fileRef_comment: `${frameworkName}.framework`,
-        };
-        pbxBuildFile[fwBuildFileUuid + '_comment'] = `${frameworkName}.framework in Frameworks`;
-
-        if (mainFrameworksBuildPhase && mainFrameworksBuildPhase.files) {
-          mainFrameworksBuildPhase.files.push({
-            value: fwBuildFileUuid,
-            comment: `${frameworkName}.framework in Frameworks`,
-          });
-        }
-      }
-    }
     // ========================================
-    // END OF NATIVE MODULE SETUP
+    // 2. SETUP MONITOR EXTENSION
     // ========================================
-
+    
     // A. Create Extension Info.plist
     const appVersion = config.version || '1.0.0';
     const infoPlistContent = `<?xml version="1.0" encoding="UTF-8"?>
@@ -262,161 +142,43 @@ module.exports = function withScreenTime(config) {
 </plist>`;
     fs.writeFileSync(path.join(extensionRoot, `${extensionName}.entitlements`), entitlementsContent);
 
-    // C. Create a PBX group for the extension
-    const extensionGroup = project.addPbxGroup(
-      ['DeviceActivityMonitor.swift', 'Info.plist', `${extensionName}.entitlements`],
-      extensionName,
-      extensionName
-    );
+    // C. Copy DeviceActivityMonitor.swift
+    fs.copyFileSync(path.join(nativeSourceDir, 'DeviceActivityMonitor.swift'), path.join(extensionRoot, 'DeviceActivityMonitor.swift'));
 
-    // Add the group to the main project
+    // D. Add extension target
+    const extensionTarget = project.addTarget(extensionName, 'app_extension', extensionName, extensionBundleId);
+    
+    // E. Add files to extension target
+    const extensionGroup = project.addPbxGroup(['DeviceActivityMonitor.swift', 'Info.plist', `${extensionName}.entitlements`], extensionName, extensionName);
     const mainGroupKey = project.findPBXGroupKey({ name: undefined, path: undefined });
-    if (mainGroupKey) {
-      project.addToPbxGroup(extensionGroup.uuid, mainGroupKey);
-    }
+    project.addToPbxGroup(extensionGroup.uuid, mainGroupKey);
 
-    // D. Add Target to Xcode
-    const target = project.addTarget(extensionName, 'app_extension', extensionName, extensionBundleId);
+    project.addSourceFile(`${extensionName}/DeviceActivityMonitor.swift`, { target: extensionTarget.uuid }, extensionGroup.uuid);
 
-    // E. Create build phases manually for the extension target
-    const sourcesBuildPhaseUuid = generateUuid();
-    const frameworksBuildPhaseUuid = generateUuid();
-    
-    // Initialize PBX build phase sections
-    if (!project.hash.project.objects['PBXSourcesBuildPhase']) {
-      project.hash.project.objects['PBXSourcesBuildPhase'] = {};
-    }
-    if (!project.hash.project.objects['PBXFrameworksBuildPhase']) {
-      project.hash.project.objects['PBXFrameworksBuildPhase'] = {};
-    }
-    
-    const pbxSourcesBuildPhase = project.hash.project.objects['PBXSourcesBuildPhase'];
-    const pbxFrameworksBuildPhase = project.hash.project.objects['PBXFrameworksBuildPhase'];
-    
-    // Create Sources build phase
-    pbxSourcesBuildPhase[sourcesBuildPhaseUuid] = {
-      isa: 'PBXSourcesBuildPhase',
-      buildActionMask: 2147483647,
-      files: [],
-      runOnlyForDeploymentPostprocessing: 0,
-    };
-    pbxSourcesBuildPhase[sourcesBuildPhaseUuid + '_comment'] = 'Sources';
-    
-    // Create Frameworks build phase
-    pbxFrameworksBuildPhase[frameworksBuildPhaseUuid] = {
-      isa: 'PBXFrameworksBuildPhase',
-      buildActionMask: 2147483647,
-      files: [],
-      runOnlyForDeploymentPostprocessing: 0,
-    };
-    pbxFrameworksBuildPhase[frameworksBuildPhaseUuid + '_comment'] = 'Frameworks';
-    
-    // Add build phases to target
-    for (const key in nativeTargets) {
-      if (nativeTargets[key] && nativeTargets[key].name === `"${extensionName}"`) {
-        nativeTargets[key].buildPhases = [
-          { value: sourcesBuildPhaseUuid, comment: 'Sources' },
-          { value: frameworksBuildPhaseUuid, comment: 'Frameworks' },
-        ];
-        break;
-      }
-    }
-
-    // F. Link Swift files from native-ios
-    const sourceFile = path.join(projectRoot, 'native-ios', 'ScreenTime', 'DeviceActivityMonitor.swift');
-    const destFile = path.join(extensionRoot, 'DeviceActivityMonitor.swift');
-    fs.copyFileSync(sourceFile, destFile);
-
-    // Add Swift file to Sources build phase
-    const swiftFileUuid = generateUuid();
-    const swiftBuildFileUuid = generateUuid();
-    
-    pbxFileReference[swiftFileUuid] = {
-      isa: 'PBXFileReference',
-      lastKnownFileType: 'sourcecode.swift',
-      name: 'DeviceActivityMonitor.swift',
-      path: `${extensionName}/DeviceActivityMonitor.swift`,
-      sourceTree: '"<group>"',
-    };
-    pbxFileReference[swiftFileUuid + '_comment'] = 'DeviceActivityMonitor.swift';
-    
-    pbxBuildFile[swiftBuildFileUuid] = {
-      isa: 'PBXBuildFile',
-      fileRef: swiftFileUuid,
-      fileRef_comment: 'DeviceActivityMonitor.swift',
-    };
-    pbxBuildFile[swiftBuildFileUuid + '_comment'] = 'DeviceActivityMonitor.swift in Sources';
-    
-    pbxSourcesBuildPhase[sourcesBuildPhaseUuid].files.push({
-      value: swiftBuildFileUuid,
-      comment: 'DeviceActivityMonitor.swift in Sources',
-    });
-
-    // G. Add system frameworks to Frameworks build phase
-    const frameworks = ['DeviceActivity', 'ManagedSettings', 'FamilyControls'];
-    
-    for (const frameworkName of frameworks) {
-      const frameworkFileUuid = generateUuid();
-      const frameworkBuildFileUuid = generateUuid();
-      
-      pbxFileReference[frameworkFileUuid] = {
-        isa: 'PBXFileReference',
-        lastKnownFileType: 'wrapper.framework',
-        name: `${frameworkName}.framework`,
-        path: `System/Library/Frameworks/${frameworkName}.framework`,
-        sourceTree: 'SDKROOT',
-      };
-      pbxFileReference[frameworkFileUuid + '_comment'] = `${frameworkName}.framework`;
-      
-      pbxBuildFile[frameworkBuildFileUuid] = {
-        isa: 'PBXBuildFile',
-        fileRef: frameworkFileUuid,
-        fileRef_comment: `${frameworkName}.framework`,
-      };
-      pbxBuildFile[frameworkBuildFileUuid + '_comment'] = `${frameworkName}.framework in Frameworks`;
-      
-      pbxFrameworksBuildPhase[frameworksBuildPhaseUuid].files.push({
-        value: frameworkBuildFileUuid,
-        comment: `${frameworkName}.framework in Frameworks`,
+    // F. Add frameworks to extension target
+    for (const framework of mainAppFrameworks) {
+      project.addFramework(`System/Library/Frameworks/${framework}.framework`, {
+        target: extensionTarget.uuid,
+        customFramework: true
       });
     }
 
-    // H. Configure Build Settings for the extension target
+    // G. Configure Build Settings for the extension target
     const configurations = project.pbxXCBuildConfigurationSection();
-    
-    // Find the extension target's build configuration list
-    let extensionConfigListId = null;
-    for (const key in nativeTargets) {
-      if (nativeTargets[key] && nativeTargets[key].name === `"${extensionName}"`) {
-        extensionConfigListId = nativeTargets[key].buildConfigurationList;
-        break;
-      }
-    }
-    
-    // Apply build settings to the extension's configurations
-    if (extensionConfigListId) {
-      const configurationLists = project.hash.project.objects['XCConfigurationList'];
-      if (configurationLists[extensionConfigListId]) {
-        const buildConfigs = configurationLists[extensionConfigListId].buildConfigurations;
-        if (buildConfigs) {
-          for (const config of buildConfigs) {
-            const configKey = config.value;
-            if (configurations[configKey] && configurations[configKey].buildSettings) {
-              const buildSettings = configurations[configKey].buildSettings;
-              buildSettings.PRODUCT_NAME = `"${extensionName}"`;
-              buildSettings.PRODUCT_BUNDLE_IDENTIFIER = `"${extensionBundleId}"`;
-              buildSettings.IPHONEOS_DEPLOYMENT_TARGET = '"15.0"';
-              buildSettings.SWIFT_VERSION = '"5.0"';
-              buildSettings.SKIP_INSTALL = 'YES';
-              buildSettings.CODE_SIGN_ENTITLEMENTS = `"${extensionName}/${extensionName}.entitlements"`;
-              buildSettings.INFOPLIST_FILE = `"${extensionName}/Info.plist"`;
-              buildSettings.TARGETED_DEVICE_FAMILY = '"1,2"';
-              buildSettings.GENERATE_INFOPLIST_FILE = 'NO';
-              buildSettings.CURRENT_PROJECT_VERSION = '"1"';
-              buildSettings.MARKETING_VERSION = '"1.0"';
-              buildSettings.DEVELOPMENT_TEAM = '"QAH68NNKKZ"';
-            }
-          }
+    for (const key in configurations) {
+      if (typeof configurations[key] === 'object' && configurations[key].buildSettings) {
+        const buildSettings = configurations[key].buildSettings;
+        if (buildSettings.PRODUCT_NAME === `"${extensionName}"` || buildSettings.PRODUCT_NAME === extensionName) {
+          buildSettings.PRODUCT_BUNDLE_IDENTIFIER = `"${extensionBundleId}"`;
+          buildSettings.IPHONEOS_DEPLOYMENT_TARGET = '"15.0"';
+          buildSettings.SWIFT_VERSION = '"5.0"';
+          buildSettings.SKIP_INSTALL = 'YES';
+          buildSettings.CODE_SIGN_ENTITLEMENTS = `"${extensionName}/${extensionName}.entitlements"`;
+          buildSettings.INFOPLIST_FILE = `"${extensionName}/Info.plist"`;
+          buildSettings.TARGETED_DEVICE_FAMILY = '"1,2"';
+          buildSettings.GENERATE_INFOPLIST_FILE = 'NO';
+          buildSettings.DEVELOPMENT_TEAM = '"QAH68NNKKZ"';
+          buildSettings.APPLICATION_EXTENSION_API_ONLY = 'YES';
         }
       }
     }
