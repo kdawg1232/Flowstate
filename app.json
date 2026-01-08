@@ -51,7 +51,25 @@
     },
     "extra": {
       "eas": {
-        "projectId": "e74ff9bf-55be-44b8-a593-d696b077c1bd"
+        "projectId": "e74ff9bf-55be-44b8-a593-d696b077c1bd",
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "FlowStateMonitor",
+                  "bundleIdentifier": "com.karthik.flowstate.monitor",
+                  "entitlements": {
+                    "com.apple.developer.family-controls": true,
+                    "com.apple.security.application-groups": [
+                      "group.com.karthik.flowstate"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
       }
     }
   }
