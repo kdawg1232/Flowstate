@@ -37,5 +37,11 @@ yarn-error.*
 *.tsbuildinfo
 
 # generated native folders
-/ios
+# /ios (commented out - we need to commit iOS folder for app extensions)
 /android
+
+# iOS native build artifacts
+ios/Pods/
+ios/build/
+ios/**/*.xcuserdata
+ios/**/*.xcuserdatad
