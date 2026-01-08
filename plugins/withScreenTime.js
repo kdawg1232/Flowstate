@@ -77,6 +77,17 @@ module.exports = function withScreenTime(config) {
           customFramework: true
         });
       }
+
+      // Bump deployment target for the main target to iOS 16 (required for FamilyControls APIs)
+      const configurations = project.pbxXCBuildConfigurationSection();
+      for (const configKey in configurations) {
+        const cfg = configurations[configKey];
+        if (cfg && cfg.buildSettings && cfg.buildSettings.PRODUCT_NAME) {
+          if (cfg.buildSettings.PRODUCT_NAME.includes(mainAppName)) {
+            cfg.buildSettings.IPHONEOS_DEPLOYMENT_TARGET = '"16.0"';
+          }
+        }
+      }
     }
 
     // Update Bridging Header
@@ -170,7 +181,7 @@ module.exports = function withScreenTime(config) {
         const buildSettings = configurations[key].buildSettings;
         if (buildSettings.PRODUCT_NAME === `"${extensionName}"` || buildSettings.PRODUCT_NAME === extensionName) {
           buildSettings.PRODUCT_BUNDLE_IDENTIFIER = `"${extensionBundleId}"`;
-          buildSettings.IPHONEOS_DEPLOYMENT_TARGET = '"15.0"';
+          buildSettings.IPHONEOS_DEPLOYMENT_TARGET = '"16.0"';
           buildSettings.SWIFT_VERSION = '"5.0"';
           buildSettings.SKIP_INSTALL = 'YES';
           buildSettings.CODE_SIGN_ENTITLEMENTS = `"${extensionName}/${extensionName}.entitlements"`;

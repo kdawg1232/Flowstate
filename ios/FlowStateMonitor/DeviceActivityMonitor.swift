@@ -4,6 +4,7 @@ import FamilyControls
 import Foundation
 import os
 
+@available(iOS 16.0, *)
 class FlowStateMonitor: DeviceActivityMonitor {
     let store = ManagedSettingsStore()
     private let logger = Logger(subsystem: "com.karthik.flowstate", category: "FlowStateMonitor")

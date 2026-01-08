@@ -6,6 +6,7 @@ import Combine
 import SwiftUI
 import os
 
+@available(iOS 16.0, *)
 @objc(ScreenTimeModule)
 class ScreenTimeModule: NSObject {
     private let center = AuthorizationCenter.shared
@@ -26,6 +27,12 @@ class ScreenTimeModule: NSObject {
         return true
     }
 
+    override init() {
+        super.init()
+        logger.log("ScreenTimeModule initialized")
+        logger.log("Initial authorization status: \(self.center.authorizationStatus.rawValue)")
+    }
+
     private func saveSelection(_ selection: FamilyActivitySelection) {
         logger.log("Saving selection to shared UserDefaults")
         let defaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
@@ -40,6 +47,11 @@ class ScreenTimeModule: NSObject {
 
     @objc
     func requestAuthorization(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        guard #available(iOS 16.0, *) else {
+            logger.error("requestAuthorization called on unsupported iOS version")
+            reject("UNSUPPORTED_IOS", "Screen Time requires iOS 16.0 or later", nil)
+            return
+        }
         logger.log("Requesting Screen Time authorization...")
         Task {
             do {
@@ -55,6 +67,11 @@ class ScreenTimeModule: NSObject {
 
     @objc
     func setScreenTimeBudget(_ minutes: Int, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        guard #available(iOS 16.0, *) else {
+            logger.error("setScreenTimeBudget called on unsupported iOS version")
+            reject("UNSUPPORTED_IOS", "Screen Time requires iOS 16.0 or later", nil)
+            return
+        }
         logger.log("Setting Screen Time budget to \(minutes) minutes")
         let sharedDefaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
         sharedDefaults?.set(minutes, forKey: "hourlyQuota")
@@ -64,6 +81,10 @@ class ScreenTimeModule: NSObject {
             logger.log("Minutes >= 60, clearing existing shields")
             store.shield.applications = nil
             store.shield.applicationCategories = nil
+        }
+
+        if selection.applicationTokens.isEmpty && selection.categoryTokens.isEmpty && selection.webDomainTokens.isEmpty {
+            logger.error("setScreenTimeBudget called with EMPTY selection. Shielding will not work until apps/categories are chosen.")
         }
         
         let hourlySchedule = DeviceActivitySchedule(
@@ -95,6 +116,11 @@ class ScreenTimeModule: NSObject {
 
     @objc
     func selectAppsToRestrict(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        guard #available(iOS 16.0, *) else {
+            logger.error("selectAppsToRestrict called on unsupported iOS version")
+            reject("UNSUPPORTED_IOS", "Screen Time requires iOS 16.0 or later", nil)
+            return
+        }
         logger.log("Opening FamilyActivityPicker...")
         DispatchQueue.main.async {
             let picker = FamilyActivityPicker(selection: Binding(
@@ -103,12 +129,18 @@ class ScreenTimeModule: NSObject {
             ))
             
             let hostingController = UIHostingController(rootView: picker)
-            if let rootVC = UIApplication.shared.keyWindow?.rootViewController {
-                rootVC.present(hostingController, animated: true)
-                logger.log("Picker presented")
+            let rootVC = UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+                .first { $0.isKeyWindow }?
+                .rootViewController
+
+            if let vc = rootVC {
+                vc.present(hostingController, animated: true)
+                self.logger.log("Picker presented")
                 resolve(true)
             } else {
-                logger.error("Failed to find root view controller to present picker")
+                self.logger.error("Failed to find root view controller to present picker")
                 reject("NO_ROOT_VC", "Could not find root view controller", nil)
             }
         }
@@ -116,6 +148,11 @@ class ScreenTimeModule: NSObject {
 
     @objc
     func getUsedMinutes(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        guard #available(iOS 16.0, *) else {
+            logger.error("getUsedMinutes called on unsupported iOS version")
+            reject("UNSUPPORTED_IOS", "Screen Time requires iOS 16.0 or later", nil)
+            return
+        }
         let sharedDefaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
         let used = sharedDefaults?.integer(forKey: "usedMinutes") ?? 0
         logger.log("Used minutes requested: \(used)")
