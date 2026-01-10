@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ScrollView, Pressable, StyleSheet, Linking, Alert, Switch } from 'react-native';
-import { User, Settings, HelpCircle, Sun, Moon, LogOut, Shield, FileText, Trash2, Smartphone, Lock } from 'lucide-react-native';
+import { User, Settings, HelpCircle, Sun, Moon, LogOut, Shield, FileText, Trash2, Smartphone, Lock, Unlock } from 'lucide-react-native';
 import { Text } from '../ui/Text';
 import type { UserStats } from '../types';
 import ScreenTime from '../native/ScreenTime';
@@ -163,6 +163,24 @@ export function ProfileScreen({ theme, username, stats, onUpdateStats, onToggleT
                    />
                 </View>
              </View>
+
+             {screenTime.isTrackingEnabled && (
+               <Pressable 
+                 onPress={async () => {
+                   try {
+                     await ScreenTime.clearShield();
+                     Alert.alert("Restriction Removed", "App restrictions have been cleared. You can now use your apps freely until your next hourly limit is reached.");
+                   } catch (error) {
+                     console.error('Failed to clear shield:', error);
+                     Alert.alert("Error", "Failed to remove restriction. Please try again.");
+                   }
+                 }}
+                 className={`flex-row items-center justify-center gap-2 p-4 ${isDark ? 'border-t border-slate-800' : 'border-t border-slate-100'}`}
+               >
+                 <Unlock size={16} color="#f59e0b" />
+                 <Text weight="bold" className="text-sm text-amber-500">Remove Current Restriction</Text>
+               </Pressable>
+             )}
           </View>
         </View>
 

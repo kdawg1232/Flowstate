@@ -15,4 +15,7 @@ RCT_EXTERN_METHOD(selectAppsToRestrict:(RCTPromiseResolveBlock)resolve
 RCT_EXTERN_METHOD(getUsedMinutes:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(clearShield:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+
 @end

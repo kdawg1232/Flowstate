@@ -13,6 +13,7 @@ export interface ScreenTimeInterface {
   setScreenTimeBudget(minutes: number): Promise<void>;
   selectAppsToRestrict(): Promise<string[]>;
   getUsedMinutes(): Promise<number>;
+  clearShield(): Promise<boolean>;
 }
 
 const dummyImplementation: ScreenTimeInterface = {
@@ -20,6 +21,7 @@ const dummyImplementation: ScreenTimeInterface = {
   setScreenTimeBudget: async () => {},
   selectAppsToRestrict: async () => [],
   getUsedMinutes: async () => 0,
+  clearShield: async () => true,
 };
 
 const ScreenTime: ScreenTimeInterface = Platform.OS === 'ios' && ScreenTimeModule 
