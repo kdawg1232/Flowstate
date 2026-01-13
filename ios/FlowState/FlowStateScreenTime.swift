@@ -158,6 +158,21 @@ class ScreenTimeModule: NSObject {
         logger.log("Used minutes requested: \(used)")
         resolve(used)
     }
+
+    @objc
+    func clearShield(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        guard #available(iOS 16.0, *) else {
+            logger.error("clearShield called on unsupported iOS version")
+            reject("UNSUPPORTED_IOS", "Screen Time requires iOS 16.0 or later", nil)
+            return
+        }
+        logger.log("Clearing all shields...")
+        store.shield.applications = nil
+        store.shield.applicationCategories = nil
+        store.shield.webDomains = nil
+        logger.log("All shields cleared successfully")
+        resolve(true)
+    }
 }
 
 extension DeviceActivityName {

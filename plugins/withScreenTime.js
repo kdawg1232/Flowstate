@@ -63,7 +63,6 @@ module.exports = function withScreenTime(config) {
     }
 
     if (mainAppGroup && mainTargetKey) {
-      // Use addSourceFile which handles the build phase correctly
       project.addSourceFile(`${mainAppName}/FlowStateScreenTime.swift`, { target: mainTargetKey }, mainAppGroup);
       project.addSourceFile(`${mainAppName}/FlowStateScreenTime.m`, { target: mainTargetKey }, mainAppGroup);
     }
@@ -76,6 +75,14 @@ module.exports = function withScreenTime(config) {
           target: mainTargetKey,
           customFramework: true
         });
+      }
+      
+      // Ensure main target is at least iOS 16
+      const configurations = project.pbxXCBuildConfigurationSection();
+      for (const key in configurations) {
+        if (configurations[key].buildSettings && configurations[key].buildSettings.PRODUCT_NAME === `"${mainAppName}"`) {
+          configurations[key].buildSettings.IPHONEOS_DEPLOYMENT_TARGET = '"16.0"';
+        }
       }
     }
 
@@ -153,6 +160,7 @@ module.exports = function withScreenTime(config) {
     const mainGroupKey = project.findPBXGroupKey({ name: undefined, path: undefined });
     project.addToPbxGroup(extensionGroup.uuid, mainGroupKey);
 
+    // CRITICAL: Explicitly add to the extension target and ensure it's in the compile phase
     project.addSourceFile(`${extensionName}/DeviceActivityMonitor.swift`, { target: extensionTarget.uuid }, extensionGroup.uuid);
 
     // F. Add frameworks to extension target
@@ -170,7 +178,7 @@ module.exports = function withScreenTime(config) {
         const buildSettings = configurations[key].buildSettings;
         if (buildSettings.PRODUCT_NAME === `"${extensionName}"` || buildSettings.PRODUCT_NAME === extensionName) {
           buildSettings.PRODUCT_BUNDLE_IDENTIFIER = `"${extensionBundleId}"`;
-          buildSettings.IPHONEOS_DEPLOYMENT_TARGET = '"15.0"';
+          buildSettings.IPHONEOS_DEPLOYMENT_TARGET = '"16.0"'; // Updated to 16.0
           buildSettings.SWIFT_VERSION = '"5.0"';
           buildSettings.SKIP_INSTALL = 'YES';
           buildSettings.CODE_SIGN_ENTITLEMENTS = `"${extensionName}/${extensionName}.entitlements"`;
@@ -179,6 +187,8 @@ module.exports = function withScreenTime(config) {
           buildSettings.GENERATE_INFOPLIST_FILE = 'NO';
           buildSettings.DEVELOPMENT_TEAM = '"QAH68NNKKZ"';
           buildSettings.APPLICATION_EXTENSION_API_ONLY = 'YES';
+          buildSettings.MARKETING_VERSION = `"${appVersion}"`;
+          buildSettings.CURRENT_PROJECT_VERSION = '"1"';
         }
       }
     }
