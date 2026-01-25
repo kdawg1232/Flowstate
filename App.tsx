@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View, Modal, AppState, Platform, Linking } from 'react-native';
 import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
 
 // Disable Reanimated strict mode to silence "Reading from value during component render" warnings 
@@ -26,6 +26,7 @@ import { calculateAllocatedMinutes } from './src/screentime';
 import ScreenTime from './src/native/ScreenTime';
 
 import OnboardingFlow from './src/screens/onboarding/OnboardingFlow';
+import { DismissScreen } from './src/screens/DismissScreen';
 
 export default function App() {
   const fontsLoaded = useFlowstateFonts();
@@ -35,6 +36,58 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('scroll');
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [stats, setStats] = useState<UserStats>(() => defaultStats());
+  const [showDismissScreen, setShowDismissScreen] = useState(false);
+
+  // Handle deep links from shield buttons
+  const handleDeepLink = useCallback((url: string | null) => {
+    if (!url) return;
+    
+    // Parse the URL - format: flowstate://dismiss or flowstate://
+    if (url.includes('dismiss')) {
+      setShowDismissScreen(true);
+    }
+  }, []);
+
+  // Check for pending deep links from shield (stored in shared UserDefaults)
+  const checkPendingDeepLink = useCallback(async () => {
+    if (Platform.OS !== 'ios') return;
+    
+    try {
+      // We can't directly read UserDefaults from JS, but we can check the initial URL
+      const initialUrl = await Linking.getInitialURL();
+      handleDeepLink(initialUrl);
+    } catch (e) {
+      console.error('Error checking deep link:', e);
+    }
+  }, [handleDeepLink]);
+
+  // Listen for deep links
+  useEffect(() => {
+    // Check initial URL
+    checkPendingDeepLink();
+
+    // Listen for URL events
+    const subscription = Linking.addEventListener('url', (event) => {
+      handleDeepLink(event.url);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [checkPendingDeepLink, handleDeepLink]);
+
+  // Check for pending deep link when app comes to foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        checkPendingDeepLink();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [checkPendingDeepLink]);
 
   useEffect(() => {
     let cancelled = false;
@@ -343,6 +396,22 @@ export default function App() {
           </View>
 
           <StatusBar style={isDark ? 'light' : 'dark'} />
+
+          {/* Dismiss Screen Modal */}
+          <Modal
+            visible={showDismissScreen}
+            animationType="slide"
+            presentationStyle="fullScreen"
+          >
+            <DismissScreen
+              onDismissComplete={() => {
+                setShowDismissScreen(false);
+              }}
+              onCancel={() => {
+                setShowDismissScreen(false);
+              }}
+            />
+          </Modal>
         </View>
       </GestureHandlerRootView>
     </SafeAreaProvider>

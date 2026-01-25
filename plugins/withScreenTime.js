@@ -3,7 +3,11 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * Expo Config Plugin to enable Screen Time APIs and the Device Activity Monitor Extension.
+ * Expo Config Plugin to enable Screen Time APIs with Shield Customization.
+ * Creates 3 extensions:
+ * - FlowStateMonitor: Device Activity Monitor (applies shields when limit reached)
+ * - FlowStateShieldConfig: Shield Configuration (customizes shield UI)
+ * - FlowStateShieldAction: Shield Action (handles button taps on shield)
  */
 module.exports = function withScreenTime(config) {
   // 1. Add Entitlements to the Main App
@@ -25,31 +29,21 @@ module.exports = function withScreenTime(config) {
     return config;
   });
 
-  // 3. Create the Extension Target and required files
+  // 3. Create Extension Targets and required files
   config = withXcodeProject(config, async (config) => {
     const project = config.modResults;
-    const extensionName = 'FlowStateMonitor';
-    const extensionBundleId = `${config.ios.bundleIdentifier}.monitor`;
     const projectRoot = config.modRequest.projectRoot;
     const iosRoot = path.join(projectRoot, 'ios');
-    const extensionRoot = path.join(iosRoot, extensionName);
     const mainAppName = config.modRequest.projectName || 'FlowState';
     const mainAppRoot = path.join(iosRoot, mainAppName);
-
-    // Create Extension Directory if it doesn't exist
-    if (!fs.existsSync(extensionRoot)) {
-      fs.mkdirSync(extensionRoot, { recursive: true });
-    }
+    const nativeSourceDir = path.join(projectRoot, 'native-ios', 'ScreenTime');
+    const appVersion = config.version || '1.0.0';
 
     // ========================================
     // 1. SETUP MAIN APP NATIVE MODULE
     // ========================================
-    const nativeSourceDir = path.join(projectRoot, 'native-ios', 'ScreenTime');
-    const swiftModuleDest = path.join(mainAppRoot, 'FlowStateScreenTime.swift');
-    const objcModuleDest = path.join(mainAppRoot, 'FlowStateScreenTime.m');
-    
-    fs.copyFileSync(path.join(nativeSourceDir, 'FlowStateScreenTime.swift'), swiftModuleDest);
-    fs.copyFileSync(path.join(nativeSourceDir, 'FlowStateScreenTime.m'), objcModuleDest);
+    fs.copyFileSync(path.join(nativeSourceDir, 'FlowStateScreenTime.swift'), path.join(mainAppRoot, 'FlowStateScreenTime.swift'));
+    fs.copyFileSync(path.join(nativeSourceDir, 'FlowStateScreenTime.m'), path.join(mainAppRoot, 'FlowStateScreenTime.m'));
 
     const mainAppGroup = project.findPBXGroupKey({ name: mainAppName }) || project.findPBXGroupKey({ path: mainAppName });
     
@@ -68,9 +62,9 @@ module.exports = function withScreenTime(config) {
     }
 
     // Add required frameworks to main app target
-    const mainAppFrameworks = ['FamilyControls', 'ManagedSettings', 'DeviceActivity'];
+    const frameworks = ['FamilyControls', 'ManagedSettings', 'DeviceActivity', 'ManagedSettingsUI'];
     if (mainTargetKey) {
-      for (const framework of mainAppFrameworks) {
+      for (const framework of frameworks) {
         project.addFramework(`System/Library/Frameworks/${framework}.framework`, {
           target: mainTargetKey,
           customFramework: true
@@ -98,43 +92,32 @@ module.exports = function withScreenTime(config) {
     }
 
     // ========================================
-    // 2. SETUP MONITOR EXTENSION
+    // 2. SETUP ALL EXTENSIONS
     // ========================================
-    
-    // A. Create Extension Info.plist
-    const appVersion = config.version || '1.0.0';
-    const infoPlistContent = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>CFBundleDisplayName</key>
-	<string>${extensionName}</string>
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>${extensionBundleId}</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>${extensionName}</string>
-	<key>CFBundlePackageType</key>
-	<string>XPC!</string>
-	<key>CFBundleShortVersionString</key>
-	<string>${appVersion}</string>
-	<key>CFBundleVersion</key>
-	<string>1</string>
-	<key>NSExtension</key>
-	<dict>
-		<key>NSExtensionPointIdentifier</key>
-		<string>com.apple.deviceactivity.monitor-extension</string>
-		<key>NSExtensionPrincipalClass</key>
-		<string>$(PRODUCT_MODULE_NAME).FlowStateMonitor</string>
-	</dict>
-</dict>
-</plist>`;
-    fs.writeFileSync(path.join(extensionRoot, 'Info.plist'), infoPlistContent);
+    const extensions = [
+      {
+        name: 'FlowStateMonitor',
+        bundleIdSuffix: 'monitor',
+        extensionPoint: 'com.apple.deviceactivity.monitor-extension',
+        principalClass: 'FlowStateMonitor',
+        sourceFile: 'DeviceActivityMonitor.swift'
+      },
+      {
+        name: 'FlowStateShieldConfig',
+        bundleIdSuffix: 'shield-config',
+        extensionPoint: 'com.apple.ManagedSettings.shield-configuration',
+        principalClass: 'ShieldConfigurationExtension',
+        sourceFile: 'ShieldConfiguration.swift'
+      },
+      {
+        name: 'FlowStateShieldAction',
+        bundleIdSuffix: 'shield-action',
+        extensionPoint: 'com.apple.ManagedSettingsUI.shield-action',
+        principalClass: 'ShieldActionExtension',
+        sourceFile: 'ShieldAction.swift'
+      }
+    ];
 
-    // B. Create Extension Entitlements
     const entitlementsContent = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -147,48 +130,91 @@ module.exports = function withScreenTime(config) {
 	</array>
 </dict>
 </plist>`;
-    fs.writeFileSync(path.join(extensionRoot, `${extensionName}.entitlements`), entitlementsContent);
 
-    // C. Copy DeviceActivityMonitor.swift
-    fs.copyFileSync(path.join(nativeSourceDir, 'DeviceActivityMonitor.swift'), path.join(extensionRoot, 'DeviceActivityMonitor.swift'));
+    for (const ext of extensions) {
+      const extensionRoot = path.join(iosRoot, ext.name);
+      const extensionBundleId = `${config.ios.bundleIdentifier}.${ext.bundleIdSuffix}`;
 
-    // D. Add extension target
-    const extensionTarget = project.addTarget(extensionName, 'app_extension', extensionName, extensionBundleId);
-    
-    // E. Add files to extension target
-    const extensionGroup = project.addPbxGroup(['DeviceActivityMonitor.swift', 'Info.plist', `${extensionName}.entitlements`], extensionName, extensionName);
-    const mainGroupKey = project.findPBXGroupKey({ name: undefined, path: undefined });
-    project.addToPbxGroup(extensionGroup.uuid, mainGroupKey);
+      // Create Extension Directory
+      if (!fs.existsSync(extensionRoot)) {
+        fs.mkdirSync(extensionRoot, { recursive: true });
+      }
 
-    // CRITICAL: Explicitly add to the extension target and ensure it's in the compile phase
-    project.addSourceFile(`${extensionName}/DeviceActivityMonitor.swift`, { target: extensionTarget.uuid }, extensionGroup.uuid);
+      // A. Create Extension Info.plist
+      const infoPlistContent = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>${ext.name}</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>${extensionBundleId}</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>${ext.name}</string>
+	<key>CFBundlePackageType</key>
+	<string>XPC!</string>
+	<key>CFBundleShortVersionString</key>
+	<string>${appVersion}</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>${ext.extensionPoint}</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>$(PRODUCT_MODULE_NAME).${ext.principalClass}</string>
+	</dict>
+</dict>
+</plist>`;
+      fs.writeFileSync(path.join(extensionRoot, 'Info.plist'), infoPlistContent);
 
-    // F. Add frameworks to extension target
-    for (const framework of mainAppFrameworks) {
-      project.addFramework(`System/Library/Frameworks/${framework}.framework`, {
-        target: extensionTarget.uuid,
-        customFramework: true
-      });
-    }
+      // B. Create Extension Entitlements
+      fs.writeFileSync(path.join(extensionRoot, `${ext.name}.entitlements`), entitlementsContent);
 
-    // G. Configure Build Settings for the extension target
-    const configurations = project.pbxXCBuildConfigurationSection();
-    for (const key in configurations) {
-      if (typeof configurations[key] === 'object' && configurations[key].buildSettings) {
-        const buildSettings = configurations[key].buildSettings;
-        if (buildSettings.PRODUCT_NAME === `"${extensionName}"` || buildSettings.PRODUCT_NAME === extensionName) {
-          buildSettings.PRODUCT_BUNDLE_IDENTIFIER = `"${extensionBundleId}"`;
-          buildSettings.IPHONEOS_DEPLOYMENT_TARGET = '"16.0"'; // Updated to 16.0
-          buildSettings.SWIFT_VERSION = '"5.0"';
-          buildSettings.SKIP_INSTALL = 'YES';
-          buildSettings.CODE_SIGN_ENTITLEMENTS = `"${extensionName}/${extensionName}.entitlements"`;
-          buildSettings.INFOPLIST_FILE = `"${extensionName}/Info.plist"`;
-          buildSettings.TARGETED_DEVICE_FAMILY = '"1,2"';
-          buildSettings.GENERATE_INFOPLIST_FILE = 'NO';
-          buildSettings.DEVELOPMENT_TEAM = '"QAH68NNKKZ"';
-          buildSettings.APPLICATION_EXTENSION_API_ONLY = 'YES';
-          buildSettings.MARKETING_VERSION = `"${appVersion}"`;
-          buildSettings.CURRENT_PROJECT_VERSION = '"1"';
+      // C. Copy Source File
+      fs.copyFileSync(path.join(nativeSourceDir, ext.sourceFile), path.join(extensionRoot, ext.sourceFile));
+
+      // D. Add extension target
+      const extensionTarget = project.addTarget(ext.name, 'app_extension', ext.name, extensionBundleId);
+      
+      // E. Add files to extension target
+      const extensionGroup = project.addPbxGroup([ext.sourceFile, 'Info.plist', `${ext.name}.entitlements`], ext.name, ext.name);
+      const mainGroupKey = project.findPBXGroupKey({ name: undefined, path: undefined });
+      project.addToPbxGroup(extensionGroup.uuid, mainGroupKey);
+
+      project.addSourceFile(`${ext.name}/${ext.sourceFile}`, { target: extensionTarget.uuid }, extensionGroup.uuid);
+
+      // F. Add frameworks to extension target
+      for (const framework of frameworks) {
+        project.addFramework(`System/Library/Frameworks/${framework}.framework`, {
+          target: extensionTarget.uuid,
+          customFramework: true
+        });
+      }
+
+      // G. Configure Build Settings
+      const configurations = project.pbxXCBuildConfigurationSection();
+      for (const key in configurations) {
+        if (typeof configurations[key] === 'object' && configurations[key].buildSettings) {
+          const buildSettings = configurations[key].buildSettings;
+          if (buildSettings.PRODUCT_NAME === `"${ext.name}"` || buildSettings.PRODUCT_NAME === ext.name) {
+            buildSettings.PRODUCT_BUNDLE_IDENTIFIER = `"${extensionBundleId}"`;
+            buildSettings.IPHONEOS_DEPLOYMENT_TARGET = '"16.0"';
+            buildSettings.SWIFT_VERSION = '"5.0"';
+            buildSettings.SKIP_INSTALL = 'YES';
+            buildSettings.CODE_SIGN_ENTITLEMENTS = `"${ext.name}/${ext.name}.entitlements"`;
+            buildSettings.INFOPLIST_FILE = `"${ext.name}/Info.plist"`;
+            buildSettings.TARGETED_DEVICE_FAMILY = '"1,2"';
+            buildSettings.GENERATE_INFOPLIST_FILE = 'NO';
+            buildSettings.DEVELOPMENT_TEAM = '"QAH68NNKKZ"';
+            buildSettings.APPLICATION_EXTENSION_API_ONLY = 'YES';
+            buildSettings.MARKETING_VERSION = `"${appVersion}"`;
+            buildSettings.CURRENT_PROJECT_VERSION = '"1"';
+          }
         }
       }
     }

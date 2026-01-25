@@ -37,6 +37,26 @@
               "group.com.karthik.flowstate"
             ]
           }
+        },
+        {
+          "targetName": "FlowStateShieldConfig",
+          "bundleIdentifier": "com.karthik.flowstate.shield-config",
+          "entitlements": {
+            "com.apple.developer.family-controls": true,
+            "com.apple.security.application-groups": [
+              "group.com.karthik.flowstate"
+            ]
+          }
+        },
+        {
+          "targetName": "FlowStateShieldAction",
+          "bundleIdentifier": "com.karthik.flowstate.shield-action",
+          "entitlements": {
+            "com.apple.developer.family-controls": true,
+            "com.apple.security.application-groups": [
+              "group.com.karthik.flowstate"
+            ]
+          }
         }
       ]
     },
@@ -62,6 +82,26 @@
                 {
                   "targetName": "FlowStateMonitor",
                   "bundleIdentifier": "com.karthik.flowstate.monitor",
+                  "entitlements": {
+                    "com.apple.developer.family-controls": true,
+                    "com.apple.security.application-groups": [
+                      "group.com.karthik.flowstate"
+                    ]
+                  }
+                },
+                {
+                  "targetName": "FlowStateShieldConfig",
+                  "bundleIdentifier": "com.karthik.flowstate.shield-config",
+                  "entitlements": {
+                    "com.apple.developer.family-controls": true,
+                    "com.apple.security.application-groups": [
+                      "group.com.karthik.flowstate"
+                    ]
+                  }
+                },
+                {
+                  "targetName": "FlowStateShieldAction",
+                  "bundleIdentifier": "com.karthik.flowstate.shield-action",
                   "entitlements": {
                     "com.apple.developer.family-controls": true,
                     "com.apple.security.application-groups": [
