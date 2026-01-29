@@ -131,6 +131,16 @@ module.exports = function withScreenTime(config) {
 </dict>
 </plist>`;
 
+    const findTargetKeyByName = (targetName) => {
+      const section = project.pbxNativeTargetSection();
+      for (const key in section) {
+        if (section[key].name === `"${targetName}"` || section[key].name === targetName) {
+          return key;
+        }
+      }
+      return null;
+    };
+
     for (const ext of extensions) {
       const extensionRoot = path.join(iosRoot, ext.name);
       const extensionBundleId = `${config.ios.bundleIdentifier}.${ext.bundleIdSuffix}`;
@@ -179,21 +189,26 @@ module.exports = function withScreenTime(config) {
       fs.copyFileSync(path.join(nativeSourceDir, ext.sourceFile), path.join(extensionRoot, ext.sourceFile));
 
       // D. Add extension target
-      const extensionTarget = project.addTarget(ext.name, 'app_extension', ext.name, extensionBundleId);
+      project.addTarget(ext.name, 'app_extension', ext.name, extensionBundleId);
+      const extensionTargetKey = findTargetKeyByName(ext.name);
       
       // E. Add files to extension target
       const extensionGroup = project.addPbxGroup([ext.sourceFile, 'Info.plist', `${ext.name}.entitlements`], ext.name, ext.name);
       const mainGroupKey = project.findPBXGroupKey({ name: undefined, path: undefined });
       project.addToPbxGroup(extensionGroup.uuid, mainGroupKey);
 
-      project.addSourceFile(`${ext.name}/${ext.sourceFile}`, { target: extensionTarget.uuid }, extensionGroup.uuid);
+      if (extensionTargetKey) {
+        project.addSourceFile(`${ext.name}/${ext.sourceFile}`, { target: extensionTargetKey }, extensionGroup.uuid);
+      }
 
       // F. Add frameworks to extension target
-      for (const framework of frameworks) {
-        project.addFramework(`System/Library/Frameworks/${framework}.framework`, {
-          target: extensionTarget.uuid,
-          customFramework: true
-        });
+      if (extensionTargetKey) {
+        for (const framework of frameworks) {
+          project.addFramework(`System/Library/Frameworks/${framework}.framework`, {
+            target: extensionTargetKey,
+            customFramework: true
+          });
+        }
       }
 
       // G. Configure Build Settings
