@@ -37,15 +37,33 @@ const Step5bScreenTime: React.FC<Props> = ({ onNext, onBack, onScreenTimeEnabled
       console.log('Step5b: Authorization result:', result);
       if (result) {
         setAuthorized(true);
-      } else {
+      }
+    } catch (error: any) {
+      console.error('Screen Time authorization error:', error);
+      
+      // Check if user canceled/denied the authorization
+      const errorMessage = error?.message || error?.toString() || '';
+      const isUserCancellation = errorMessage.toLowerCase().includes('cancel') || 
+                                  errorMessage.toLowerCase().includes('denied');
+      
+      if (isUserCancellation) {
         Alert.alert(
-          'Permission Required',
-          'FlowState needs Screen Time permission to enforce your access limits. You can enable this later in Settings.'
+          'Screen Time Required',
+          'FlowState uses Screen Time to help you build better habits by limiting access to distracting apps.\n\nTo get the full experience, please tap "Enable Screen Time" and select "Allow" when prompted.',
+          [
+            { text: 'Got it', style: 'default' }
+          ]
+        );
+      } else {
+        // Actual system error
+        Alert.alert(
+          'Something Went Wrong',
+          'We couldn\'t connect to Screen Time. Please try again or check your device settings.',
+          [
+            { text: 'OK', style: 'default' }
+          ]
         );
       }
-    } catch (error) {
-      console.error('Screen Time authorization error:', error);
-      Alert.alert('Error', 'Failed to request Screen Time permission.');
     } finally {
       setIsRequesting(false);
     }

@@ -131,16 +131,6 @@ module.exports = function withScreenTime(config) {
 </dict>
 </plist>`;
 
-    const findTargetKeyByName = (targetName) => {
-      const section = project.pbxNativeTargetSection();
-      for (const key in section) {
-        if (section[key].name === `"${targetName}"` || section[key].name === targetName) {
-          return key;
-        }
-      }
-      return null;
-    };
-
     for (const ext of extensions) {
       const extensionRoot = path.join(iosRoot, ext.name);
       const extensionBundleId = `${config.ios.bundleIdentifier}.${ext.bundleIdSuffix}`;
@@ -189,29 +179,39 @@ module.exports = function withScreenTime(config) {
       fs.copyFileSync(path.join(nativeSourceDir, ext.sourceFile), path.join(extensionRoot, ext.sourceFile));
 
       // D. Add extension target
-      project.addTarget(ext.name, 'app_extension', ext.name, extensionBundleId);
-      const extensionTargetKey = findTargetKeyByName(ext.name);
+      const extensionTarget = project.addTarget(ext.name, 'app_extension', ext.name, extensionBundleId);
       
       // E. Add files to extension target
       const extensionGroup = project.addPbxGroup([ext.sourceFile, 'Info.plist', `${ext.name}.entitlements`], ext.name, ext.name);
       const mainGroupKey = project.findPBXGroupKey({ name: undefined, path: undefined });
       project.addToPbxGroup(extensionGroup.uuid, mainGroupKey);
 
-      if (extensionTargetKey) {
-        project.addSourceFile(`${ext.name}/${ext.sourceFile}`, { target: extensionTargetKey }, extensionGroup.uuid);
-      }
-
-      // F. Add frameworks to extension target
-      if (extensionTargetKey) {
-        for (const framework of frameworks) {
-          project.addFramework(`System/Library/Frameworks/${framework}.framework`, {
-            target: extensionTargetKey,
-            customFramework: true
-          });
+      // F. Add source file to the extension's compile phase
+      const sourceFileKey = project.addSourceFile(`${ext.name}/${ext.sourceFile}`, { target: extensionTarget.uuid }, extensionGroup.uuid);
+      
+      // Ensure the source file is in the PBXBuildFile section for this target
+      if (sourceFileKey && extensionTarget.uuid) {
+        const buildPhaseSection = project.pbxSourcesBuildPhaseObj(extensionTarget.uuid);
+        if (buildPhaseSection && sourceFileKey.fileRef) {
+          // Manually add to build phase if not already there
+          if (!buildPhaseSection.files.find(f => f.value === sourceFileKey.uuid)) {
+            buildPhaseSection.files.push({
+              value: sourceFileKey.uuid,
+              comment: `${ext.sourceFile} in Sources`
+            });
+          }
         }
       }
 
-      // G. Configure Build Settings
+      // G. Add frameworks to extension target
+      for (const framework of frameworks) {
+        project.addFramework(`System/Library/Frameworks/${framework}.framework`, {
+          target: extensionTarget.uuid,
+          customFramework: true
+        });
+      }
+
+      // H. Configure Build Settings for this extension
       const configurations = project.pbxXCBuildConfigurationSection();
       for (const key in configurations) {
         if (typeof configurations[key] === 'object' && configurations[key].buildSettings) {
@@ -229,6 +229,46 @@ module.exports = function withScreenTime(config) {
             buildSettings.APPLICATION_EXTENSION_API_ONLY = 'YES';
             buildSettings.MARKETING_VERSION = `"${appVersion}"`;
             buildSettings.CURRENT_PROJECT_VERSION = '"1"';
+          }
+        }
+      }
+
+      // I. Add extension to main app's "Embed App Extensions" build phase
+      // This is CRITICAL - without this, iOS won't load the extension
+      if (mainTargetKey) {
+        // Add dependency so extension builds with main app
+        project.addTargetDependency(mainTargetKey, [extensionTarget.uuid]);
+        
+        // Create or get the "Embed App Extensions" copy files build phase
+        const buildPhases = project.pbxCopyfilesBuildPhaseObj(mainTargetKey);
+        
+        // Add extension product to embed phase
+        // The extension's .appex needs to be copied to PlugIns folder (dstSubfolderSpec = 13)
+        const embedPhase = project.addBuildPhase(
+          [],
+          'PBXCopyFilesBuildPhase',
+          `Embed ${ext.name}`,
+          mainTargetKey,
+          'app_extension'
+        );
+        
+        if (embedPhase && embedPhase.buildPhase) {
+          embedPhase.buildPhase.dstSubfolderSpec = 13; // PlugIns folder
+          embedPhase.buildPhase.dstPath = '""';
+          
+          // Find the extension's product reference
+          const products = project.pbxBuildFileSection();
+          const nativeTargets = project.pbxNativeTargetSection();
+          
+          // Get the product reference for this extension
+          if (nativeTargets[extensionTarget.uuid]) {
+            const productRef = nativeTargets[extensionTarget.uuid].productReference;
+            if (productRef) {
+              // Add the product to the embed phase
+              const buildFile = project.addBuildFile(productRef, embedPhase.uuid, { 
+                settings: { ATTRIBUTES: ['RemoveHeadersOnCopy'] }
+              });
+            }
           }
         }
       }
