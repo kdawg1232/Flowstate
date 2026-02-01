@@ -238,38 +238,67 @@ module.exports = function withScreenTime(config) {
       if (mainTargetKey) {
         // Add dependency so extension builds with main app
         project.addTargetDependency(mainTargetKey, [extensionTarget.uuid]);
+      }
+    }
+
+    // J. Create a single "Embed App Extensions" build phase for all extensions
+    // We need to do this after all extensions are created
+    if (mainTargetKey) {
+      const nativeTargets = project.pbxNativeTargetSection();
+      const mainTarget = nativeTargets[mainTargetKey];
+      
+      if (mainTarget) {
+        // Generate UUIDs for the embed phase
+        const embedPhaseUuid = project.generateUuid();
+        const embedPhaseCommentKey = `${embedPhaseUuid}_comment`;
         
-        // Create or get the "Embed App Extensions" copy files build phase
-        const buildPhases = project.pbxCopyfilesBuildPhaseObj(mainTargetKey);
+        // Create the PBXCopyFilesBuildPhase for embedding extensions
+        const copyFilesSection = project.hash.project.objects['PBXCopyFilesBuildPhase'] || {};
         
-        // Add extension product to embed phase
-        // The extension's .appex needs to be copied to PlugIns folder (dstSubfolderSpec = 13)
-        const embedPhase = project.addBuildPhase(
-          [],
-          'PBXCopyFilesBuildPhase',
-          `Embed ${ext.name}`,
-          mainTargetKey,
-          'app_extension'
-        );
-        
-        if (embedPhase && embedPhase.buildPhase) {
-          embedPhase.buildPhase.dstSubfolderSpec = 13; // PlugIns folder
-          embedPhase.buildPhase.dstPath = '""';
-          
-          // Find the extension's product reference
-          const products = project.pbxBuildFileSection();
-          const nativeTargets = project.pbxNativeTargetSection();
-          
-          // Get the product reference for this extension
-          if (nativeTargets[extensionTarget.uuid]) {
-            const productRef = nativeTargets[extensionTarget.uuid].productReference;
-            if (productRef) {
-              // Add the product to the embed phase
-              const buildFile = project.addBuildFile(productRef, embedPhase.uuid, { 
-                settings: { ATTRIBUTES: ['RemoveHeadersOnCopy'] }
-              });
+        // Collect all extension product references
+        const extensionFiles = [];
+        for (const ext of extensions) {
+          // Find the extension target
+          for (const key in nativeTargets) {
+            const target = nativeTargets[key];
+            if (target && typeof target === 'object' && 
+                (target.name === `"${ext.name}"` || target.name === ext.name)) {
+              const productRef = target.productReference;
+              if (productRef) {
+                // Create a build file entry for this product
+                const buildFileUuid = project.generateUuid();
+                const buildFileSection = project.hash.project.objects['PBXBuildFile'] || {};
+                buildFileSection[buildFileUuid] = {
+                  isa: 'PBXBuildFile',
+                  fileRef: productRef,
+                  settings: { ATTRIBUTES: ['RemoveHeadersOnCopy'] }
+                };
+                buildFileSection[`${buildFileUuid}_comment`] = `${ext.name}.appex in Embed App Extensions`;
+                project.hash.project.objects['PBXBuildFile'] = buildFileSection;
+                
+                extensionFiles.push({ value: buildFileUuid, comment: `${ext.name}.appex in Embed App Extensions` });
+              }
+              break;
             }
           }
+        }
+        
+        // Create the embed phase
+        copyFilesSection[embedPhaseUuid] = {
+          isa: 'PBXCopyFilesBuildPhase',
+          buildActionMask: 2147483647,
+          dstPath: '""',
+          dstSubfolderSpec: 13, // 13 = PlugIns folder
+          files: extensionFiles,
+          name: '"Embed App Extensions"',
+          runOnlyForDeploymentPostprocessing: 0
+        };
+        copyFilesSection[embedPhaseCommentKey] = 'Embed App Extensions';
+        project.hash.project.objects['PBXCopyFilesBuildPhase'] = copyFilesSection;
+        
+        // Add the embed phase to the main target's build phases
+        if (mainTarget.buildPhases) {
+          mainTarget.buildPhases.push({ value: embedPhaseUuid, comment: 'Embed App Extensions' });
         }
       }
     }
