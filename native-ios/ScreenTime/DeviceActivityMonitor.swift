@@ -2,16 +2,14 @@ import DeviceActivity
 import ManagedSettings
 import FamilyControls
 import Foundation
-import os
 
-@available(iOS 16.0, *)
+// Device Activity Monitor Extension - monitors device activity and applies shields
+// NOTE: Class name must match NSExtensionPrincipalClass in Info.plist
 class FlowStateMonitor: DeviceActivityMonitor {
     let store = ManagedSettingsStore()
-    private let logger = Logger(subsystem: "com.karthik.flowstate", category: "FlowStateMonitor")
     
     override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
         super.eventDidReachThreshold(event, activity: activity)
-        logger.log("THRESHOLD REACHED: \(event.rawValue) for activity \(activity.rawValue)")
         
         // This is called when the user reaches their hourly limit
         let sharedDefaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
@@ -20,30 +18,23 @@ class FlowStateMonitor: DeviceActivityMonitor {
         if let selectionData = sharedDefaults?.data(forKey: "selectedApps") {
             let decoder = JSONDecoder()
             if let selection = try? decoder.decode(FamilyActivitySelection.self, from: selectionData) {
-                logger.log("Applying shields to \(selection.applicationTokens.count) apps and \(selection.categoryTokens.count) categories")
-                // Apply the shield
+                // Apply the shield to selected apps
                 store.shield.applications = selection.applicationTokens
                 store.shield.applicationCategories = .specific(selection.categoryTokens)
-                logger.log("Shields applied successfully")
-            } else {
-                logger.error("Failed to decode selection from UserDefaults")
+                store.shield.webDomains = selection.webDomainTokens
             }
-        } else {
-            logger.error("No selectedApps found in shared UserDefaults")
         }
     }
     
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
-        logger.log("INTERVAL STARTED: \(activity.rawValue). Clearing shields.")
         // Reset shield at the start of every hour
         store.shield.applications = nil
         store.shield.applicationCategories = nil
-        logger.log("Shields cleared for new interval")
+        store.shield.webDomains = nil
     }
 
     override func intervalDidEnd(for activity: DeviceActivityName) {
         super.intervalDidEnd(for: activity)
-        logger.log("INTERVAL ENDED: \(activity.rawValue)")
     }
 }

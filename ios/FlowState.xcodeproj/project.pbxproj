@@ -7,21 +7,89 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		056045D81385457787F7F66B /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B51C2B3FFE2D4792AD3B61B5 /* ManagedSettingsUI.framework */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		155FBFCAE65846EBB84A2CBC /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0832301EB69143D8B14F6E2E /* DeviceActivity.framework */; };
+		16948AB4E57C4D1981612085 /* ShieldConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CE6258D94AB4AE28E4F1FFC /* ShieldConfiguration.swift */; };
+		2FBB08C976B4424492199633 /* FlowStateScreenTime.m in Sources */ = {isa = PBXBuildFile; fileRef = 88C619643D68439A91A54A8B /* FlowStateScreenTime.m */; };
+		3D7409A24C953E60414F7663 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D6DA319DD2D3D87503D6EA3A /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
+		52739C3BB0634B8CAF9CACE0 /* FlowStateShieldConfig.appex in Copy Files */ = {isa = PBXBuildFile; fileRef = 5075AC32C9E044EFBB45024F /* FlowStateShieldConfig.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		6692A02542194AD8A36EFA7D /* libPods-FlowState.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 96B94E83161DCB01C2D58932 /* libPods-FlowState.a */; };
+		74B679860423492D808F92E6 /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C1CBA08C9BC145D282B97518 /* FamilyControls.framework */; };
+		85AF8E2BF4D44C5BA27D4429 /* FlowStateMonitor.appex in Copy Files */ = {isa = PBXBuildFile; fileRef = 656E6A2F25CA4E129730E4B4 /* FlowStateMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		991F74F675D0AEFAC23B3E93 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C1420CB9E81B167E1DE2A72 /* ExpoModulesProvider.swift */; };
+		9C8F0A1F0D1C41E381D969AB /* FlowStateShieldAction.appex in Copy Files */ = {isa = PBXBuildFile; fileRef = 669D643D2BAE4D24A07BD263 /* FlowStateShieldAction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B548DD9014A14F6B918DECF6 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 398B82ADC5114512BD5087F4 /* ManagedSettings.framework */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
+		D73AE03460FE4C3E93BE7B1F /* FlowStateScreenTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBFDB03723FE4A7FA9116A7E /* FlowStateScreenTime.swift */; };
+		DBE82FEC7DB64600A811D8EF /* ShieldAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3474EFFD2D9A4688893D512B /* ShieldAction.swift */; };
+		EC6A601FA73247558DA366B1 /* DeviceActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC87AAE482943CAB47A1BBD /* DeviceActivityMonitor.swift */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		81D9F5FF69FA4183AE8FE036 /* Copy Files */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				85AF8E2BF4D44C5BA27D4429 /* FlowStateMonitor.appex in Copy Files */,
+				52739C3BB0634B8CAF9CACE0 /* FlowStateShieldConfig.appex in Copy Files */,
+				9C8F0A1F0D1C41E381D969AB /* FlowStateShieldAction.appex in Copy Files */,
+			);
+			name = "Copy Files";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCB14E6E45034F1BA49BE766 /* Copy Files */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+			);
+			name = "Copy Files";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F519DC8972BD4AF1A1759504 /* Copy Files */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+			);
+			name = "Copy Files";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		0832301EB69143D8B14F6E2E /* DeviceActivity.framework */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* FlowState.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FlowState.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = FlowState/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = FlowState/Info.plist; sourceTree = "<group>"; };
+		3474EFFD2D9A4688893D512B /* ShieldAction.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = ShieldAction.swift; path = FlowStateShieldAction/ShieldAction.swift; sourceTree = "<group>"; };
+		398B82ADC5114512BD5087F4 /* ManagedSettings.framework */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = "<group>"; };
+		5075AC32C9E044EFBB45024F /* FlowStateShieldConfig.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = undefined; name = FlowStateShieldConfig.appex; path = FlowStateShieldConfig.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		656E6A2F25CA4E129730E4B4 /* FlowStateMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = undefined; name = FlowStateMonitor.appex; path = FlowStateMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		669D643D2BAE4D24A07BD263 /* FlowStateShieldAction.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = undefined; name = FlowStateShieldAction.appex; path = FlowStateShieldAction.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7C1420CB9E81B167E1DE2A72 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-FlowState/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		88C619643D68439A91A54A8B /* FlowStateScreenTime.m */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.objc; name = FlowStateScreenTime.m; path = FlowState/FlowStateScreenTime.m; sourceTree = "<group>"; };
+		8B36F3F7E1F2242A96C949CD /* Pods-FlowState.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FlowState.debug.xcconfig"; path = "Target Support Files/Pods-FlowState/Pods-FlowState.debug.xcconfig"; sourceTree = "<group>"; };
+		8CE6258D94AB4AE28E4F1FFC /* ShieldConfiguration.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = ShieldConfiguration.swift; path = FlowStateShieldConfig/ShieldConfiguration.swift; sourceTree = "<group>"; };
+		96B94E83161DCB01C2D58932 /* libPods-FlowState.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-FlowState.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = FlowState/SplashScreen.storyboard; sourceTree = "<group>"; };
+		AAC87AAE482943CAB47A1BBD /* DeviceActivityMonitor.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = DeviceActivityMonitor.swift; path = FlowStateMonitor/DeviceActivityMonitor.swift; sourceTree = "<group>"; };
+		B36E5B91A5AAA4FCB6FA14F7 /* Pods-FlowState.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FlowState.release.xcconfig"; path = "Target Support Files/Pods-FlowState/Pods-FlowState.release.xcconfig"; sourceTree = "<group>"; };
+		B51C2B3FFE2D4792AD3B61B5 /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		C1CBA08C9BC145D282B97518 /* FamilyControls.framework */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = wrapper.framework; name = FamilyControls.framework; path = System/Library/Frameworks/FamilyControls.framework; sourceTree = "<group>"; };
+		D6DA319DD2D3D87503D6EA3A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = FlowState/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = FlowState/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* FlowState-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "FlowState-Bridging-Header.h"; path = "FlowState/FlowState-Bridging-Header.h"; sourceTree = "<group>"; };
+		FBFDB03723FE4A7FA9116A7E /* FlowStateScreenTime.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = FlowStateScreenTime.swift; path = FlowState/FlowStateScreenTime.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -29,6 +97,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				74B679860423492D808F92E6 /* FamilyControls.framework in Frameworks */,
+				B548DD9014A14F6B918DECF6 /* ManagedSettings.framework in Frameworks */,
+				155FBFCAE65846EBB84A2CBC /* DeviceActivity.framework in Frameworks */,
+				056045D81385457787F7F66B /* ManagedSettingsUI.framework in Frameworks */,
+				6692A02542194AD8A36EFA7D /* libPods-FlowState.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -44,16 +117,42 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
+				FBFDB03723FE4A7FA9116A7E /* FlowStateScreenTime.swift */,
+				88C619643D68439A91A54A8B /* FlowStateScreenTime.m */,
+				D6DA319DD2D3D87503D6EA3A /* PrivacyInfo.xcprivacy */,
 			);
 			name = FlowState;
+			sourceTree = "<group>";
+		};
+		24D32EDC1BC8C48C5C3D61BB /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				8B36F3F7E1F2242A96C949CD /* Pods-FlowState.debug.xcconfig */,
+				B36E5B91A5AAA4FCB6FA14F7 /* Pods-FlowState.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
+				C1CBA08C9BC145D282B97518 /* FamilyControls.framework */,
+				398B82ADC5114512BD5087F4 /* ManagedSettings.framework */,
+				0832301EB69143D8B14F6E2E /* DeviceActivity.framework */,
+				B51C2B3FFE2D4792AD3B61B5 /* ManagedSettingsUI.framework */,
+				96B94E83161DCB01C2D58932 /* libPods-FlowState.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		3E2DB3F38F69276EF3EF37CB /* FlowState */ = {
+			isa = PBXGroup;
+			children = (
+				7C1420CB9E81B167E1DE2A72 /* ExpoModulesProvider.swift */,
+			);
+			name = FlowState;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -70,6 +169,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
+				24D32EDC1BC8C48C5C3D61BB /* Pods */,
+				A83F3E88A975BF9E79A53DD7 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -80,8 +181,19 @@
 			isa = PBXGroup;
 			children = (
 				13B07F961A680F5B00A75B9A /* FlowState.app */,
+				656E6A2F25CA4E129730E4B4 /* FlowStateMonitor.appex */,
+				5075AC32C9E044EFBB45024F /* FlowStateShieldConfig.appex */,
+				669D643D2BAE4D24A07BD263 /* FlowStateShieldAction.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A83F3E88A975BF9E79A53DD7 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				3E2DB3F38F69276EF3EF37CB /* FlowState */,
+			);
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -96,16 +208,36 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		12F18D7631D74469ABB7EC69 /* FlowStateShieldAction */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D6729432B0144D458EA22F46 /* Build configuration list for PBXNativeTarget "FlowStateShieldAction" */;
+			buildPhases = (
+				F81422D3E79DBE3ED8D96621 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FlowStateShieldAction;
+			productName = FlowStateShieldAction;
+			productReference = 669D643D2BAE4D24A07BD263 /* FlowStateShieldAction.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		13B07F861A680F5B00A75B9A /* FlowState */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "FlowState" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
+				3109A56BBC24BB6B47C61B09 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
+				81D9F5FF69FA4183AE8FE036 /* Copy Files */,
+				F519DC8972BD4AF1A1759504 /* Copy Files */,
+				DCB14E6E45034F1BA49BE766 /* Copy Files */,
+				DBDCE2FDB1F3E8BAED7665E8 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -115,6 +247,36 @@
 			productName = FlowState;
 			productReference = 13B07F961A680F5B00A75B9A /* FlowState.app */;
 			productType = "com.apple.product-type.application";
+		};
+		1C5805BA839948398F68F085 /* FlowStateShieldConfig */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D959FBAD709486C88F45E1F /* Build configuration list for PBXNativeTarget "FlowStateShieldConfig" */;
+			buildPhases = (
+				F4007E69942B3FD6ABC6BE6E /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FlowStateShieldConfig;
+			productName = FlowStateShieldConfig;
+			productReference = 5075AC32C9E044EFBB45024F /* FlowStateShieldConfig.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		A92D726FC3EB468ABEF5FEF3 /* FlowStateMonitor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C9689EF4DEFC44779324984E /* Build configuration list for PBXNativeTarget "FlowStateMonitor" */;
+			buildPhases = (
+				495B12D6E7A8CD2102748E96 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FlowStateMonitor;
+			productName = FlowStateMonitor;
+			productReference = 656E6A2F25CA4E129730E4B4 /* FlowStateMonitor.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -126,6 +288,20 @@
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
 						LastSwiftMigration = 1250;
+						DevelopmentTeam = "QAH68NNKKZ";
+						ProvisioningStyle = Automatic;
+					};
+					12F18D7631D74469ABB7EC69 = {
+						DevelopmentTeam = "QAH68NNKKZ";
+						ProvisioningStyle = Automatic;
+					};
+					1C5805BA839948398F68F085 = {
+						DevelopmentTeam = "QAH68NNKKZ";
+						ProvisioningStyle = Automatic;
+					};
+					A92D726FC3EB468ABEF5FEF3 = {
+						DevelopmentTeam = "QAH68NNKKZ";
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -143,6 +319,9 @@
 			projectRoot = "";
 			targets = (
 				13B07F861A680F5B00A75B9A /* FlowState */,
+				A92D726FC3EB468ABEF5FEF3 /* FlowStateMonitor */,
+				1C5805BA839948398F68F085 /* FlowStateShieldConfig */,
+				12F18D7631D74469ABB7EC69 /* FlowStateShieldAction */,
 			);
 		};
 /* End PBXProject section */
@@ -155,6 +334,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
+				3D7409A24C953E60414F7663 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -200,6 +380,30 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
+		3109A56BBC24BB6B47C61B09 /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/.xcode.env",
+				"$(SRCROOT)/.xcode.env.local",
+				"$(SRCROOT)/FlowState/FlowState.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-FlowState/expo-configure-project.sh",
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Pods/Target Support Files/Pods-FlowState/ExpoModulesProvider.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-FlowState/expo-configure-project.sh\"\n";
+		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -208,18 +412,52 @@
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-FlowState/Pods-FlowState-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/EXUpdates/EXUpdates.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/React-Core/RCTI18nStrings.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/RNCAsyncStorage/RNCAsyncStorage_resources.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/RNSVG/RNSVGFilters.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/React-Core/React-Core_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/React-cxxreact/React-cxxreact_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-launcher/EXDevLauncher.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-menu/EXDevMenu.bundle",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputPaths = (
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXConstants.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXUpdates.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RCTI18nStrings.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoConstants_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoFileSystem_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNCAsyncStorage_resources.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNSVGFilters.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-Core_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-cxxreact_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevLauncher.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevMenu.bundle",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-FlowState/Pods-FlowState-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		DBDCE2FDB1F3E8BAED7665E8 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-FlowState/Pods-FlowState-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-FlowState/Pods-FlowState-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -230,6 +468,33 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
+				D73AE03460FE4C3E93BE7B1F /* FlowStateScreenTime.swift in Sources */,
+				2FBB08C976B4424492199633 /* FlowStateScreenTime.m in Sources */,
+				991F74F675D0AEFAC23B3E93 /* ExpoModulesProvider.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		495B12D6E7A8CD2102748E96 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EC6A601FA73247558DA366B1 /* DeviceActivityMonitor.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F4007E69942B3FD6ABC6BE6E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				16948AB4E57C4D1981612085 /* ShieldConfiguration.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F81422D3E79DBE3ED8D96621 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DBE82FEC7DB64600A811D8EF /* ShieldAction.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -238,17 +503,26 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8B36F3F7E1F2242A96C949CD /* Pods-FlowState.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = FlowState/FlowState.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"System/Library/Frameworks\"",
+					"\"System/Library/Frameworks\"",
+					"\"System/Library/Frameworks\"",
+					"\"System/Library/Frameworks\"",
+				);
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
 				INFOPLIST_FILE = FlowState/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -259,23 +533,37 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.name.FlowState;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = com.karthik.flowstate;
 				PRODUCT_NAME = FlowState;
 				SWIFT_OBJC_BRIDGING_HEADER = "FlowState/FlowState-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
+				DEVELOPMENT_TEAM = "QAH68NNKKZ";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 			};
 			name = Debug;
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B36E5B91A5AAA4FCB6FA14F7 /* Pods-FlowState.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = FlowState/FlowState.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"System/Library/Frameworks\"",
+					"\"System/Library/Frameworks\"",
+					"\"System/Library/Frameworks\"",
+					"\"System/Library/Frameworks\"",
+				);
 				INFOPLIST_FILE = FlowState/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -286,13 +574,82 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.name.FlowState;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
+				PRODUCT_BUNDLE_IDENTIFIER = com.karthik.flowstate;
 				PRODUCT_NAME = FlowState;
 				SWIFT_OBJC_BRIDGING_HEADER = "FlowState/FlowState-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
+				DEVELOPMENT_TEAM = "QAH68NNKKZ";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 			};
 			name = Release;
+		};
+		499B7D635CF64A0497B103C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = FlowStateShieldConfig/FlowStateShieldConfig.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "QAH68NNKKZ";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FlowStateShieldConfig/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.karthik.flowstate.shield-config";
+				PRODUCT_MODULE_NAME = FlowStateShieldConfig;
+				PRODUCT_NAME = FlowStateShieldConfig;
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+			};
+			name = Release;
+		};
+		6CDB84C19FFD4993B2CB01D6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = FlowStateShieldAction/FlowStateShieldAction.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "QAH68NNKKZ";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FlowStateShieldAction/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.karthik.flowstate.shield-action";
+				PRODUCT_MODULE_NAME = FlowStateShieldAction;
+				PRODUCT_NAME = FlowStateShieldAction;
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+			};
+			name = Debug;
 		};
 		83CBBA201A601CBA00E9B192 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -346,10 +703,14 @@
 					/usr/lib/swift,
 					"$(inherited)",
 				);
-				LIBRARY_SEARCH_PATHS = "\"$(inherited)\"";
+				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
+				USE_HERMES = true;
 			};
 			name = Debug;
 		};
@@ -398,12 +759,143 @@
 					/usr/lib/swift,
 					"$(inherited)",
 				);
-				LIBRARY_SEARCH_PATHS = "\"$(inherited)\"";
+				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = NO;
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
+				USE_HERMES = true;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
+		};
+		9DEDE016B3434FF999BC1E4E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = FlowStateMonitor/FlowStateMonitor.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "QAH68NNKKZ";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FlowStateMonitor/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = com.karthik.flowstate.monitor;
+				PRODUCT_MODULE_NAME = FlowStateMonitor;
+				PRODUCT_NAME = FlowStateMonitor;
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+			};
+			name = Debug;
+		};
+		A670700E0D534DE789C69D38 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = FlowStateShieldAction/FlowStateShieldAction.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "QAH68NNKKZ";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FlowStateShieldAction/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.karthik.flowstate.shield-action";
+				PRODUCT_MODULE_NAME = FlowStateShieldAction;
+				PRODUCT_NAME = FlowStateShieldAction;
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+			};
+			name = Release;
+		};
+		B37BF99538524714ACAC8DCB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = FlowStateMonitor/FlowStateMonitor.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "QAH68NNKKZ";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FlowStateMonitor/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
+				PRODUCT_BUNDLE_IDENTIFIER = com.karthik.flowstate.monitor;
+				PRODUCT_MODULE_NAME = FlowStateMonitor;
+				PRODUCT_NAME = FlowStateMonitor;
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+			};
+			name = Release;
+		};
+		E0348AF72FC14658A3A22DF1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = FlowStateShieldConfig/FlowStateShieldConfig.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "QAH68NNKKZ";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FlowStateShieldConfig/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.karthik.flowstate.shield-config";
+				PRODUCT_MODULE_NAME = FlowStateShieldConfig;
+				PRODUCT_NAME = FlowStateShieldConfig;
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+			};
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
@@ -417,11 +909,38 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		4D959FBAD709486C88F45E1F /* Build configuration list for PBXNativeTarget "FlowStateShieldConfig" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E0348AF72FC14658A3A22DF1 /* Debug */,
+				499B7D635CF64A0497B103C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "FlowState" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,
 				83CBBA211A601CBA00E9B192 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C9689EF4DEFC44779324984E /* Build configuration list for PBXNativeTarget "FlowStateMonitor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9DEDE016B3434FF999BC1E4E /* Debug */,
+				B37BF99538524714ACAC8DCB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D6729432B0144D458EA22F46 /* Build configuration list for PBXNativeTarget "FlowStateShieldAction" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6CDB84C19FFD4993B2CB01D6 /* Debug */,
+				A670700E0D534DE789C69D38 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

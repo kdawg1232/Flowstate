@@ -31,11 +31,31 @@ class ScreenTimeModule: NSObject {
         super.init()
         logger.log("ScreenTimeModule initialized")
         logger.log("Initial authorization status: \(self.center.authorizationStatus.rawValue)")
+        // Load any previously saved selection
+        loadSelection()
+    }
+
+    private func loadSelection() {
+        let defaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
+        logger.log("Loading selection from shared defaults: \(defaults != nil)")
+        if let data = defaults?.data(forKey: "selectedApps") {
+            let decoder = JSONDecoder()
+            if let savedSelection = try? decoder.decode(FamilyActivitySelection.self, from: data) {
+                // Set without triggering didSet (to avoid re-saving)
+                self.selection = savedSelection
+                logger.log("Loaded saved selection: \(savedSelection.applicationTokens.count) apps, \(savedSelection.categoryTokens.count) categories")
+            } else {
+                logger.error("Failed to decode saved selection")
+            }
+        } else {
+            logger.log("No saved selection found")
+        }
     }
 
     private func saveSelection(_ selection: FamilyActivitySelection) {
         logger.log("Saving selection to shared UserDefaults")
         let defaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
+        logger.log("Shared defaults available: \(defaults != nil)")
         let encoder = JSONEncoder()
         if let encoded = try? encoder.encode(selection) {
             defaults?.set(encoded, forKey: "selectedApps")
@@ -74,22 +94,42 @@ class ScreenTimeModule: NSObject {
         }
         logger.log("Setting Screen Time budget to \(minutes) minutes")
         let sharedDefaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
+        logger.log("Shared defaults available: \(sharedDefaults != nil)")
         sharedDefaults?.set(minutes, forKey: "hourlyQuota")
+        
+        // If selection is empty, try to load from UserDefaults FIRST
+        if selection.applicationTokens.isEmpty && selection.categoryTokens.isEmpty && selection.webDomainTokens.isEmpty {
+            logger.log("Selection is empty, attempting to load from UserDefaults...")
+            loadSelection()
+        }
+        
+        if selection.applicationTokens.isEmpty && selection.categoryTokens.isEmpty && selection.webDomainTokens.isEmpty {
+            logger.error("setScreenTimeBudget called with EMPTY selection. Shielding will not work until apps/categories are chosen.")
+        } else {
+            logger.log("Selection has \(self.selection.applicationTokens.count) apps and \(self.selection.categoryTokens.count) categories")
+            logger.log("Selection web domains: \(self.selection.webDomainTokens.count)")
+        }
         
         // If minutes are high (e.g. 60), we remove any existing shield immediately
         if minutes >= 60 {
             logger.log("Minutes >= 60, clearing existing shields")
             store.shield.applications = nil
             store.shield.applicationCategories = nil
+            store.shield.webDomains = nil
         }
-
-        if selection.applicationTokens.isEmpty && selection.categoryTokens.isEmpty && selection.webDomainTokens.isEmpty {
-            logger.error("setScreenTimeBudget called with EMPTY selection. Shielding will not work until apps/categories are chosen.")
+        
+        // If minutes is 0, apply shields immediately (don't wait for monitor)
+        if minutes == 0 && (!selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty || !selection.webDomainTokens.isEmpty) {
+            logger.log("Minutes == 0, applying shields immediately (apps=\(self.selection.applicationTokens.count), categories=\(self.selection.categoryTokens.count), webDomains=\(self.selection.webDomainTokens.count))")
+            store.shield.applications = selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
+            store.shield.applicationCategories = selection.categoryTokens.isEmpty ? nil : .specific(selection.categoryTokens)
+            store.shield.webDomains = selection.webDomainTokens.isEmpty ? nil : selection.webDomainTokens
+            logger.log("Shields applied from main app")
         }
         
         let hourlySchedule = DeviceActivitySchedule(
-            intervalStart: DateComponents(minute: 0),
-            intervalEnd: DateComponents(minute: 59),
+            intervalStart: DateComponents(hour: 0, minute: 0),
+            intervalEnd: DateComponents(hour: 23, minute: 59),
             repeats: true
         )
         
@@ -102,6 +142,7 @@ class ScreenTimeModule: NSObject {
                 threshold: DateComponents(minute: minutes)
             )
         ]
+        logger.log("Event configured: apps=\(self.selection.applicationTokens.count), categories=\(self.selection.categoryTokens.count), webDomains=\(self.selection.webDomainTokens.count)")
         
         do {
             logger.log("Starting monitoring for .hourlyBudget")

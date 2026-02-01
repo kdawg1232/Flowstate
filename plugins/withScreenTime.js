@@ -39,6 +39,107 @@ module.exports = function withScreenTime(config) {
     const nativeSourceDir = path.join(projectRoot, 'native-ios', 'ScreenTime');
     const appVersion = config.version || '1.0.0';
 
+    // Helper: Get target key by name
+    const getTargetKey = (targetName) => {
+      const targets = project.pbxNativeTargetSection();
+      for (const key in targets) {
+        const target = targets[key];
+        if (target && typeof target === 'object' && 
+            (target.name === `"${targetName}"` || target.name === targetName)) {
+          return key;
+        }
+      }
+      return null;
+    };
+
+    // Helper: Get the Sources build phase for a target
+    const getSourcesBuildPhase = (targetKey) => {
+      const targets = project.pbxNativeTargetSection();
+      const target = targets[targetKey];
+      if (!target || !target.buildPhases) return null;
+      
+      const buildPhases = project.pbxBuildPhaseObj ? project.hash.project.objects.PBXSourcesBuildPhase : project.pbxSourcesBuildPhaseSection();
+      
+      for (const phaseRef of target.buildPhases) {
+        const phaseKey = phaseRef.value;
+        if (buildPhases[phaseKey] && buildPhases[phaseKey].isa === 'PBXSourcesBuildPhase') {
+          return phaseKey;
+        }
+      }
+      return null;
+    };
+
+    // Helper: Check if file is already in a build phase
+    const fileInBuildPhase = (buildPhaseKey, fileName) => {
+      const buildPhases = project.pbxSourcesBuildPhaseSection();
+      const phase = buildPhases[buildPhaseKey];
+      if (!phase || !phase.files) return false;
+      
+      const buildFiles = project.pbxBuildFileSection();
+      for (const fileEntry of phase.files) {
+        const buildFile = buildFiles[fileEntry.value];
+        if (buildFile && buildFile.fileRef) {
+          const fileRefs = project.pbxFileReferenceSection();
+          const fileRef = fileRefs[buildFile.fileRef];
+          if (fileRef && (fileRef.name === fileName || fileRef.name === `"${fileName}"` ||
+                         fileRef.path?.includes(fileName))) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    // Helper: Add source file to a specific target's build phase
+    const addSourceFileToTarget = (filePath, targetKey, groupKey) => {
+      const sourcesBuildPhase = getSourcesBuildPhase(targetKey);
+      if (!sourcesBuildPhase) {
+        console.log(`[withScreenTime] Could not find Sources build phase for target`);
+        return;
+      }
+
+      const fileName = path.basename(filePath);
+      
+      // Check if already added
+      if (fileInBuildPhase(sourcesBuildPhase, fileName)) {
+        console.log(`[withScreenTime] ${fileName} already in target's Sources phase`);
+        return;
+      }
+
+      // Add file reference
+      const fileRefUuid = project.generateUuid();
+      const buildFileUuid = project.generateUuid();
+      
+      project.pbxFileReferenceSection()[fileRefUuid] = {
+        isa: 'PBXFileReference',
+        fileEncoding: 4,
+        lastKnownFileType: 'sourcecode.swift',
+        name: `"${fileName}"`,
+        path: `"${filePath}"`,
+        sourceTree: '"<group>"'
+      };
+      project.pbxFileReferenceSection()[`${fileRefUuid}_comment`] = fileName;
+
+      // Add build file
+      project.pbxBuildFileSection()[buildFileUuid] = {
+        isa: 'PBXBuildFile',
+        fileRef: fileRefUuid,
+        fileRef_comment: fileName
+      };
+      project.pbxBuildFileSection()[`${buildFileUuid}_comment`] = `${fileName} in Sources`;
+
+      // Add to sources build phase
+      const sourcesPhase = project.pbxSourcesBuildPhaseSection()[sourcesBuildPhase];
+      if (sourcesPhase && sourcesPhase.files) {
+        sourcesPhase.files.push({
+          value: buildFileUuid,
+          comment: `${fileName} in Sources`
+        });
+      }
+
+      console.log(`[withScreenTime] Added ${fileName} to target's Sources phase`);
+    };
+
     // ========================================
     // 1. SETUP MAIN APP NATIVE MODULE
     // ========================================
@@ -46,17 +147,10 @@ module.exports = function withScreenTime(config) {
     fs.copyFileSync(path.join(nativeSourceDir, 'FlowStateScreenTime.m'), path.join(mainAppRoot, 'FlowStateScreenTime.m'));
 
     const mainAppGroup = project.findPBXGroupKey({ name: mainAppName }) || project.findPBXGroupKey({ path: mainAppName });
-    
-    const targets = project.pbxNativeTargetSection();
-    let mainTargetKey = null;
-    for (const key in targets) {
-      if (targets[key].name === `"${mainAppName}"` || targets[key].name === mainAppName) {
-        mainTargetKey = key;
-        break;
-      }
-    }
+    const mainTargetKey = getTargetKey(mainAppName);
 
     if (mainAppGroup && mainTargetKey) {
+      // Add main app source files using standard method
       project.addSourceFile(`${mainAppName}/FlowStateScreenTime.swift`, { target: mainTargetKey }, mainAppGroup);
       project.addSourceFile(`${mainAppName}/FlowStateScreenTime.m`, { target: mainTargetKey }, mainAppGroup);
     }
@@ -69,14 +163,6 @@ module.exports = function withScreenTime(config) {
           target: mainTargetKey,
           customFramework: true
         });
-      }
-      
-      // Ensure main target is at least iOS 16
-      const configurations = project.pbxXCBuildConfigurationSection();
-      for (const key in configurations) {
-        if (configurations[key].buildSettings && configurations[key].buildSettings.PRODUCT_NAME === `"${mainAppName}"`) {
-          configurations[key].buildSettings.IPHONEOS_DEPLOYMENT_TARGET = '"16.0"';
-        }
       }
     }
 
@@ -105,7 +191,7 @@ module.exports = function withScreenTime(config) {
       {
         name: 'FlowStateShieldConfig',
         bundleIdSuffix: 'shield-config',
-        extensionPoint: 'com.apple.ManagedSettings.shield-configuration',
+        extensionPoint: 'com.apple.ManagedSettingsUI.shield-configuration',
         principalClass: 'ShieldConfigurationExtension',
         sourceFile: 'ShieldConfiguration.swift'
       },
@@ -135,7 +221,7 @@ module.exports = function withScreenTime(config) {
       const extensionRoot = path.join(iosRoot, ext.name);
       const extensionBundleId = `${config.ios.bundleIdentifier}.${ext.bundleIdSuffix}`;
 
-      // Create Extension Directory
+      // Always create extension directory and copy files
       if (!fs.existsSync(extensionRoot)) {
         fs.mkdirSync(extensionRoot, { recursive: true });
       }
@@ -145,22 +231,26 @@ module.exports = function withScreenTime(config) {
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>${ext.name}</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>${extensionBundleId}</string>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>${ext.name}</string>
+	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
-	<string>XPC!</string>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
 	<string>${appVersion}</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>MinimumOSVersion</key>
+	<string>16.0</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>
@@ -178,46 +268,40 @@ module.exports = function withScreenTime(config) {
       // C. Copy Source File
       fs.copyFileSync(path.join(nativeSourceDir, ext.sourceFile), path.join(extensionRoot, ext.sourceFile));
 
-      // D. Add extension target
-      const extensionTarget = project.addTarget(ext.name, 'app_extension', ext.name, extensionBundleId);
+      // D. Get or create extension target
+      let extensionTargetKey = getTargetKey(ext.name);
       
-      // E. Add files to extension target
-      const extensionGroup = project.addPbxGroup([ext.sourceFile, 'Info.plist', `${ext.name}.entitlements`], ext.name, ext.name);
-      const mainGroupKey = project.findPBXGroupKey({ name: undefined, path: undefined });
-      project.addToPbxGroup(extensionGroup.uuid, mainGroupKey);
+      if (!extensionTargetKey) {
+        // Create new target
+        console.log(`[withScreenTime] Creating new target: ${ext.name}`);
+        const extensionTarget = project.addTarget(ext.name, 'app_extension', ext.name, extensionBundleId);
+        extensionTargetKey = extensionTarget.uuid;
+        
+        // Add group
+        const extensionGroup = project.addPbxGroup([ext.sourceFile, 'Info.plist', `${ext.name}.entitlements`], ext.name, ext.name);
+        const mainGroupKey = project.findPBXGroupKey({ name: undefined, path: undefined });
+        project.addToPbxGroup(extensionGroup.uuid, mainGroupKey);
 
-      // F. Add source file to the extension's compile phase
-      const sourceFileKey = project.addSourceFile(`${ext.name}/${ext.sourceFile}`, { target: extensionTarget.uuid }, extensionGroup.uuid);
-      
-      // Ensure the source file is in the PBXBuildFile section for this target
-      if (sourceFileKey && extensionTarget.uuid) {
-        const buildPhaseSection = project.pbxSourcesBuildPhaseObj(extensionTarget.uuid);
-        if (buildPhaseSection && sourceFileKey.fileRef) {
-          // Manually add to build phase if not already there
-          if (!buildPhaseSection.files.find(f => f.value === sourceFileKey.uuid)) {
-            buildPhaseSection.files.push({
-              value: sourceFileKey.uuid,
-              comment: `${ext.sourceFile} in Sources`
-            });
-          }
+        // Add dependency so extension builds with main app
+        if (mainTargetKey) {
+          project.addTargetDependency(mainTargetKey, [extensionTargetKey]);
         }
+      } else {
+        console.log(`[withScreenTime] Target ${ext.name} already exists, ensuring source files are added`);
       }
 
-      // G. Add frameworks to extension target
-      for (const framework of frameworks) {
-        project.addFramework(`System/Library/Frameworks/${framework}.framework`, {
-          target: extensionTarget.uuid,
-          customFramework: true
-        });
-      }
+      // E. ALWAYS add source file to extension target (not main target!)
+      // This is the key fix - we must ensure source goes to extension, not main app
+      addSourceFileToTarget(`${ext.name}/${ext.sourceFile}`, extensionTargetKey, null);
 
-      // H. Configure Build Settings for this extension
+      // F. Configure Build Settings for this extension
       const configurations = project.pbxXCBuildConfigurationSection();
       for (const key in configurations) {
         if (typeof configurations[key] === 'object' && configurations[key].buildSettings) {
           const buildSettings = configurations[key].buildSettings;
           if (buildSettings.PRODUCT_NAME === `"${ext.name}"` || buildSettings.PRODUCT_NAME === ext.name) {
             buildSettings.PRODUCT_BUNDLE_IDENTIFIER = `"${extensionBundleId}"`;
+            buildSettings.PRODUCT_MODULE_NAME = `"${ext.name}"`;
             buildSettings.IPHONEOS_DEPLOYMENT_TARGET = '"16.0"';
             buildSettings.SWIFT_VERSION = '"5.0"';
             buildSettings.SKIP_INSTALL = 'YES';
@@ -229,77 +313,42 @@ module.exports = function withScreenTime(config) {
             buildSettings.APPLICATION_EXTENSION_API_ONLY = 'YES';
             buildSettings.MARKETING_VERSION = `"${appVersion}"`;
             buildSettings.CURRENT_PROJECT_VERSION = '"1"';
+            buildSettings.LD_RUNPATH_SEARCH_PATHS = '"$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"';
+            buildSettings.CLANG_ENABLE_MODULES = 'YES';
+            buildSettings.SWIFT_OPTIMIZATION_LEVEL = '"-Onone"';
           }
         }
-      }
-
-      // I. Add extension to main app's "Embed App Extensions" build phase
-      // This is CRITICAL - without this, iOS won't load the extension
-      if (mainTargetKey) {
-        // Add dependency so extension builds with main app
-        project.addTargetDependency(mainTargetKey, [extensionTarget.uuid]);
       }
     }
 
-    // J. Create a single "Embed App Extensions" build phase for all extensions
-    // We need to do this after all extensions are created
-    if (mainTargetKey) {
-      const nativeTargets = project.pbxNativeTargetSection();
-      const mainTarget = nativeTargets[mainTargetKey];
-      
-      if (mainTarget) {
-        // Generate UUIDs for the embed phase
-        const embedPhaseUuid = project.generateUuid();
-        const embedPhaseCommentKey = `${embedPhaseUuid}_comment`;
+    // ========================================
+    // 3. REMOVE EXTENSION SOURCE FILES FROM MAIN APP TARGET
+    // ========================================
+    // This is critical - the extension source files should NOT be in the main app
+    const mainSourcesBuildPhase = getSourcesBuildPhase(mainTargetKey);
+    if (mainSourcesBuildPhase) {
+      const sourcesPhase = project.pbxSourcesBuildPhaseSection()[mainSourcesBuildPhase];
+      if (sourcesPhase && sourcesPhase.files) {
+        const extensionSourceFiles = ['DeviceActivityMonitor.swift', 'ShieldConfiguration.swift', 'ShieldAction.swift'];
+        const buildFiles = project.pbxBuildFileSection();
+        const fileRefs = project.pbxFileReferenceSection();
         
-        // Create the PBXCopyFilesBuildPhase for embedding extensions
-        const copyFilesSection = project.hash.project.objects['PBXCopyFilesBuildPhase'] || {};
-        
-        // Collect all extension product references
-        const extensionFiles = [];
-        for (const ext of extensions) {
-          // Find the extension target
-          for (const key in nativeTargets) {
-            const target = nativeTargets[key];
-            if (target && typeof target === 'object' && 
-                (target.name === `"${ext.name}"` || target.name === ext.name)) {
-              const productRef = target.productReference;
-              if (productRef) {
-                // Create a build file entry for this product
-                const buildFileUuid = project.generateUuid();
-                const buildFileSection = project.hash.project.objects['PBXBuildFile'] || {};
-                buildFileSection[buildFileUuid] = {
-                  isa: 'PBXBuildFile',
-                  fileRef: productRef,
-                  settings: { ATTRIBUTES: ['RemoveHeadersOnCopy'] }
-                };
-                buildFileSection[`${buildFileUuid}_comment`] = `${ext.name}.appex in Embed App Extensions`;
-                project.hash.project.objects['PBXBuildFile'] = buildFileSection;
-                
-                extensionFiles.push({ value: buildFileUuid, comment: `${ext.name}.appex in Embed App Extensions` });
+        sourcesPhase.files = sourcesPhase.files.filter(fileEntry => {
+          const buildFile = buildFiles[fileEntry.value];
+          if (buildFile && buildFile.fileRef) {
+            const fileRef = fileRefs[buildFile.fileRef];
+            if (fileRef) {
+              const fileName = fileRef.name?.replace(/"/g, '') || fileRef.path?.replace(/"/g, '') || '';
+              for (const extFile of extensionSourceFiles) {
+                if (fileName.includes(extFile)) {
+                  console.log(`[withScreenTime] Removing ${extFile} from main app target`);
+                  return false; // Remove from main app
+                }
               }
-              break;
             }
           }
-        }
-        
-        // Create the embed phase
-        copyFilesSection[embedPhaseUuid] = {
-          isa: 'PBXCopyFilesBuildPhase',
-          buildActionMask: 2147483647,
-          dstPath: '""',
-          dstSubfolderSpec: 13, // 13 = PlugIns folder
-          files: extensionFiles,
-          name: '"Embed App Extensions"',
-          runOnlyForDeploymentPostprocessing: 0
-        };
-        copyFilesSection[embedPhaseCommentKey] = 'Embed App Extensions';
-        project.hash.project.objects['PBXCopyFilesBuildPhase'] = copyFilesSection;
-        
-        // Add the embed phase to the main target's build phases
-        if (mainTarget.buildPhases) {
-          mainTarget.buildPhases.push({ value: embedPhaseUuid, comment: 'Embed App Extensions' });
-        }
+          return true; // Keep in main app
+        });
       }
     }
 
