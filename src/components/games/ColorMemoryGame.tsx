@@ -34,10 +34,11 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
   const [userSequence, setUserSequence] = useState<number[]>([]);
   const [activeColor, setActiveColor] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [playbackId, setPlaybackId] = useState(0); // Used to cancel stale playbacks
   const isDark = theme === 'dark';
   const insets = useSafeAreaInsets();
 
-  const startLevel = useCallback(async (lvl: number) => {
+  const startLevel = useCallback(async (lvl: number, currentPlaybackId: number) => {
     setGameState(GameState.OBSERVATION);
     setShowSuccess(false);
     setUserSequence([]);
@@ -47,15 +48,33 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
     const newSequence = Array.from({ length: sequenceLength }, () => Math.floor(Math.random() * 4));
     setSequence(newSequence);
 
-    // Playback sequence
+    // Playback sequence with cancellation check
     for (let i = 0; i < newSequence.length; i++) {
       await new Promise(resolve => setTimeout(resolve, 600));
-      setActiveColor(newSequence[i]);
+      
+      // Check if this playback is still valid (not cancelled by a new game/reset)
+      // We use a ref pattern via closure - if playbackId changed, abort
+      setPlaybackId(id => {
+        if (id !== currentPlaybackId) return id; // Stale playback, don't update
+        setActiveColor(newSequence[i]);
+        return id;
+      });
+      
       await new Promise(resolve => setTimeout(resolve, 600));
-      setActiveColor(null);
+      
+      setPlaybackId(id => {
+        if (id !== currentPlaybackId) return id;
+        setActiveColor(null);
+        return id;
+      });
     }
 
-    setGameState(GameState.ACTION);
+    // Only transition to ACTION if this playback is still valid
+    setPlaybackId(id => {
+      if (id !== currentPlaybackId) return id;
+      setGameState(GameState.ACTION);
+      return id;
+    });
   }, []);
 
   const handleColorClick = (colorId: number) => {
@@ -79,15 +98,26 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
       setGameState(GameState.SUCCESS);
       setShowSuccess(true);
       setTimeout(() => {
-        setLevel(prev => prev + 1);
-        startLevel(level + 1);
+        const nextLevel = level + 1;
+        setLevel(nextLevel);
+        // Increment playbackId to cancel any stale playbacks and start new one
+        setPlaybackId(prev => {
+          const newId = prev + 1;
+          startLevel(nextLevel, newId);
+          return newId;
+        });
       }, 1000);
     }
   };
 
   const startGame = () => {
     setLevel(1);
-    startLevel(1);
+    // Increment playbackId to cancel any stale playbacks and start fresh
+    setPlaybackId(prev => {
+      const newId = prev + 1;
+      startLevel(1, newId);
+      return newId;
+    });
   };
 
   const textColor = isDark ? 'text-white' : 'text-slate-900';
@@ -96,6 +126,9 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
   useEffect(() => {
     if (!isActive) {
       setGameState(GameState.IDLE);
+      // Cancel any ongoing playback by incrementing the playbackId
+      setPlaybackId(prev => prev + 1);
+      setActiveColor(null);
     }
   }, [isActive]);
 
@@ -195,8 +228,8 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
             transition={{ type: 'timing', duration: 300 }}
             className="flex-1 items-center justify-center"
           >
-            {/* Header Pills */}
-            <View style={{ position: 'absolute', top: insets.top + 20, left: 0, right: 0 }} className="flex-row justify-between px-2">
+            {/* Header Pills - positioned below status bar with extra padding */}
+            <View style={{ position: 'absolute', top: insets.top + 60, left: 0, right: 0 }} className="flex-row justify-between px-4">
               <View className="flex-row items-center gap-2 bg-[#121620] border border-white/5 px-4 py-2 rounded-full">
                 <Zap size={14} color="#6366f1" fill="#6366f1" />
                 <Text variant="mono" weight="bold" className="text-indigo-400 text-xs uppercase tracking-widest">LVL {level}</Text>

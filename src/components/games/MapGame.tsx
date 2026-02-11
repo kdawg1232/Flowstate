@@ -9,9 +9,17 @@ import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
 
 /**
- * Region Map Engine: Ported from C implementation
+ * Region Map Engine: Ported from C implementation (map.c)
  * Supports 4-color map puzzles on a grid with diagonal splits.
+ * 
+ * Key algorithms from C implementation:
+ * - Region generation with weighted expansion
+ * - Four-coloring with backtracking
+ * - Solver with constraint propagation for unique solution verification
+ * - Clue removal while maintaining unique solvability
  */
+
+const FOUR = 4;
 
 enum Quadrant { TE = 0, BE = 1, LE = 2, RE = 3 }
 
@@ -25,15 +33,164 @@ interface MapData {
   solution: number[];
 }
 
+/**
+ * Solver using constraint propagation (from C map_solver)
+ * Returns: 0 = impossible, 1 = unique solution, 2 = multiple solutions
+ */
+const solveWithConstraints = (
+  n: number,
+  adj: Set<number>[],
+  initialColors: (number | null)[],
+  resultColors: number[]
+): number => {
+  // possible[i] is a bitmask of possible colors for region i
+  const possible = new Array(n).fill((1 << FOUR) - 1); // All 4 colors possible initially
+  const coloring = new Array(n).fill(-1);
+  
+  // Place initial clues
+  const placeColor = (index: number, color: number): boolean => {
+    if (!(possible[index] & (1 << color))) return false; // Can't place this color
+    
+    possible[index] = 1 << color;
+    coloring[index] = color;
+    
+    // Rule out this color from all neighbors
+    for (const neighbor of adj[index]) {
+      possible[neighbor] &= ~(1 << color);
+      if (possible[neighbor] === 0) return false; // Neighbor has no options left
+    }
+    return true;
+  };
+  
+  // Place initial clues
+  for (let i = 0; i < n; i++) {
+    if (initialColors[i] !== null) {
+      if (!placeColor(i, initialColors[i]!)) return 0; // Inconsistent clues
+    }
+  }
+  
+  // Constraint propagation loop
+  let changed = true;
+  while (changed) {
+    changed = false;
+    
+    // Find regions with only one possible color
+    for (let i = 0; i < n; i++) {
+      if (coloring[i] >= 0) continue;
+      
+      const p = possible[i];
+      if (p === 0) return 0; // No solution
+      
+      // Check if p is a power of 2 (only one bit set)
+      if ((p & (p - 1)) === 0) {
+        const c = Math.log2(p);
+        if (!placeColor(i, c)) return 0;
+        changed = true;
+      }
+    }
+    
+    // Check for pairs of adjacent regions that share the same two possible colors
+    // If found, rule out those colors from their common neighbors
+    for (let i = 0; i < n; i++) {
+      if (coloring[i] >= 0) continue;
+      const pi = possible[i];
+      const bitCount = (pi & 1) + ((pi >> 1) & 1) + ((pi >> 2) & 1) + ((pi >> 3) & 1);
+      if (bitCount !== 2) continue;
+      
+      for (const j of adj[i]) {
+        if (j <= i || coloring[j] >= 0) continue;
+        if (possible[j] !== pi) continue;
+        
+        // i and j are adjacent and share exactly the same 2 possible colors
+        // Any region adjacent to both must not have either color
+        for (const k of adj[i]) {
+          if (k === j || coloring[k] >= 0) continue;
+          if (adj[j].has(k) && (possible[k] & pi)) {
+            possible[k] &= ~pi;
+            if (possible[k] === 0) return 0;
+            changed = true;
+          }
+        }
+      }
+    }
+  }
+  
+  // Check if solved
+  let allColored = true;
+  for (let i = 0; i < n; i++) {
+    if (coloring[i] < 0) {
+      allColored = false;
+      break;
+    }
+  }
+  
+  if (allColored) {
+    for (let i = 0; i < n; i++) resultColors[i] = coloring[i];
+    return 1; // Unique solution found
+  }
+  
+  // Need to recurse - find region with fewest possibilities
+  let bestRegion = -1;
+  let bestCount = FOUR + 1;
+  for (let i = 0; i < n; i++) {
+    if (coloring[i] >= 0) continue;
+    const p = possible[i];
+    const count = (p & 1) + ((p >> 1) & 1) + ((p >> 2) & 1) + ((p >> 3) & 1);
+    if (count < bestCount) {
+      bestCount = count;
+      bestRegion = i;
+    }
+  }
+  
+  if (bestRegion < 0) return 0;
+  
+  // Try each possible color
+  let solutionsFound = 0;
+  const savedResult = new Array(n).fill(-1);
+  
+  for (let c = 0; c < FOUR; c++) {
+    if (!(possible[bestRegion] & (1 << c))) continue;
+    
+    // Create new clues array with this guess
+    const newClues: (number | null)[] = [];
+    for (let i = 0; i < n; i++) {
+      newClues[i] = coloring[i] >= 0 ? coloring[i] : null;
+    }
+    newClues[bestRegion] = c;
+    
+    const tempResult = new Array(n).fill(-1);
+    const subResult = solveWithConstraints(n, adj, newClues, tempResult);
+    
+    if (subResult === 2) return 2; // Multiple solutions in subtree
+    if (subResult === 1) {
+      if (solutionsFound === 0) {
+        for (let i = 0; i < n; i++) savedResult[i] = tempResult[i];
+      } else {
+        return 2; // Found second solution
+      }
+      solutionsFound++;
+    }
+  }
+  
+  if (solutionsFound === 1) {
+    for (let i = 0; i < n; i++) resultColors[i] = savedResult[i];
+    return 1;
+  }
+  
+  return 0;
+};
+
 const generateMapPuzzle = (w: number, h: number, n: number): MapData => {
   const wh = w * h;
   const grid = new Array(wh * 4).fill(-1);
   
+  // Place region seeds randomly
   const seeds = Array.from({ length: wh }, (_, i) => i).sort(() => Math.random() - 0.5).slice(0, n);
   seeds.forEach((cellIdx, regionId) => {
     for (let q = 0; q < 4; q++) grid[cellIdx * 4 + q] = regionId;
   });
 
+  // Grow regions to fill the grid (simplified from C's weighted approach)
   const filled = new Set(seeds);
   while (filled.size < wh) {
     const availableCells: number[] = [];
@@ -68,31 +225,39 @@ const generateMapPuzzle = (w: number, h: number, n: number): MapData => {
     filled.add(target);
   }
 
+  // Apply diagonal smoothing (from C implementation)
   for (let y = 1; y < h; y++) {
     for (let x = 1; x < w; x++) {
-      const idxTL = (y - 1) * w + (x - 1);
-      const idxTR = (y - 1) * w + x;
-      const idxBL = y * w + (x - 1);
-      const idxBR = y * w + x;
-
-      if (grid[idxTL * 4] === grid[idxBR * 4] && grid[idxTR * 4] === grid[idxBL * 4] && grid[idxTL * 4] !== grid[idxTR * 4]) {
-        if (Math.random() > 0.5) {
-          grid[idxTR * 4 + Quadrant.LE] = grid[idxTL * 4];
-          grid[idxBL * 4 + Quadrant.RE] = grid[idxTL * 4];
-        } else {
-          grid[idxTL * 4 + Quadrant.RE] = grid[idxTR * 4];
-          grid[idxBR * 4 + Quadrant.LE] = grid[idxTR * 4];
+      const idx = y * w + x;
+      const c = grid[idx * 4];
+      
+      // Get the 4 neighbors' colors at the corners
+      const tc = grid[((y-1) * w + x) * 4 + Quadrant.BE];
+      const bc = grid[((y < h-1 ? y+1 : y) * w + x) * 4 + Quadrant.TE];
+      const lc = grid[(y * w + (x-1)) * 4 + Quadrant.RE];
+      const rc = grid[(y * w + (x < w-1 ? x+1 : x)) * 4 + Quadrant.LE];
+      
+      // If square is adjacent to two regions on opposite sides, make it diagonal
+      if (tc !== bc && (tc === c || bc === c)) {
+        if ((lc === tc && rc === bc) || (lc === bc && rc === tc)) {
+          grid[idx * 4 + Quadrant.TE] = tc;
+          grid[idx * 4 + Quadrant.BE] = bc;
+          grid[idx * 4 + Quadrant.LE] = lc;
+          grid[idx * 4 + Quadrant.RE] = rc;
         }
       }
     }
   }
 
+  // Build adjacency graph
   const adj = Array.from({ length: n }, () => new Set<number>());
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
       const qT = grid[i * 4 + Quadrant.TE], qB = grid[i * 4 + Quadrant.BE];
       const qL = grid[i * 4 + Quadrant.LE], qR = grid[i * 4 + Quadrant.RE];
+      
+      // Internal adjacencies within the cell
       if (qT !== qB) { adj[qT].add(qB); adj[qB].add(qT); }
       if (qL !== qR) { adj[qL].add(qR); adj[qR].add(qL); }
       if (qT !== qL) { adj[qT].add(qL); adj[qL].add(qT); }
@@ -100,6 +265,7 @@ const generateMapPuzzle = (w: number, h: number, n: number): MapData => {
       if (qB !== qL) { adj[qB].add(qL); adj[qL].add(qB); }
       if (qB !== qR) { adj[qB].add(qR); adj[qR].add(qB); }
 
+      // Cross-cell adjacencies
       if (x < w - 1) {
         const r1 = grid[i * 4 + Quadrant.RE];
         const r2 = grid[(y * w + x + 1) * 4 + Quadrant.LE];
@@ -113,8 +279,9 @@ const generateMapPuzzle = (w: number, h: number, n: number): MapData => {
     }
   }
 
+  // Four-color the map using backtracking (from C fourcolour_recurse)
   const solution = new Array(n).fill(-1);
-  const solve = (idx: number): boolean => {
+  const fourColor = (idx: number): boolean => {
     if (idx === n) return true;
     const colors = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
     for (const c of colors) {
@@ -127,15 +294,55 @@ const generateMapPuzzle = (w: number, h: number, n: number): MapData => {
       }
       if (ok) {
         solution[idx] = c;
-        if (solve(idx + 1)) return true;
+        if (fourColor(idx + 1)) return true;
         solution[idx] = -1;
       }
     }
     return false;
   };
-  solve(0);
+  fourColor(0);
 
-  const clues: (number | null)[] = solution.map(c => Math.random() > 0.3 ? null : c);
+  // Generate clues by removing colors while maintaining unique solvability
+  // (Key logic from C: remove one at a time, verify unique solution remains)
+  const clues: (number | null)[] = [...solution];
+  
+  // Count colors to ensure at least one of each remains
+  const colorFreq = [0, 0, 0, 0];
+  for (let i = 0; i < n; i++) colorFreq[solution[i]]++;
+  
+  // Shuffle order for random clue removal
+  const order = Array.from({ length: n }, (_, i) => i).sort(() => Math.random() - 0.5);
+  
+  for (const regionIdx of order) {
+    const currentColor = clues[regionIdx];
+    if (currentColor === null) continue;
+    
+    // Don't remove last instance of any color (need at least one for player to drag from)
+    if (colorFreq[currentColor] <= 1) continue;
+    
+    // Try removing this clue
+    const testClues = [...clues];
+    testClues[regionIdx] = null;
+    
+    // Check if puzzle still has unique solution
+    const testResult = new Array(n).fill(-1);
+    const solveResult = solveWithConstraints(n, adj, testClues, testResult);
+    
+    if (solveResult === 1) {
+      // Verify the solution matches our expected solution
+      let matches = true;
+      for (let i = 0; i < n; i++) {
+        if (testResult[i] !== solution[i]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) {
+        clues[regionIdx] = null;
+        colorFreq[currentColor]--;
+      }
+    }
+  }
 
   return { w, h, n, grid, adj, clues, solution };
 };
@@ -161,7 +368,9 @@ const MapGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLock
   const isDark = theme === 'dark';
 
   const initGame = useCallback(() => {
-    const data = generateMapPuzzle(6, 8, 12);
+    // Increased difficulty: 7x9 grid with 18 regions (from 6x8 with 12)
+    // More regions = more constraints = harder puzzle
+    const data = generateMapPuzzle(7, 9, 18);
     setPuzzle(data);
     setUserColors(data.clues.map(c => c ?? -1));
     setGameState(GameState.PLAYING);
@@ -245,7 +454,7 @@ const MapGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLock
     if (gameState !== GameState.PLAYING || !puzzle) return;
     
     const { locationX, locationY } = event.nativeEvent;
-    const gridHeight = GRID_SIZE * (8/6);
+    const gridHeight = GRID_SIZE * (puzzle.h / puzzle.w);
     const cellWidth = GRID_SIZE / puzzle.w;
     const cellHeight = gridHeight / puzzle.h;
     
@@ -378,14 +587,14 @@ const MapGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLock
                 <View 
                   onStartShouldSetResponder={() => true}
                   onResponderRelease={handleGridTap}
-                  style={{ width: GRID_SIZE, height: GRID_SIZE * (8/6) }}
+                  style={{ width: GRID_SIZE, height: GRID_SIZE * (9/7) }}
                   className={`rounded-3xl overflow-hidden border ${
                     gameState === GameState.FINISHED 
                       ? 'border-emerald-500/50' 
                       : (isDark ? 'border-white/5 bg-slate-900/40' : 'border-slate-200 bg-white shadow-inner')
                   }`}
                 >
-                  <Svg viewBox={`0 0 ${puzzle?.w ?? 6} ${puzzle?.h ?? 8}`} style={{ width: '100%', height: '100%' }}>
+                  <Svg viewBox={`0 0 ${puzzle?.w ?? 7} ${puzzle?.h ?? 9}`} style={{ width: '100%', height: '100%' }}>
                     {puzzle && Array.from({ length: puzzle.w * puzzle.h }).map((_, i) => renderCell(i))}
                     {renderBorders()}
                   </Svg>

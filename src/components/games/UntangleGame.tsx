@@ -9,7 +9,11 @@ import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
 
 /**
- * Untangle Engine: Optimized for 6-node planar graphs with random starting layouts
+ * Untangle Engine: Ported from Simon Tatham's Puzzles (untangle.c)
+ * 
+ * Key constants from C implementation:
+ * - POINTDENSITY = 3 (grid size = sqrt(n * 3))
+ * - MAXDEGREE = 4 (max edges per vertex)
  */
 
 interface Node {
@@ -33,79 +37,261 @@ interface PuzzleData {
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_SIZE = Math.min(SCREEN_WIDTH - 48, 320);
 
-const segmentsIntersect = (
-  p1: { x: number; y: number },
-  p2: { x: number; y: number },
-  p3: { x: number; y: number },
-  p4: { x: number; y: number }
-) => {
-  const ccw = (A: { x: number; y: number }, B: { x: number; y: number }, C: { x: number; y: number }) => {
-    return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x);
-  };
-  
-  // Shared endpoints don't count as intersection
-  if (
-    (p1.x === p3.x && p1.y === p3.y) ||
-    (p1.x === p4.x && p1.y === p4.y) ||
-    (p2.x === p3.x && p2.y === p3.y) ||
-    (p2.x === p4.x && p2.y === p4.y)
-  ) {
-    return false;
-  }
+// From C: POINTDENSITY = 3, MAXDEGREE = 4
+const POINTDENSITY = 3;
+const MAXDEGREE = 4;
 
-  return ccw(p1, p3, p4) !== ccw(p2, p3, p4) && ccw(p1, p2, p3) !== ccw(p1, p2, p4);
+// Calculate grid size limit based on number of points (from C: squarert(n * POINTDENSITY))
+const coordLimit = (n: number): number => Math.ceil(Math.sqrt(n * POINTDENSITY));
+
+/**
+ * Precise line segment intersection test (ported from C cross() function)
+ * Uses the same algorithm as the C implementation for accuracy
+ */
+const segmentsIntersect = (
+  a1: { x: number; y: number },
+  a2: { x: number; y: number },
+  b1: { x: number; y: number },
+  b2: { x: number; y: number }
+): boolean => {
+  // Calculate cross products to determine which side of line a1-a2 points b1 and b2 are on
+  // (b1 - a1) cross (a2 - a1)
+  const d1 = (b1.x - a1.x) * (a2.y - a1.y) - (b1.y - a1.y) * (a2.x - a1.x);
+  // (b2 - a1) cross (a2 - a1)
+  const d2 = (b2.x - a1.x) * (a2.y - a1.y) - (b2.y - a1.y) * (a2.x - a1.x);
+  
+  // If both have same sign (both on same side), no intersection
+  if ((d1 > 0 && d2 > 0) || (d1 < 0 && d2 < 0)) return false;
+  
+  // Handle collinear case
+  if (d1 === 0 && d2 === 0) {
+    // Points are collinear - check if segments overlap
+    const minAx = Math.min(a1.x, a2.x), maxAx = Math.max(a1.x, a2.x);
+    const minAy = Math.min(a1.y, a2.y), maxAy = Math.max(a1.y, a2.y);
+    const minBx = Math.min(b1.x, b2.x), maxBx = Math.max(b1.x, b2.x);
+    const minBy = Math.min(b1.y, b2.y), maxBy = Math.max(b1.y, b2.y);
+    
+    // Check if ranges overlap
+    if (maxAx < minBx || maxBx < minAx || maxAy < minBy || maxBy < minAy) {
+      return false;
+    }
+    // Ranges overlap - but we need to check if they share more than just an endpoint
+    // For untangle, we consider endpoint-only touching as NOT crossing
+    return true;
+  }
+  
+  // Now check the other direction: which side of line b1-b2 are a1 and a2 on
+  const d3 = (a1.x - b1.x) * (b2.y - b1.y) - (a1.y - b1.y) * (b2.x - b1.x);
+  const d4 = (a2.x - b1.x) * (b2.y - b1.y) - (a2.y - b1.y) * (b2.x - b1.x);
+  
+  if ((d3 > 0 && d4 > 0) || (d3 < 0 && d4 < 0)) return false;
+  
+  return true;
 };
 
-const generateUntangle = (numNodes: number = 6): PuzzleData => {
-  const nodes: Node[] = [];
-  const edges: Edge[] = [];
-  const solvedPositions: { x: number; y: number }[] = [];
-  const gridSize = 4;
-  const usedCoords = new Set<string>();
-
-  // Generate solved positions on a grid
-  while (solvedPositions.length < numNodes) {
-    const rx = Math.floor(Math.random() * gridSize);
-    const ry = Math.floor(Math.random() * gridSize);
-    const key = `${rx},${ry}`;
-    if (!usedCoords.has(key)) {
-      usedCoords.add(key);
-      solvedPositions.push({
-        x: 25 + (rx / (gridSize - 1)) * 50,
-        y: 25 + (ry / (gridSize - 1)) * 50,
-      });
-    }
+/**
+ * Check if a point lies on a line segment (used to prevent edges passing through nodes)
+ */
+const pointOnSegment = (
+  p: { x: number; y: number },
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  tolerance: number = 0.5
+): boolean => {
+  // Check if p is collinear with a-b and within the segment bounds
+  const cross = (p.x - a.x) * (b.y - a.y) - (p.y - a.y) * (b.x - a.x);
+  if (Math.abs(cross) > tolerance * Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y), 1)) {
+    return false;
   }
+  
+  // Check if p is within the bounding box of a-b
+  const minX = Math.min(a.x, b.x) - tolerance;
+  const maxX = Math.max(a.x, b.x) + tolerance;
+  const minY = Math.min(a.y, b.y) - tolerance;
+  const maxY = Math.max(a.y, b.y) + tolerance;
+  
+  return p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
+};
 
-  // Add edges greedily (ensuring initial planarity in solved state)
-  for (let i = 0; i < numNodes; i++) {
-    for (let j = i + 1; j < numNodes; j++) {
-      const p1 = solvedPositions[i];
-      const p2 = solvedPositions[j];
-      let crosses = false;
-      for (const edge of edges) {
-        if (segmentsIntersect(p1, p2, solvedPositions[edge.a], solvedPositions[edge.b])) {
-          crosses = true;
-          break;
-        }
-      }
-      if (!crosses && edges.length < numNodes * 1.5) {
-        edges.push({ a: i, b: j });
-      }
-    }
+/**
+ * Check if an edge exists in the edge list
+ */
+const isEdge = (edges: Edge[], a: number, b: number): boolean => {
+  const minIdx = Math.min(a, b);
+  const maxIdx = Math.max(a, b);
+  return edges.some(e => e.a === minIdx && e.b === maxIdx);
+};
+
+/**
+ * Generate an untangle puzzle using the algorithm from untangle.c
+ */
+const generateUntangle = (numNodes: number = 10): PuzzleData => {
+  const n = numNodes;
+  const w = coordLimit(n);
+  
+  // Step 1: Choose n points from a w×w grid (from C: new_game_desc)
+  const gridPoints: { x: number; y: number }[] = [];
+  const allCoords: number[] = [];
+  for (let i = 0; i < w * w; i++) allCoords.push(i);
+  
+  // Shuffle coordinates
+  for (let i = allCoords.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [allCoords[i], allCoords[j]] = [allCoords[j], allCoords[i]];
   }
-
-  // Create nodes with random tangled positions
-  for (let i = 0; i < numNodes; i++) {
-    nodes.push({
-      id: i,
-      x: 15 + Math.random() * 70,
-      y: 15 + Math.random() * 70,
-      solvedX: solvedPositions[i].x,
-      solvedY: solvedPositions[i].y,
+  
+  // Pick first n coordinates
+  for (let i = 0; i < n; i++) {
+    const coord = allCoords[i];
+    gridPoints.push({
+      x: coord % w,
+      y: Math.floor(coord / w),
     });
   }
-
+  
+  // Step 2: Build edges using the C algorithm
+  // Track degree of each vertex
+  const degree: number[] = Array(n).fill(0);
+  const edges: Edge[] = [];
+  
+  // Create vertex list sorted by degree (initially all 0)
+  // We'll process vertices in order of increasing degree
+  const processOrder = Array.from({ length: n }, (_, i) => i);
+  
+  let addedAnyEdge = true;
+  while (addedAnyEdge) {
+    addedAnyEdge = false;
+    
+    // Sort vertices by degree (lowest first)
+    processOrder.sort((a, b) => degree[a] - degree[b]);
+    
+    for (let i = 0; i < n; i++) {
+      const j = processOrder[i];
+      
+      if (degree[j] >= MAXDEGREE) break; // No vertex can accept more edges
+      
+      // Find candidate vertices to connect to, sorted by distance
+      const candidates: { idx: number; dist: number }[] = [];
+      
+      for (let k = i + 1; k < n; k++) {
+        const ki = processOrder[k];
+        
+        // Skip if already at max degree or already connected
+        if (degree[ki] >= MAXDEGREE || isEdge(edges, j, ki)) continue;
+        
+        const dx = gridPoints[ki].x - gridPoints[j].x;
+        const dy = gridPoints[ki].y - gridPoints[j].y;
+        candidates.push({ idx: ki, dist: dx * dx + dy * dy });
+      }
+      
+      // Sort by distance (closest first)
+      candidates.sort((a, b) => a.dist - b.dist);
+      
+      // Try to add an edge to closest valid candidate
+      for (const cand of candidates) {
+        const ki = cand.idx;
+        const p1 = gridPoints[j];
+        const p2 = gridPoints[ki];
+        
+        // Check 1: Does this edge pass through any other point?
+        let passesThrough = false;
+        for (let p = 0; p < n; p++) {
+          if (p === j || p === ki) continue;
+          if (pointOnSegment(gridPoints[p], p1, p2, 0.01)) {
+            passesThrough = true;
+            break;
+          }
+        }
+        if (passesThrough) continue;
+        
+        // Check 2: Does this edge cross any existing edge?
+        let crossesEdge = false;
+        for (const e of edges) {
+          if (e.a === j || e.a === ki || e.b === j || e.b === ki) continue;
+          if (segmentsIntersect(p1, p2, gridPoints[e.a], gridPoints[e.b])) {
+            crossesEdge = true;
+            break;
+          }
+        }
+        if (crossesEdge) continue;
+        
+        // Valid edge! Add it
+        edges.push({ a: Math.min(j, ki), b: Math.max(j, ki) });
+        degree[j]++;
+        degree[ki]++;
+        addedAnyEdge = true;
+        break;
+      }
+      
+      if (addedAnyEdge) break; // Restart the outer loop to re-sort by degree
+    }
+  }
+  
+  // Step 3: Create circle positions for the scrambled starting state
+  // (from C: make_circle)
+  const circlePositions: { x: number; y: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    const angle = (i * 2 * Math.PI) / n;
+    circlePositions.push({
+      x: 50 + 35 * Math.sin(angle),
+      y: 50 - 35 * Math.cos(angle),
+    });
+  }
+  
+  // Step 4: Shuffle the mapping so that at least one crossing exists
+  // (from C: the shuffle loop that ensures at least one crossing)
+  let mapping = Array.from({ length: n }, (_, i) => i);
+  let hasCrossing = false;
+  let attempts = 0;
+  const maxAttempts = 100;
+  
+  while (!hasCrossing && attempts < maxAttempts) {
+    attempts++;
+    
+    // Shuffle mapping
+    for (let i = mapping.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [mapping[i], mapping[j]] = [mapping[j], mapping[i]];
+    }
+    
+    // Check if any edges cross in this arrangement
+    for (let i = 0; i < edges.length && !hasCrossing; i++) {
+      for (let j = i + 1; j < edges.length && !hasCrossing; j++) {
+        const e1 = edges[i];
+        const e2 = edges[j];
+        
+        // Skip edges that share a vertex
+        if (e1.a === e2.a || e1.a === e2.b || e1.b === e2.a || e1.b === e2.b) continue;
+        
+        const p1 = circlePositions[mapping[e1.a]];
+        const p2 = circlePositions[mapping[e1.b]];
+        const p3 = circlePositions[mapping[e2.a]];
+        const p4 = circlePositions[mapping[e2.b]];
+        
+        if (segmentsIntersect(p1, p2, p3, p4)) {
+          hasCrossing = true;
+        }
+      }
+    }
+  }
+  
+  // Step 5: Create nodes with scrambled (circle) positions and solved (grid) positions
+  // Convert grid coordinates to percentage (0-100 range for display)
+  const nodes: Node[] = [];
+  for (let i = 0; i < n; i++) {
+    const solvedPos = gridPoints[i];
+    const scrambledPos = circlePositions[mapping[i]];
+    
+    nodes.push({
+      id: i,
+      x: scrambledPos.x,
+      y: scrambledPos.y,
+      // Convert grid coords to percentage (with padding)
+      solvedX: 15 + (solvedPos.x / Math.max(w - 1, 1)) * 70,
+      solvedY: 15 + (solvedPos.y / Math.max(w - 1, 1)) * 70,
+    });
+  }
+  
   return { nodes, edges };
 };
 
@@ -181,10 +367,10 @@ const DraggableNode: React.FC<DraggableNodeProps> = React.memo(({
       {...panResponder.panHandlers}
       style={{
         position: 'absolute',
-        left: pixelX - 22,
-        top: pixelY - 22,
-        width: 44,
-        height: 44,
+        left: pixelX - 18,
+        top: pixelY - 18,
+        width: 36,
+        height: 36,
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: isDragging ? 100 : 20,
@@ -192,9 +378,9 @@ const DraggableNode: React.FC<DraggableNodeProps> = React.memo(({
     >
       <View
         style={{
-          width: isDragging ? 18 : 14,
-          height: isDragging ? 18 : 14,
-          borderRadius: isDragging ? 9 : 7,
+          width: isDragging ? 14 : 10,
+          height: isDragging ? 14 : 10,
+          borderRadius: isDragging ? 7 : 5,
           borderWidth: 1.5,
           borderColor: nodeColor,
           backgroundColor: isFinished ? '#10b981' : (isDark ? '#0f172a' : '#ffffff'),
@@ -225,16 +411,21 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
   const textColor = isDark ? 'text-white' : 'text-slate-900';
   const subTextColor = isDark ? 'text-slate-500' : 'text-slate-400';
 
+  /**
+   * Check if the current node positions form a planar (non-crossing) graph
+   * Ported from C: mark_crossings()
+   */
   const checkPlanarity = useCallback((currentNodes: Node[]) => {
     const currentEdges = edgesRef.current;
     if (currentNodes.length === 0 || currentEdges.length === 0) return false;
     
+    // Check every pair of edges for crossings
     for (let i = 0; i < currentEdges.length; i++) {
       for (let j = i + 1; j < currentEdges.length; j++) {
         const e1 = currentEdges[i];
         const e2 = currentEdges[j];
         
-        // Skip if edges share a node
+        // Skip if edges share a vertex (they can't cross at a shared endpoint)
         if (e1.a === e2.a || e1.a === e2.b || e1.b === e2.a || e1.b === e2.b) continue;
         
         const n1a = currentNodes[e1.a];
@@ -245,15 +436,16 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
         if (!n1a || !n1b || !n2a || !n2b) continue;
         
         if (segmentsIntersect(n1a, n1b, n2a, n2b)) {
-          return false;
+          return false; // Found a crossing - not planar
         }
       }
     }
-    return true;
+    return true; // No crossings found - planar!
   }, []);
 
   const initGame = useCallback(() => {
-    const puzzle = generateUntangle(6);
+    // Use 8 nodes for medium difficulty (C presets: 6, 10, 15, 20, 25)
+    const puzzle = generateUntangle(10);
     setNodes(puzzle.nodes);
     setEdges(puzzle.edges);
     edgesRef.current = puzzle.edges;

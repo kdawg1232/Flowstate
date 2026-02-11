@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Pressable, TextInput, Dimensions, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Pressable, Dimensions } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GameState } from '../../types';
-import { Target, Zap, Play, ChevronDown, Check, AlertTriangle, ArrowRight } from 'lucide-react-native';
+import { Target, Zap, Play, ChevronDown, Check, AlertTriangle, ArrowRight, Delete } from 'lucide-react-native';
 import { Text } from '../../ui/Text';
 
 interface FloatingNumber {
@@ -26,7 +26,7 @@ interface Props {
 
 const COLORS = ['#06b6d4', '#f59e0b', '#6366f1', '#ec4899', '#10b981', '#ef4444'];
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BOX_SIZE = Math.min(SCREEN_WIDTH - 48, 320);
+const BOX_SIZE = Math.min(SCREEN_WIDTH - 48, 280);
 
 const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLockScroll }) => {
   const [level, setLevel] = useState(1);
@@ -92,8 +92,26 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
     generateLevel(1);
   };
 
+  const handleNumberInput = (num: number) => {
+    if (gameState !== GameState.PLAYING || feedback) return;
+    // Limit input to 3 digits (max possible sum is ~90 for 10 numbers of 9)
+    if (inputValue.length < 3) {
+      setInputValue(prev => prev + num.toString());
+    }
+  };
+
+  const handleDelete = () => {
+    if (gameState !== GameState.PLAYING || feedback) return;
+    setInputValue(prev => prev.slice(0, -1));
+  };
+
+  const handleClear = () => {
+    if (gameState !== GameState.PLAYING || feedback) return;
+    setInputValue('');
+  };
+
   const handleSubmit = () => {
-    if (gameState !== GameState.PLAYING) return;
+    if (gameState !== GameState.PLAYING || !inputValue) return;
 
     const sum = numbers.reduce((acc, curr) => acc + curr.val, 0);
     const userSum = parseInt(inputValue);
@@ -125,109 +143,171 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
   }, [isActive]);
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
-      <View className={`flex-1 w-full ${isDark ? 'bg-black' : 'bg-slate-50'} relative overflow-hidden`}>
-        <AnimatePresence exitBeforeEnter>
-          {gameState === GameState.IDLE ? (
-            <MotiView 
-              key="instructions" 
-              from={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              transition={{ type: 'timing', duration: 300 }}
-              className="flex-1 items-center justify-center px-6"
+    <View className={`flex-1 w-full ${isDark ? 'bg-black' : 'bg-slate-50'} relative overflow-hidden`}>
+      <AnimatePresence exitBeforeEnter>
+        {gameState === GameState.IDLE ? (
+          <MotiView 
+            key="instructions" 
+            from={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            transition={{ type: 'timing', duration: 300 }}
+            className="flex-1 items-center justify-center px-6"
+          >
+            <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10 shadow-[0_0_30px_rgba(99,102,241,0.2)]' : 'bg-white border-indigo-100 shadow-sm'} rounded-3xl items-center justify-center mb-6 border`}>
+              <Target color="#6366f1" size={40} />
+            </View>
+            <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase text-center ${textColor}`}>Number Hunt</Text>
+            <Text className={`${subTextColor} text-xs uppercase tracking-[0.2em] mb-10 max-w-[240px] text-center leading-relaxed`}>
+              Sum up all the floating nodes. Precision is key to the flow.
+            </Text>
+            <Pressable 
+              onPress={startGame} 
+              className="bg-indigo-500 px-12 py-4 rounded-2xl flex-row items-center gap-3 shadow-xl active:scale-95"
             >
-              <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10 shadow-[0_0_30px_rgba(99,102,241,0.2)]' : 'bg-white border-indigo-100 shadow-sm'} rounded-3xl items-center justify-center mb-6 border`}>
-                <Target color="#6366f1" size={40} />
+              <Play color="white" size={20} fill="white" />
+              <Text weight="black" className="text-white uppercase">INITIATE HUNT</Text>
+            </Pressable>
+          </MotiView>
+        ) : gameState === GameState.PLAYING ? (
+          <MotiView 
+            key="play" 
+            from={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            transition={{ type: 'timing', duration: 300 }}
+            className="flex-1 items-center"
+            style={{ paddingTop: insets.top + 60 }}
+          >
+            {/* Header Pills */}
+            <View className="w-full flex-row justify-between px-4 mb-4">
+              <View className={`flex-row items-center gap-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} px-4 py-1.5 rounded-full border`}>
+                <Zap size={14} color="#6366f1" fill="#6366f1" />
+                <Text variant="mono" weight="bold" className="text-indigo-500 text-sm uppercase tracking-widest">LVL {level}</Text>
               </View>
-              <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase text-center ${textColor}`}>Number Hunt</Text>
-              <Text className={`${subTextColor} text-xs uppercase tracking-[0.2em] mb-10 max-w-[240px] text-center leading-relaxed`}>
-                Sum up all the floating nodes. Precision is key to the flow.
-              </Text>
-              <Pressable 
-                onPress={startGame} 
-                className="bg-indigo-500 px-12 py-4 rounded-2xl flex-row items-center gap-3 shadow-xl active:scale-95"
+              <View className={`flex-row items-center gap-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} px-4 py-1.5 rounded-full border`}>
+                <Target size={14} color="#eab308" />
+                <Text variant="mono" className="text-yellow-500 text-sm">{level * 10} REPS</Text>
+              </View>
+            </View>
+
+            {/* Game Board with Floating Numbers */}
+            <View className="w-full items-center mb-4">
+              <View 
+                style={{ width: BOX_SIZE, height: BOX_SIZE }}
+                className={`relative rounded-[2rem] border-2 overflow-hidden ${boxBg} ${feedback === 'correct' ? 'border-emerald-500' : feedback === 'wrong' ? 'border-rose-500' : 'border-slate-800'}`}
               >
-                <Play color="white" size={20} fill="white" />
-                <Text weight="black" className="text-white uppercase">INITIATE HUNT</Text>
-              </Pressable>
-            </MotiView>
-          ) : gameState === GameState.PLAYING ? (
-            <MotiView 
-              key="play" 
-              from={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              transition={{ type: 'timing', duration: 300 }}
-              className="flex-1 items-center"
-              style={{ paddingTop: insets.top + 60 }}
-            >
-              <View className="w-full flex-row justify-between px-2 mb-8">
-                <View className={`flex-row items-center gap-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} px-4 py-1.5 rounded-full border`}>
-                  <Zap size={14} color="#6366f1" fill="#6366f1" />
-                  <Text variant="mono" weight="bold" className="text-indigo-500 text-sm uppercase tracking-widest">LVL {level}</Text>
-                </View>
-                <View className={`flex-row items-center gap-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} px-4 py-1.5 rounded-full border`}>
-                  <Target size={14} color="#eab308" />
-                  <Text variant="mono" className="text-yellow-500 text-sm">{level * 10} REPS</Text>
-                </View>
-              </View>
-
-              <View className="flex-1 w-full items-center justify-center mb-8">
-                <View 
-                  style={{ width: BOX_SIZE, height: BOX_SIZE }}
-                  className={`relative rounded-[2.5rem] border-2 overflow-hidden ${boxBg} ${feedback === 'correct' ? 'border-emerald-500' : feedback === 'wrong' ? 'border-rose-500' : 'border-slate-800'}`}
-                >
-                  <View className="absolute inset-0 opacity-10 pointer-events-none">
-                    <View className="w-full h-full border-[0.5px] border-indigo-500/20 flex-row flex-wrap">
-                      {Array.from({ length: 36 }).map((_, i) => (
-                        <View key={i} style={{ width: '16.66%', height: '16.66%', borderBottomWidth: 0.5, borderRightWidth: 0.5, borderColor: 'rgba(99,102,241,0.1)' }} />
-                      ))}
-                    </View>
+                <View className="absolute inset-0 opacity-10 pointer-events-none">
+                  <View className="w-full h-full border-[0.5px] border-indigo-500/20 flex-row flex-wrap">
+                    {Array.from({ length: 36 }).map((_, i) => (
+                      <View key={i} style={{ width: '16.66%', height: '16.66%', borderBottomWidth: 0.5, borderRightWidth: 0.5, borderColor: 'rgba(99,102,241,0.1)' }} />
+                    ))}
                   </View>
+                </View>
 
-                  {numbers.map(n => (
-                    <View 
-                      key={n.id}
-                      className="absolute items-center justify-center"
-                      style={{ 
-                        left: `${n.x}%`, 
-                        top: `${n.y}%`, 
-                        width: 40, 
-                        height: 40, 
-                        marginLeft: -20, 
-                        marginTop: -20 
-                      }}
+                {numbers.map(n => (
+                  <View 
+                    key={n.id}
+                    className="absolute items-center justify-center"
+                    style={{ 
+                      left: `${n.x}%`, 
+                      top: `${n.y}%`, 
+                      width: 40, 
+                      height: 40, 
+                      marginLeft: -20, 
+                      marginTop: -20 
+                    }}
+                  >
+                    <Text weight="black" style={{ color: n.color, fontSize: 28 }}>{n.val}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Answer Display */}
+            <View className="w-full px-4 mb-4">
+              <View 
+                className={`w-full ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} border-2 rounded-2xl py-4 px-6 items-center justify-center ${
+                  feedback === 'correct' ? 'border-emerald-500' : feedback === 'wrong' ? 'border-rose-500' : ''
+                }`}
+              >
+                <Text 
+                  variant="mono" 
+                  weight="black" 
+                  className={`text-3xl tracking-widest ${
+                    feedback === 'correct' ? 'text-emerald-500' : 
+                    feedback === 'wrong' ? 'text-rose-500' : 
+                    inputValue ? (isDark ? 'text-white' : 'text-slate-900') : (isDark ? 'text-slate-600' : 'text-slate-400')
+                  }`}
+                >
+                  {inputValue || 'SUM'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Number Pad */}
+            <View className="w-full px-4 mb-4">
+              <View className="w-full max-w-[320px] self-center">
+                {/* Row 1: 1-5 */}
+                <View className="flex-row gap-2 mb-2">
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <Pressable 
+                      key={n}
+                      onPress={() => handleNumberInput(n)}
+                      className={`flex-1 py-4 rounded-xl border items-center justify-center active:scale-95 ${
+                        isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+                      }`}
                     >
-                      <Text weight="black" style={{ color: n.color, fontSize: 32 }}>{n.val}</Text>
-                    </View>
+                      <Text weight="black" className={`text-xl ${textColor}`}>{n}</Text>
+                    </Pressable>
                   ))}
                 </View>
+                {/* Row 2: 6-0 + Clear */}
+                <View className="flex-row gap-2 mb-2">
+                  {[6, 7, 8, 9, 0].map(n => (
+                    <Pressable 
+                      key={n}
+                      onPress={() => handleNumberInput(n)}
+                      className={`flex-1 py-4 rounded-xl border items-center justify-center active:scale-95 ${
+                        isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+                      }`}
+                    >
+                      <Text weight="black" className={`text-xl ${textColor}`}>{n}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                {/* Row 3: Clear + Delete + Submit */}
+                <View className="flex-row gap-2">
+                  <Pressable 
+                    onPress={handleClear}
+                    className={`flex-1 py-4 rounded-xl border items-center justify-center active:scale-95 ${
+                      isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'
+                    }`}
+                  >
+                    <Text weight="bold" className={`text-sm uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>CLR</Text>
+                  </Pressable>
+                  <Pressable 
+                    onPress={handleDelete}
+                    className={`flex-1 py-4 rounded-xl border items-center justify-center active:scale-95 ${
+                      isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'
+                    }`}
+                  >
+                    <Delete size={20} color={isDark ? '#94a3b8' : '#64748b'} />
+                  </Pressable>
+                  <Pressable 
+                    onPress={handleSubmit}
+                    disabled={!inputValue}
+                    className={`flex-[2] py-4 rounded-xl items-center justify-center flex-row gap-2 active:scale-95 ${
+                      inputValue ? 'bg-indigo-500' : (isDark ? 'bg-slate-800' : 'bg-slate-200')
+                    }`}
+                  >
+                    <Text weight="black" className={`text-sm uppercase ${inputValue ? 'text-white' : (isDark ? 'text-slate-600' : 'text-slate-400')}`}>Submit</Text>
+                    <Check size={16} color={inputValue ? 'white' : (isDark ? '#475569' : '#94a3b8')} strokeWidth={3} />
+                  </Pressable>
+                </View>
               </View>
-
-              <View className="w-full mt-4 mb-8 items-center">
-                <TextInput 
-                  keyboardType="numeric"
-                  placeholder="TOTAL SUM"
-                  placeholderTextColor={isDark ? '#475569' : '#94a3b8'}
-                  value={inputValue}
-                  onChangeText={setInputValue}
-                  className={`w-full ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} border-2 rounded-2xl py-5 px-6 text-center text-3xl font-black tracking-widest ${feedback === 'correct' ? 'border-emerald-500 text-emerald-500' : feedback === 'wrong' ? 'border-rose-500 text-rose-500' : (isDark ? 'text-white' : 'text-slate-900')}`}
-                  style={{ fontFamily: 'JetBrainsMono_500Medium' }}
-                  autoFocus
-                />
-                <Pressable 
-                  onPress={handleSubmit}
-                  className="w-full bg-indigo-500 mt-4 py-5 rounded-2xl flex-row items-center justify-center gap-3 shadow-lg active:scale-95"
-                >
-                  <Text weight="black" className="text-white uppercase tracking-widest text-sm">Submit Calc</Text>
-                  <Check color="white" size={18} strokeWidth={3} />
-                </Pressable>
-              </View>
-            </MotiView>
+            </View>
+          </MotiView>
           ) : (
             <MotiView 
               key="finished" 
@@ -267,11 +347,10 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
                    </MotiView>
                  </View>
               </View>
-            </MotiView>
-          )}
-        </AnimatePresence>
-      </View>
-    </KeyboardAvoidingView>
+          </MotiView>
+        )}
+      </AnimatePresence>
+    </View>
   );
 };
 

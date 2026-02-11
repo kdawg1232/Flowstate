@@ -49,6 +49,106 @@ class DSF {
   }
 }
 
+// Check if two bridges cross each other
+const bridgesCross = (
+  b1From: { x: number; y: number },
+  b1To: { x: number; y: number },
+  b2From: { x: number; y: number },
+  b2To: { x: number; y: number }
+): boolean => {
+  const b1Horiz = b1From.y === b1To.y;
+  const b2Horiz = b2From.y === b2To.y;
+
+  // If both same orientation, they can't cross (might overlap, but that's handled elsewhere)
+  if (b1Horiz === b2Horiz) return false;
+
+  // Make sure we compare horizontal vs vertical consistently
+  let hFrom, hTo, vFrom, vTo;
+  if (b1Horiz) {
+    hFrom = b1From; hTo = b1To;
+    vFrom = b2From; vTo = b2To;
+  } else {
+    hFrom = b2From; hTo = b2To;
+    vFrom = b1From; vTo = b1To;
+  }
+
+  const hMinX = Math.min(hFrom.x, hTo.x);
+  const hMaxX = Math.max(hFrom.x, hTo.x);
+  const hY = hFrom.y;
+
+  const vMinY = Math.min(vFrom.y, vTo.y);
+  const vMaxY = Math.max(vFrom.y, vTo.y);
+  const vX = vFrom.x;
+
+  // Bridges cross if vertical's x is strictly between horizontal's x range
+  // AND horizontal's y is strictly between vertical's y range
+  return vX > hMinX && vX < hMaxX && hY > vMinY && hY < vMaxY;
+};
+
+// Check if a potential new bridge would cross any existing bridges
+const wouldCrossExistingBridge = (
+  newFrom: { x: number; y: number },
+  newTo: { x: number; y: number },
+  existingBridges: Bridge[],
+  islands: Island[]
+): boolean => {
+  for (const bridge of existingBridges) {
+    const existFrom = islands[bridge.from];
+    const existTo = islands[bridge.to];
+    if (bridgesCross(newFrom, newTo, existFrom, existTo)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+// Check if a new bridge path is blocked by an existing bridge (parallel overlap)
+const pathBlockedByBridge = (
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+  existingBridges: Bridge[],
+  islands: Island[]
+): boolean => {
+  const isHorizontal = sourceY === targetY;
+  const minX = Math.min(sourceX, targetX);
+  const maxX = Math.max(sourceX, targetX);
+  const minY = Math.min(sourceY, targetY);
+  const maxY = Math.max(sourceY, targetY);
+
+  for (const bridge of existingBridges) {
+    const bFrom = islands[bridge.from];
+    const bTo = islands[bridge.to];
+    const bIsHorizontal = bFrom.y === bTo.y;
+
+    // Only check same-orientation bridges for path blocking
+    if (isHorizontal && bIsHorizontal) {
+      // Both horizontal - check if they share the same Y and overlap in X
+      if (bFrom.y === sourceY) {
+        const bMinX = Math.min(bFrom.x, bTo.x);
+        const bMaxX = Math.max(bFrom.x, bTo.x);
+        // Check for any overlap (not just crossing)
+        if (!(maxX <= bMinX || minX >= bMaxX)) {
+          // They overlap on the same line
+          return true;
+        }
+      }
+    } else if (!isHorizontal && !bIsHorizontal) {
+      // Both vertical - check if they share the same X and overlap in Y
+      if (bFrom.x === sourceX) {
+        const bMinY = Math.min(bFrom.y, bTo.y);
+        const bMaxY = Math.max(bFrom.y, bTo.y);
+        // Check for any overlap
+        if (!(maxY <= bMinY || minY >= bMaxY)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};
+
 const generateBridges = (w: number = 7, h: number = 7): PuzzleData => {
   let bestPuzzle: PuzzleData | null = null;
   
@@ -86,6 +186,8 @@ const generateBridges = (w: number = 7, h: number = 7): PuzzleData => {
       if (grid[ny * w + nx] !== null) continue;
 
       let clear = true;
+      
+      // Check for islands in the path
       for (let i = 1; i < dist && clear; i++) {
         const tx = source.x + dx * i;
         const ty = source.y + dy * i;
@@ -94,8 +196,31 @@ const generateBridges = (w: number = 7, h: number = 7): PuzzleData => {
         }
       }
 
+      // Check if new bridge would cross existing solution bridges
       if (clear) {
-        // Check adjacency (ensure no "touching" islands)
+        const newBridgeCrosses = wouldCrossExistingBridge(
+          { x: source.x, y: source.y },
+          { x: nx, y: ny },
+          solution,
+          islands
+        );
+        if (newBridgeCrosses) {
+          clear = false;
+        }
+      }
+
+      // Check if path is blocked by a parallel bridge
+      if (clear) {
+        const pathBlocked = pathBlockedByBridge(
+          source.x, source.y, nx, ny, solution, islands
+        );
+        if (pathBlocked) {
+          clear = false;
+        }
+      }
+
+      if (clear) {
+        // Check adjacency (ensure no "touching" islands in orthogonal directions)
         const neighbors = [[0, 1], [0, -1], [1, 0], [-1, 0]];
         for (const [adx, ady] of neighbors) {
           const ax = nx + adx;
@@ -221,34 +346,26 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
         const minY = Math.min(island1.y, island2.y);
         const maxY = Math.max(island1.y, island2.y);
         
+        // Check if any island blocks the direct path between the two selected islands
         const pathBlocked = puzzle.islands.some(is => {
           if (is.id === island1.id || is.id === island2.id) return false;
           if (island1.x === island2.x) {
+            // Vertical path - check if island is on the same column between the two
             return is.x === island1.x && is.y > minY && is.y < maxY;
           } else {
+            // Horizontal path - check if island is on the same row between the two
             return is.y === island1.y && is.x > minX && is.x < maxX;
           }
         });
 
+        // Check if the new bridge would cross any existing bridges
         const crossing = userBridges.some(b => {
-          const b1 = puzzle.islands[b.from];
-          const b2 = puzzle.islands[b.to];
-          if (!b1 || !b2) return false;
+          const existFrom = puzzle.islands[b.from];
+          const existTo = puzzle.islands[b.to];
+          if (!existFrom || !existTo) return false;
           
-          if (island1.x === island2.x) {
-             if (b1.y === b2.y) {
-               const bMinX = Math.min(b1.x, b2.x);
-               const bMaxX = Math.max(b1.x, b2.x);
-               return island1.x > bMinX && island1.x < bMaxX && b1.y > minY && b1.y < maxY;
-             }
-          } else {
-            if (b1.x === b2.x) {
-              const bMinY = Math.min(b1.y, b2.y);
-              const bMaxY = Math.max(b1.y, b2.y);
-              return island1.y > bMinY && island1.y < bMaxY && b1.x > minX && b1.x < maxX;
-            }
-          }
-          return false;
+          // Use the same crossing detection as generation
+          return bridgesCross(island1, island2, existFrom, existTo);
         });
 
         if (!pathBlocked && !crossing) {
@@ -311,6 +428,16 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
           const x2 = getX(i2.x);
           const y2 = getY(i2.y);
           
+          // Calculate start/end points stopping at circle edge
+          // Island radius is 6, plus stroke width 1.5, so 7.5 is edge. Using 8 for clean separation.
+          const angle = Math.atan2(y2 - y1, x2 - x1);
+          const RADIUS_OFFSET = 8;
+          
+          const sx = x1 + Math.cos(angle) * RADIUS_OFFSET;
+          const sy = y1 + Math.sin(angle) * RADIUS_OFFSET;
+          const ex = x2 - Math.cos(angle) * RADIUS_OFFSET;
+          const ey = y2 - Math.sin(angle) * RADIUS_OFFSET;
+
           // Green when finished, indigo when playing
           const color = isFinished ? '#10b981' : (isDark ? '#6366f1' : '#4f46e5');
           
@@ -323,13 +450,13 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
             const oy = dx / len * offset;
             return (
               <G key={`bridge-${idx}`}>
-                <Line x1={x1 + ox} y1={y1 + oy} x2={x2 + ox} y2={y2 + oy} stroke={color} strokeWidth="1" strokeLinecap="round" />
-                <Line x1={x1 - ox} y1={y1 - oy} x2={x2 - ox} y2={y2 - oy} stroke={color} strokeWidth="1" strokeLinecap="round" />
+                <Line x1={sx + ox} y1={sy + oy} x2={ex + ox} y2={ey + oy} stroke={color} strokeWidth="1" strokeLinecap="round" />
+                <Line x1={sx - ox} y1={sy - oy} x2={ex - ox} y2={ey - oy} stroke={color} strokeWidth="1" strokeLinecap="round" />
               </G>
             );
           }
           return (
-            <Line key={`bridge-${idx}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth="1" strokeLinecap="round" />
+            <Line key={`bridge-${idx}`} x1={sx} y1={sy} x2={ex} y2={ey} stroke={color} strokeWidth="1" strokeLinecap="round" />
           );
         })}
 
