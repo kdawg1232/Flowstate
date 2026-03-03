@@ -4,7 +4,7 @@ import { View, Pressable, Dimensions } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
 import Svg, { Line, Circle, G, Text as SvgText } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Network, RotateCcw, Play, Zap, ChevronDown, Eye, Check } from 'lucide-react-native';
+import { Network, RotateCcw, Play, Zap, ChevronDown, Eye } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
 
@@ -255,6 +255,77 @@ const generateBridges = (w: number = 7, h: number = 7): PuzzleData => {
   return bestPuzzle!;
 };
 
+const recomputeTargetsFromBridges = (islands: Island[], bridges: Bridge[]) => {
+  const totals = Array(islands.length).fill(0);
+  bridges.forEach(b => {
+    if (b.count < 1 || b.count > 2) return;
+    if (b.from < 0 || b.from >= islands.length || b.to < 0 || b.to >= islands.length) return;
+    totals[b.from] += b.count;
+    totals[b.to] += b.count;
+  });
+
+  return islands.map(island => ({ ...island, target: totals[island.id] ?? 0 }));
+};
+
+const bridgeHasIslandInPath = (bridge: Bridge, islands: Island[]) => {
+  const from = islands[bridge.from];
+  const to = islands[bridge.to];
+  if (!from || !to) return true;
+
+  if (from.x !== to.x && from.y !== to.y) return true;
+
+  const minX = Math.min(from.x, to.x);
+  const maxX = Math.max(from.x, to.x);
+  const minY = Math.min(from.y, to.y);
+  const maxY = Math.max(from.y, to.y);
+
+  return islands.some(is => {
+    if (is.id === from.id || is.id === to.id) return false;
+    if (from.x === to.x) return is.x === from.x && is.y > minY && is.y < maxY;
+    return is.y === from.y && is.x > minX && is.x < maxX;
+  });
+};
+
+const isPuzzleValid = (puzzle: PuzzleData) => {
+  const { islands, solution } = puzzle;
+  if (islands.length < 2 || solution.length === 0) return false;
+
+  const pairTotals = new Map<string, number>();
+  for (const bridge of solution) {
+    if (bridge.count < 1 || bridge.count > 2) return false;
+    if (bridge.from === bridge.to) return false;
+    if (bridge.from < 0 || bridge.from >= islands.length) return false;
+    if (bridge.to < 0 || bridge.to >= islands.length) return false;
+    if (bridgeHasIslandInPath(bridge, islands)) return false;
+
+    const a = Math.min(bridge.from, bridge.to);
+    const b = Math.max(bridge.from, bridge.to);
+    const key = `${a}-${b}`;
+    const next = (pairTotals.get(key) ?? 0) + bridge.count;
+    if (next > 2) return false;
+    pairTotals.set(key, next);
+  }
+
+  for (let i = 0; i < solution.length; i++) {
+    const iFrom = islands[solution[i].from];
+    const iTo = islands[solution[i].to];
+    for (let j = i + 1; j < solution.length; j++) {
+      const jFrom = islands[solution[j].from];
+      const jTo = islands[solution[j].to];
+      if (!iFrom || !iTo || !jFrom || !jTo) return false;
+      if (bridgesCross(iFrom, iTo, jFrom, jTo)) return false;
+    }
+  }
+
+  const totals = Array(islands.length).fill(0);
+  solution.forEach(b => {
+    totals[b.from] += b.count;
+    totals[b.to] += b.count;
+  });
+
+  return islands.every(is => totals[is.id] === is.target);
+};
+
 interface Props {
   onComplete: (score: number, isClean: boolean) => void;
   isActive: boolean;
@@ -264,6 +335,7 @@ interface Props {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_SIZE = Math.min(SCREEN_WIDTH - 48, 320);
+const SOLVED_PREVIEW_MS = 1000;
 
 const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLockScroll }) => {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
@@ -271,6 +343,7 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
   const [userBridges, setUserBridges] = useState<Bridge[]>([]);
   const [selectedIslandId, setSelectedIslandId] = useState<number | null>(null);
   const [isAutoSolved, setIsAutoSolved] = useState(false);
+  const [showSolvedSummary, setShowSolvedSummary] = useState(false);
   const insets = useSafeAreaInsets();
 
   const isDark = theme === 'dark';
@@ -279,11 +352,29 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
   const getY = (y: number) => 10 + (y / 6) * 80;
 
   const initGame = useCallback(() => {
-    const newPuzzle = generateBridges(7, 7);
+    let newPuzzle: PuzzleData | null = null;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const candidate = generateBridges(7, 7);
+      if (isPuzzleValid(candidate)) {
+        newPuzzle = candidate;
+        break;
+      }
+    }
+
+    if (!newPuzzle) {
+      // Final safety net: ensure labels always match actual bridge totals.
+      const fallback = generateBridges(7, 7);
+      newPuzzle = {
+        ...fallback,
+        islands: recomputeTargetsFromBridges(fallback.islands, fallback.solution),
+      };
+    }
+
     setPuzzle(newPuzzle);
     setUserBridges([]);
     setSelectedIslandId(null);
     setIsAutoSolved(false);
+    setShowSolvedSummary(false);
     setGameState(GameState.PLAYING);
   }, []);
 
@@ -301,14 +392,22 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
     return b ? b.count : 0;
   };
 
+  const getIslandBridgeTotals = useCallback((bridges: Bridge[], islandCount: number) => {
+    const totals = Array(islandCount).fill(0);
+    bridges.forEach(b => {
+      // Ignore malformed bridge rows if they ever appear from bad state.
+      if (b.count < 1 || b.count > 2) return;
+      if (b.from < 0 || b.from >= islandCount || b.to < 0 || b.to >= islandCount) return;
+      totals[b.from] += b.count;
+      totals[b.to] += b.count;
+    });
+    return totals;
+  }, []);
+
   const checkVictory = useCallback(() => {
     if (!puzzle || userBridges.length === 0 || isAutoSolved) return;
 
-    const counts = Array(puzzle.islands.length).fill(0);
-    userBridges.forEach(b => {
-      counts[b.from] += b.count;
-      counts[b.to] += b.count;
-    });
+    const counts = getIslandBridgeTotals(userBridges, puzzle.islands.length);
 
     const allSatisfied = puzzle.islands.every(is => counts[is.id] === is.target);
     if (!allSatisfied) return;
@@ -323,7 +422,7 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
       setGameState(GameState.FINISHED);
       onComplete(50, true);
     }
-  }, [userBridges, puzzle, onComplete, isAutoSolved]);
+  }, [userBridges, puzzle, onComplete, isAutoSolved, getIslandBridgeTotals]);
 
   useEffect(() => {
     if (isActive && gameState === GameState.PLAYING) checkVictory();
@@ -370,12 +469,26 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
 
         if (!pathBlocked && !crossing) {
           const currentCount = getBridgeCount(island1.id, island2.id);
-          const nextCount = (currentCount + 1) % 3;
+          let nextCount = (currentCount + 1) % 3;
 
           const nextBridges = userBridges.filter(b => 
             !((b.from === island1.id && b.to === island2.id) || (b.from === island2.id && b.to === island1.id))
           );
-          
+
+          if (nextCount > 0) {
+            const candidateBridges = [...nextBridges, { from: island1.id, to: island2.id, count: nextCount }];
+            const totals = getIslandBridgeTotals(candidateBridges, puzzle.islands.length);
+            const exceedsLimit = totals[island1.id] > island1.target || totals[island2.id] > island2.target;
+
+            // Keep cycle usable: if 1->2 is illegal, treat the tap as remove (1->0).
+            if (exceedsLimit && currentCount === 1) {
+              nextCount = 0;
+            } else if (exceedsLimit) {
+              setSelectedIslandId(null);
+              return;
+            }
+          }
+
           if (nextCount > 0) {
             nextBridges.push({ from: island1.id, to: island2.id, count: nextCount });
           }
@@ -407,8 +520,20 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
   useEffect(() => {
     if (!isActive) {
       setGameState(GameState.IDLE);
+      setShowSolvedSummary(false);
     }
   }, [isActive]);
+
+  useEffect(() => {
+    if (gameState === GameState.FINISHED && !isAutoSolved) {
+      setShowSolvedSummary(false);
+      const timer = setTimeout(() => {
+        setShowSolvedSummary(true);
+      }, SOLVED_PREVIEW_MS);
+      return () => clearTimeout(timer);
+    }
+    setShowSolvedSummary(false);
+  }, [gameState, isAutoSolved]);
 
   // Render the game board SVG
   const renderGameBoard = () => {
@@ -551,57 +676,55 @@ const BridgesGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', on
             transition={{ type: 'timing', duration: 300 }}
             className="flex-1 items-center justify-center"
           >
-            {/* Game Board Container */}
+            {/* Game Board / Solved Summary */}
             <View className="relative w-full items-center mb-12">
-              <View 
-                style={{ width: GRID_SIZE, height: GRID_SIZE }}
-                className={`rounded-3xl overflow-hidden border ${
-                  gameState === GameState.FINISHED 
-                    ? 'border-emerald-500/50 bg-emerald-500/5' 
-                    : (isDark ? 'border-white/5 bg-slate-900/40' : 'border-slate-200 bg-white')
-                }`}
-              >
-                {renderGameBoard()}
-              </View>
-
-              {/* Manual Victory Overlay - appears on top of board */}
-              <AnimatePresence>
-                {gameState === GameState.FINISHED && !isAutoSolved && (
+              <AnimatePresence exitBeforeEnter>
+                {gameState === GameState.FINISHED && !isAutoSolved && showSolvedSummary ? (
                   <MotiView
-                    from={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ type: 'timing', duration: 300 }}
-                    style={{ 
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      width: GRID_SIZE,
-                      height: GRID_SIZE,
-                      alignSelf: 'center',
-                      backgroundColor: 'rgba(5, 7, 10, 0.4)',
-                    }}
-                    className="items-center justify-center rounded-3xl"
+                    key="manual-solved-summary"
+                    from={{ opacity: 0, translateY: 10 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    exit={{ opacity: 0, translateY: -10 }}
+                    transition={{ type: 'timing', duration: 220 }}
+                    style={{ width: GRID_SIZE, minHeight: GRID_SIZE * 0.6 }}
+                    className="items-center justify-center"
                   >
-                    <View 
-                      className="w-16 h-16 rounded-full bg-emerald-500 items-center justify-center mb-6 border border-emerald-400"
-                      style={{ shadowColor: '#10b981', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 20 }}
-                    >
-                      <Check color="white" size={32} />
-                    </View>
-                    <Text weight="black" className="text-3xl text-white italic uppercase tracking-tighter mb-1">NETWORK SEALED</Text>
-                    <Text variant="mono" className="text-cyan-400 text-2xl tracking-widest mb-8">+50 LOGIC XP</Text>
-                    <View className="items-center gap-4 opacity-80 mt-4">
-                      <Text weight="bold" className="text-white text-[10px] uppercase tracking-[0.4em]">Continue to next game</Text>
+                    <Text weight="black" className={`text-3xl italic uppercase tracking-tighter text-center mb-2 ${textColor}`}>
+                      The Bridge is Solved
+                    </Text>
+                    <Text variant="mono" className="text-emerald-400 text-2xl tracking-widest uppercase">
+                      +50 reps
+                    </Text>
+                    <View className="items-center gap-4 opacity-80 mt-8">
+                      <Text weight="bold" className={`${subTextColor} text-[10px] uppercase tracking-[0.4em]`}>
+                        Continue to next game
+                      </Text>
                       <MotiView
                         from={{ translateY: 0 }}
                         animate={{ translateY: 10 }}
                         transition={{ loop: true, type: 'timing', duration: 1000 }}
                       >
-                        <ChevronDown color="white" size={24} />
+                        <ChevronDown color={isDark ? "#64748b" : "#94a3b8"} size={24} />
                       </MotiView>
+                    </View>
+                  </MotiView>
+                ) : (
+                  <MotiView
+                    key="board"
+                    from={{ opacity: 0.98 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ type: 'timing', duration: 180 }}
+                  >
+                    <View 
+                      style={{ width: GRID_SIZE, height: GRID_SIZE }}
+                      className={`rounded-3xl overflow-hidden border ${
+                        gameState === GameState.FINISHED 
+                          ? 'border-emerald-500/50 bg-emerald-500/5' 
+                          : (isDark ? 'border-white/5 bg-slate-900/40' : 'border-slate-200 bg-white')
+                      }`}
+                    >
+                      {renderGameBoard()}
                     </View>
                   </MotiView>
                 )}

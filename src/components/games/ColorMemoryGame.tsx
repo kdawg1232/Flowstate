@@ -4,7 +4,7 @@ import { View, Pressable, Dimensions, StyleSheet } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GameState } from '../../types';
-import { Brain, Play, ChevronDown, Check, X, Zap, ArrowRight } from 'lucide-react-native';
+import { Brain, Play, ChevronDown, Check, X, Zap } from 'lucide-react-native';
 import { Text } from '../../ui/Text';
 
 interface Props {
@@ -35,6 +35,8 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
   const [activeColor, setActiveColor] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [playbackId, setPlaybackId] = useState(0); // Used to cancel stale playbacks
+  const [showFailureFeedback, setShowFailureFeedback] = useState(false);
+  const [failureReps, setFailureReps] = useState(0);
   const isDark = theme === 'dark';
   const insets = useSafeAreaInsets();
 
@@ -89,8 +91,11 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
 
     const currentIndex = nextUserSequence.length - 1;
     if (nextUserSequence[currentIndex] !== sequence[currentIndex]) {
+      const reps = Math.max(0, (level - 1) * 10);
+      setFailureReps(reps);
+      setShowFailureFeedback(true);
       setGameState(GameState.FAILURE);
-      onComplete((level - 1) * 10, true);
+      onComplete(reps, false);
       return;
     }
 
@@ -112,6 +117,8 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
 
   const startGame = () => {
     setLevel(1);
+    setFailureReps(0);
+    setShowFailureFeedback(false);
     // Increment playbackId to cancel any stale playbacks and start fresh
     setPlaybackId(prev => {
       const newId = prev + 1;
@@ -129,8 +136,11 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
       // Cancel any ongoing playback by incrementing the playbackId
       setPlaybackId(prev => prev + 1);
       setActiveColor(null);
+      setShowFailureFeedback(false);
     }
   }, [isActive]);
+
+  const sequenceText = sequence.map(idx => COLORS[idx]?.name ?? '?').join(' -> ');
 
   // Calculate button position based on index
   const getButtonStyle = (index: number, isActive: boolean, color: typeof COLORS[0]) => {
@@ -183,42 +193,78 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
             </Pressable>
           </MotiView>
         ) : gameState === GameState.FAILURE ? (
-          <MotiView 
-            key="fail" 
-            from={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }}
-            transition={{ type: 'timing', duration: 300 }}
-            className="flex-1 items-center justify-center px-6"
-          >
-            <View className="w-20 h-20 rounded-full bg-rose-500/20 items-center justify-center mb-8 border border-rose-500/40">
-              <X color="#f43f5e" size={40} />
-            </View>
-            <Text weight="black" className={`text-4xl italic mb-3 uppercase tracking-tighter text-center ${textColor}`}>REP LOGGED</Text>
-            
-            <View className="bg-indigo-500/10 border border-indigo-500/20 px-10 py-6 rounded-[2.5rem] items-center mb-12">
-              <Text variant="mono" className="text-indigo-400 text-6xl mb-1 tracking-widest text-center">{(level - 1) * 10}</Text>
-              <Text weight="bold" className="text-indigo-500/60 text-[10px] uppercase tracking-[0.3em]">MEMORY SCORE</Text>
-            </View>
+          showFailureFeedback ? (
+            <Pressable
+              onPress={() => setShowFailureFeedback(false)}
+              className="flex-1 w-full"
+            >
+              <MotiView
+              key="fail-feedback"
+              from={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ type: 'timing', duration: 220 }}
+              className="flex-1 items-center justify-center px-6"
+            >
+              <View className="items-center justify-center mb-12">
+                <View
+                  style={{ width: GRID_SIZE, height: GRID_SIZE }}
+                  className="rounded-[2rem] overflow-hidden bg-black/40 border border-white/10 relative"
+                >
+                  {COLORS.map((color, index) => (
+                    <View key={color.id} style={getButtonStyle(index, activeColor === color.id, color)} />
+                  ))}
+                </View>
+              </View>
 
-            <View className="items-center gap-6">
-               <View className="bg-white/5 px-6 py-4 rounded-2xl flex-row items-center gap-3">
-                  <Text weight="black" className="text-emerald-500 uppercase">NEXT GAME READY</Text>
-                  <ArrowRight color="#10b981" size={18} />
-               </View>
-               
-               <View className="items-center gap-2 opacity-40">
-                 <Text weight="bold" className={`${subTextColor} text-[10px] uppercase tracking-[0.4em]`}>Scroll to continue</Text>
-                 <MotiView
-                   from={{ translateY: 0 }}
-                   animate={{ translateY: 10 }}
-                   transition={{ loop: true, type: 'timing', duration: 1000 }}
-                 >
-                   <ChevronDown color={isDark ? "#94a3b8" : "#64748b"} size={24} />
-                 </MotiView>
-               </View>
-            </View>
-          </MotiView>
+              <View className="w-full max-w-[340px] items-center">
+                <Text weight="black" className="text-rose-400 text-xs uppercase tracking-[0.35em] mb-3 text-center">
+                  Wrong color clicked
+                </Text>
+                <Text className={`${subTextColor} text-[11px] uppercase tracking-[0.2em] text-center mb-2`}>
+                  Correct order of the flashes
+                </Text>
+                <Text variant="mono" className={`text-[12px] tracking-[0.08em] text-center ${textColor}`}>
+                  {sequenceText}
+                </Text>
+                <Text className={`${subTextColor} text-[10px] uppercase tracking-[0.25em] text-center mt-6`}>
+                  Tap anywhere to continue
+                </Text>
+              </View>
+              </MotiView>
+            </Pressable>
+          ) : (
+            <MotiView 
+              key="fail" 
+              from={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              transition={{ type: 'timing', duration: 300 }}
+              className="flex-1 items-center justify-center px-6"
+            >
+              <View className="w-20 h-20 rounded-full bg-rose-500/20 items-center justify-center mb-8 border border-rose-500/40">
+                <X color="#f43f5e" size={40} />
+              </View>
+              <Text weight="black" className={`text-3xl italic mb-3 uppercase tracking-tighter text-center ${textColor}`}>
+                Total reps logged
+              </Text>
+              
+              <Text variant="mono" className="text-emerald-400 text-4xl tracking-widest mb-10 uppercase">
+                +{failureReps}
+              </Text>
+
+              <View className="items-center gap-2 opacity-40">
+                <Text weight="bold" className={`${subTextColor} text-[10px] uppercase tracking-[0.4em]`}>Scroll to continue</Text>
+                <MotiView
+                  from={{ translateY: 0 }}
+                  animate={{ translateY: 10 }}
+                  transition={{ loop: true, type: 'timing', duration: 1000 }}
+                >
+                  <ChevronDown color={isDark ? "#94a3b8" : "#64748b"} size={24} />
+                </MotiView>
+              </View>
+            </MotiView>
+          )
         ) : (
           <MotiView 
             key="play" 
