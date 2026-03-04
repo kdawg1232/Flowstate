@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Pressable, Dimensions, StyleSheet, GestureResponderEvent } from 'react-native';
+import { View, Pressable, Dimensions, GestureResponderEvent } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
 import Svg, { Path, Line, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Map as MapIcon, Check, RotateCcw, Play, Zap, ChevronDown, Eye, Layout } from 'lucide-react-native';
+import { Map as MapIcon, RotateCcw, Play, Zap, ChevronDown, Eye } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
 
@@ -356,13 +356,14 @@ interface Props {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_SIZE = Math.min(SCREEN_WIDTH - 48, 320);
+const SOLVED_PREVIEW_MS = 1000;
 
 const MapGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLockScroll }) => {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
   const [puzzle, setPuzzle] = useState<MapData | null>(null);
   const [userColors, setUserColors] = useState<number[]>([]);
-  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [isAutoSolved, setIsAutoSolved] = useState(false);
+  const [showSolvedSummary, setShowSolvedSummary] = useState(false);
   const insets = useSafeAreaInsets();
 
   const isDark = theme === 'dark';
@@ -374,8 +375,8 @@ const MapGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLock
     setPuzzle(data);
     setUserColors(data.clues.map(c => c ?? -1));
     setGameState(GameState.PLAYING);
-    setShowSuccessOverlay(false);
     setIsAutoSolved(false);
+    setShowSolvedSummary(false);
   }, []);
 
   const handleRegionClick = (regionId: number) => {
@@ -403,7 +404,6 @@ const MapGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLock
       if (isValid) {
         setGameState(GameState.FINISHED);
         onComplete(25, true);
-        setTimeout(() => setShowSuccessOverlay(true), 800);
       }
     }
   };
@@ -541,8 +541,20 @@ const MapGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLock
   useEffect(() => {
     if (!isActive) {
       setGameState(GameState.IDLE);
+      setShowSolvedSummary(false);
     }
   }, [isActive]);
+
+  useEffect(() => {
+    if (gameState === GameState.FINISHED && !isAutoSolved) {
+      setShowSolvedSummary(false);
+      const timer = setTimeout(() => {
+        setShowSolvedSummary(true);
+      }, SOLVED_PREVIEW_MS);
+      return () => clearTimeout(timer);
+    }
+    setShowSolvedSummary(false);
+  }, [gameState, isAutoSolved]);
 
   return (
     <View className={`flex-1 w-full ${isDark ? 'bg-black' : 'bg-slate-50'} relative overflow-hidden`}>
@@ -583,73 +595,63 @@ const MapGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLock
           >
             {/* Game Board Section - Centered in remaining space */}
             <View className="flex-1 w-full items-center justify-center mb-10">
-              <View className="relative w-full items-center">
-                <View 
-                  onStartShouldSetResponder={() => true}
-                  onResponderRelease={handleGridTap}
-                  style={{ width: GRID_SIZE, height: GRID_SIZE * (9/7) }}
-                  className={`rounded-3xl overflow-hidden border ${
-                    gameState === GameState.FINISHED 
-                      ? 'border-emerald-500/50' 
-                      : (isDark ? 'border-white/5 bg-slate-900/40' : 'border-slate-200 bg-white shadow-inner')
-                  }`}
-                >
-                  <Svg viewBox={`0 0 ${puzzle?.w ?? 7} ${puzzle?.h ?? 9}`} style={{ width: '100%', height: '100%' }}>
-                    {puzzle && Array.from({ length: puzzle.w * puzzle.h }).map((_, i) => renderCell(i))}
-                    {renderBorders()}
-                  </Svg>
-                </View>
-
-                {/* Victory Overlay */}
-                <AnimatePresence>
-                  {showSuccessOverlay && (
-                    <MotiView 
-                      from={{ opacity: 0, scale: 0.95 }} 
-                      animate={{ opacity: 1, scale: 1 }} 
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(5, 7, 10, 0.8)', borderRadius: 24 }]}
-                      className="items-center justify-center z-50 p-8"
-                    >
-                      <View className="w-20 h-20 rounded-full bg-emerald-500 items-center justify-center mb-8 border-4 border-emerald-400">
-                        <Check color="white" size={44} strokeWidth={3} />
-                      </View>
-                      <Text weight="black" className="text-4xl text-white italic uppercase tracking-tighter text-center mb-2">MAP LOGGED</Text>
-                      <Text variant="mono" className="text-cyan-400 text-3xl tracking-widest mb-12 text-center">+25 LOGIC XP</Text>
-                      
-                      <Pressable 
-                        onPress={() => setShowSuccessOverlay(false)}
-                        className="w-full py-4 bg-white/5 border border-white/20 rounded-[2rem] flex-row items-center justify-center gap-3"
+              <AnimatePresence exitBeforeEnter>
+                {gameState === GameState.FINISHED && !isAutoSolved && showSolvedSummary ? (
+                  <MotiView
+                    key="map-solved-summary"
+                    from={{ opacity: 0, translateY: 10 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    exit={{ opacity: 0, translateY: -10 }}
+                    transition={{ type: 'timing', duration: 220 }}
+                    style={{ width: GRID_SIZE, minHeight: GRID_SIZE * 0.6 }}
+                    className="items-center justify-center"
+                  >
+                    <Text weight="black" className={`text-3xl italic uppercase tracking-tighter text-center mb-2 ${textColor}`}>
+                      Map logged
+                    </Text>
+                    <Text variant="mono" className="text-emerald-400 text-2xl tracking-widest uppercase">
+                      25 reps logged
+                    </Text>
+                    <View className="items-center gap-4 opacity-80 mt-8">
+                      <Text weight="bold" className={`${subTextColor} text-[10px] uppercase tracking-[0.4em]`}>
+                        Continue to next game
+                      </Text>
+                      <MotiView
+                        from={{ translateY: 0 }}
+                        animate={{ translateY: 10 }}
+                        transition={{ loop: true, type: 'timing', duration: 1000 }}
                       >
-                        <Eye color="white" size={18} />
-                        <Text weight="black" className="text-white text-[11px] uppercase tracking-widest">Inspect Map</Text>
-                      </Pressable>
-
-                      <View className="items-center gap-6 opacity-60 mt-12">
-                        <Text weight="bold" className="text-white text-[10px] uppercase tracking-[0.5em]">Swipe for next rep</Text>
-                        <MotiView
-                          from={{ translateY: 0 }}
-                          animate={{ translateY: 10 }}
-                          transition={{ loop: true, type: 'timing', duration: 1000 }}
-                        >
-                          <ChevronDown color="white" size={28} />
-                        </MotiView>
-                      </View>
-                    </MotiView>
-                  )}
-                </AnimatePresence>
-
-                {/* Layout Button to show overlay again */}
-                {gameState === GameState.FINISHED && !isAutoSolved && !showSuccessOverlay && (
-                  <MotiView from={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} className="absolute top-4 right-4 z-40">
-                    <Pressable 
-                      onPress={() => setShowSuccessOverlay(true)}
-                      className="p-3 bg-emerald-500 rounded-2xl shadow-2xl active:scale-90"
+                        <ChevronDown color={isDark ? "#64748b" : "#94a3b8"} size={24} />
+                      </MotiView>
+                    </View>
+                  </MotiView>
+                ) : (
+                  <MotiView
+                    key="map-board"
+                    from={{ opacity: 0.98 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ type: 'timing', duration: 180 }}
+                    className="relative w-full items-center"
+                  >
+                    <View 
+                      onStartShouldSetResponder={() => true}
+                      onResponderRelease={handleGridTap}
+                      style={{ width: GRID_SIZE, height: GRID_SIZE * (9/7) }}
+                      className={`rounded-3xl overflow-hidden border ${
+                        gameState === GameState.FINISHED 
+                          ? 'border-emerald-500/50' 
+                          : (isDark ? 'border-white/5 bg-slate-900/40' : 'border-slate-200 bg-white shadow-inner')
+                      }`}
                     >
-                      <Layout color="black" size={20} />
-                    </Pressable>
+                      <Svg viewBox={`0 0 ${puzzle?.w ?? 7} ${puzzle?.h ?? 9}`} style={{ width: '100%', height: '100%' }}>
+                        {puzzle && Array.from({ length: puzzle.w * puzzle.h }).map((_, i) => renderCell(i))}
+                        {renderBorders()}
+                      </Svg>
+                    </View>
                   </MotiView>
                 )}
-              </View>
+              </AnimatePresence>
             </View>
 
             {/* Controls Section - Bottom */}
@@ -705,18 +707,7 @@ const MapGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLock
                             <ChevronDown color="#475569" size={32} />
                           </MotiView>
                       </View>
-                    ) : (
-                      <View className="items-center gap-4">
-                          <Text weight="black" className="text-emerald-500 text-[12px] uppercase tracking-[0.4em] mb-6">REGION STABILITY ACHIEVED</Text>
-                          <Pressable 
-                            onPress={initGame} 
-                            className={`px-10 py-4 rounded-2xl border flex-row items-center justify-center gap-3 ${isDark ? 'border-slate-800 bg-slate-900/40' : 'border-slate-200 bg-white'}`}
-                          >
-                            <RotateCcw color={isDark ? "#94a3b8" : "#64748b"} size={16} />
-                            <Text weight="black" className={`text-[11px] uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>New Map</Text>
-                          </Pressable>
-                      </View>
-                    )}
+                    ) : null}
                   </MotiView>
                 )}
               </AnimatePresence>

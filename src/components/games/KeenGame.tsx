@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Pressable, Dimensions, StyleSheet } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Grid3X3, RotateCcw, Play, Zap, ChevronDown, Eye, Check } from 'lucide-react-native';
+import { Grid3X3, RotateCcw, Play, Zap, ChevronDown, Eye } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
 
@@ -138,6 +138,7 @@ interface Props {
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_SIZE = Math.min(SCREEN_WIDTH - 48, 320);
 const CELL_SIZE = GRID_SIZE / 4;
+const SOLVED_PREVIEW_MS = 1000;
 
 const KeenGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLockScroll }) => {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
@@ -145,6 +146,7 @@ const KeenGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLoc
   const [userGrid, setUserGrid] = useState<number[]>([]);
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const [isAutoSolved, setIsAutoSolved] = useState(false);
+  const [showSolvedSummary, setShowSolvedSummary] = useState(false);
   const insets = useSafeAreaInsets();
 
   const isDark = theme === 'dark';
@@ -157,6 +159,7 @@ const KeenGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLoc
     setGameState(GameState.PLAYING);
     setSelectedCell(null);
     setIsAutoSolved(false);
+    setShowSolvedSummary(false);
   }, []);
 
   const handleAutoSolve = () => {
@@ -248,8 +251,20 @@ const KeenGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLoc
   useEffect(() => {
     if (!isActive) {
       setGameState(GameState.IDLE);
+      setShowSolvedSummary(false);
     }
   }, [isActive]);
+
+  useEffect(() => {
+    if (gameState === GameState.FINISHED && !isAutoSolved) {
+      setShowSolvedSummary(false);
+      const timer = setTimeout(() => {
+        setShowSolvedSummary(true);
+      }, SOLVED_PREVIEW_MS);
+      return () => clearTimeout(timer);
+    }
+    setShowSolvedSummary(false);
+  }, [gameState, isAutoSolved]);
 
   return (
     <View className={`flex-1 w-full ${isDark ? 'bg-black' : 'bg-slate-50'} relative overflow-hidden`}>
@@ -288,97 +303,95 @@ const KeenGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLoc
             className="flex-1 items-center"
             style={{ paddingTop: insets.top + 80 }}
           >
-            {/* Game Board Section - Centered in remaining space */}
+            {/* Game Board / Solved Summary Section */}
             <View className="flex-1 w-full items-center justify-center mb-8">
-              <View className="relative w-full items-center">
-                {(() => {
-                  const isFinished = gameState === GameState.FINISHED;
-                  return (
-                    <View 
-                      style={{ width: GRID_SIZE, height: GRID_SIZE }}
-                      className={`rounded-md overflow-hidden ${isFinished ? 'bg-emerald-500/5' : ''}`}
-                    >
-                      <View className="flex-row flex-wrap w-full h-full">
-                        {puzzle && userGrid.map((val, i) => {
-                          const isRoot = dsf_canonify(puzzle.dsf, i) === i;
-                          const clue = puzzle.clues[i];
-                          
-                          return (
-                            <Pressable
-                              key={i}
-                              onPress={() => !isFinished && setSelectedCell(i)}
-                              style={[
-                                { width: CELL_SIZE, height: CELL_SIZE, alignItems: 'center', justifyContent: 'center' },
-                                getBorderStyles(i),
-                                selectedCell === i && !isFinished ? { backgroundColor: isDark ? 'rgba(6, 182, 212, 0.1)' : 'rgba(6, 182, 212, 0.05)' } : { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.4)' : 'white' },
-                                isFinished ? { backgroundColor: 'rgba(16, 185, 129, 0.05)' } : {}
-                              ]}
-                            >
-                              {isRoot && clue && (
-                                <Text 
-                                  weight="black"
-                                  className={`absolute top-1 left-1.5 text-[10px] leading-none ${isFinished ? 'text-emerald-500/60' : 'text-cyan-400'}`}
-                                >
-                                  {clue.target}{clue.op === '*' ? '×' : clue.op === '/' ? '÷' : clue.op}
-                                </Text>
-                              )}
-                              <Text 
-                                weight="black" 
-                                className={`text-2xl ${val === 0 ? 'opacity-0' : (isFinished ? 'text-emerald-500' : textColor)}`}
-                              >
-                                {val}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
-                      </View>
-                    </View>
-                  );
-                })()}
-
-                {/* Victory Overlay */}
-                <AnimatePresence>
-                  {gameState === GameState.FINISHED && !isAutoSolved && (
-                    <MotiView
-                      from={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ type: 'timing', duration: 300 }}
-                      style={{ 
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        width: GRID_SIZE,
-                        height: GRID_SIZE,
-                        alignSelf: 'center',
-                        backgroundColor: 'rgba(5, 7, 10, 0.4)',
-                      }}
-                      className="items-center justify-center rounded-xl"
-                    >
-                      <View 
-                        className="w-16 h-16 rounded-full bg-emerald-500 items-center justify-center mb-6 border border-emerald-400"
-                        style={{ shadowColor: '#10b981', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 20 }}
+              <AnimatePresence exitBeforeEnter>
+                {gameState === GameState.FINISHED && !isAutoSolved && showSolvedSummary ? (
+                  <MotiView
+                    key="keen-solved-summary"
+                    from={{ opacity: 0, translateY: 10 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    exit={{ opacity: 0, translateY: -10 }}
+                    transition={{ type: 'timing', duration: 220 }}
+                    style={{ width: GRID_SIZE, minHeight: GRID_SIZE * 0.6 }}
+                    className="items-center justify-center"
+                  >
+                    <Text weight="black" className={`text-3xl italic uppercase tracking-tighter text-center mb-2 ${textColor}`}>
+                      Keen Puzzle Completed
+                    </Text>
+                    <Text variant="mono" className="text-emerald-400 text-2xl tracking-widest uppercase">
+                      10 reps logged
+                    </Text>
+                    <View className="items-center gap-4 opacity-80 mt-8">
+                      <Text weight="bold" className={`${subTextColor} text-[10px] uppercase tracking-[0.4em]`}>
+                        Continue to next game
+                      </Text>
+                      <MotiView
+                        from={{ translateY: 0 }}
+                        animate={{ translateY: 10 }}
+                        transition={{ loop: true, type: 'timing', duration: 1000 }}
                       >
-                        <Check color="white" size={32} />
-                      </View>
-                      <Text weight="black" className="text-3xl text-white italic uppercase tracking-tighter mb-1">REP LOGGED</Text>
-                      <Text variant="mono" className="text-cyan-400 text-2xl tracking-widest mb-8">+10 LOGIC XP</Text>
-                      <View className="items-center gap-4 opacity-80 mt-4">
-                        <Text weight="bold" className="text-white text-[10px] uppercase tracking-[0.4em]">Continue to next game</Text>
-                        <MotiView
-                          from={{ translateY: 0 }}
-                          animate={{ translateY: 10 }}
-                          transition={{ loop: true, type: 'timing', duration: 1000 }}
-                        >
-                          <ChevronDown color="white" size={24} />
-                        </MotiView>
-                      </View>
-                    </MotiView>
-                  )}
-                </AnimatePresence>
-              </View>
+                        <ChevronDown color={isDark ? "#64748b" : "#94a3b8"} size={24} />
+                      </MotiView>
+                    </View>
+                  </MotiView>
+                ) : (
+                  <MotiView
+                    key="keen-board"
+                    from={{ opacity: 0.98 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ type: 'timing', duration: 180 }}
+                  >
+                    <View className="relative w-full items-center">
+                      {(() => {
+                        const isFinished = gameState === GameState.FINISHED;
+                        return (
+                          <View 
+                            style={{ width: GRID_SIZE, height: GRID_SIZE }}
+                            className={`rounded-md overflow-hidden ${isFinished ? 'bg-emerald-500/5' : ''}`}
+                          >
+                            <View className="flex-row flex-wrap w-full h-full">
+                              {puzzle && userGrid.map((val, i) => {
+                                const isRoot = dsf_canonify(puzzle.dsf, i) === i;
+                                const clue = puzzle.clues[i];
+                                
+                                return (
+                                  <Pressable
+                                    key={i}
+                                    onPress={() => !isFinished && setSelectedCell(i)}
+                                    style={[
+                                      { width: CELL_SIZE, height: CELL_SIZE, alignItems: 'center', justifyContent: 'center' },
+                                      getBorderStyles(i),
+                                      selectedCell === i && !isFinished ? { backgroundColor: isDark ? 'rgba(6, 182, 212, 0.1)' : 'rgba(6, 182, 212, 0.05)' } : { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.4)' : 'white' },
+                                      isFinished ? { backgroundColor: 'rgba(16, 185, 129, 0.05)' } : {}
+                                    ]}
+                                  >
+                                    {isRoot && clue && (
+                                      <Text 
+                                        weight="black"
+                                        className={`absolute top-1 left-1.5 text-[10px] leading-none ${isFinished ? 'text-emerald-500/60' : 'text-cyan-400'}`}
+                                      >
+                                        {clue.target}{clue.op === '*' ? '×' : clue.op === '/' ? '÷' : clue.op}
+                                      </Text>
+                                    )}
+                                    <Text 
+                                      weight="black" 
+                                      className={`text-2xl ${val === 0 ? 'opacity-0' : (isFinished ? 'text-emerald-500' : textColor)}`}
+                                    >
+                                      {val}
+                                    </Text>
+                                  </Pressable>
+                                );
+                              })}
+                            </View>
+                          </View>
+                        );
+                      })()}
+                    </View>
+                  </MotiView>
+                )}
+              </AnimatePresence>
             </View>
 
             {/* Input Controls Section - Bottom */}

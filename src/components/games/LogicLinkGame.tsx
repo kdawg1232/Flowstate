@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView, AnimatePresence } from 'moti';
-import { Layers, Timer, Zap, Check, X, Play, ChevronDown, ArrowRight } from 'lucide-react-native';
+import { Layers, Timer, Zap, Check, X, Play, ChevronDown } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
 
@@ -111,23 +111,16 @@ function LogicLinkGame({ onComplete, isActive, theme = 'dark' }: Props) {
             <View className="w-16 h-16 rounded-full bg-emerald-500/20 items-center justify-center mb-6 border border-emerald-500/40">
               <Check color="#10b981" size={32} />
             </View>
-            <Text weight="black" className={`text-3xl italic mb-2 uppercase tracking-tighter ${textColorClass}`}>SYNC COMPLETE</Text>
-            
-            <View className="bg-rose-500/10 border border-rose-500/20 px-8 py-4 rounded-3xl items-center mb-10">
-              <Text variant="mono" className="text-rose-500 text-4xl mb-1 tracking-widest">{score}</Text>
-              <Text weight="bold" className="text-rose-500/60 text-[10px] uppercase tracking-[0.2em]">LOGIC SCORE</Text>
-            </View>
+            <Text weight="black" className={`text-3xl italic mb-2 uppercase tracking-tighter text-center ${textColorClass}`}>
+              Logic Game completed
+            </Text>
+            <Text variant="mono" className="text-emerald-400 text-2xl tracking-widest uppercase mb-10">
+              {score} reps logged
+            </Text>
 
-            <View className="items-center gap-6">
-               <View className="bg-white/5 px-6 py-4 rounded-2xl flex-row items-center gap-3">
-                  <Text weight="black" className="text-emerald-500 uppercase">NEXT GAME READY</Text>
-                  <ArrowRight color="#10b981" size={18} />
-               </View>
-               
-               <View className="items-center gap-2 opacity-40">
-                 <Text weight="bold" className={`${subTextColorClass} text-[10px] uppercase tracking-[0.4em]`}>Scroll to continue</Text>
-                 <ChevronDown color={isDark ? "#94a3b8" : "#64748b"} size={20} />
-               </View>
+            <View className="items-center gap-2 opacity-40">
+               <Text weight="bold" className={`${subTextColorClass} text-[10px] uppercase tracking-[0.4em]`}>Scroll to continue</Text>
+               <ChevronDown color={isDark ? "#94a3b8" : "#64748b"} size={20} />
             </View>
           </MotiView>
         ) : (
