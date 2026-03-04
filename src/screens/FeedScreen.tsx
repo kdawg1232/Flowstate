@@ -49,7 +49,7 @@ const FeedItem = React.memo(({
   
   return (
     <View style={{ height: flatListHeight, width: '100%' }}>
-      {item.type === 'pulse' && <PulsePatternGame onComplete={(lvl) => onCompleteRep('pulse', lvl, true)} isActive={isActive} theme={theme} />}
+      {item.type === 'pulse' && <PulsePatternGame onComplete={(lvl) => onCompleteRep('pulse', lvl, true)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
       {item.type === 'signal' && <SignalScanGame onComplete={(scr) => onCompleteRep('signal', scr, true)} isActive={isActive} theme={theme} />}
       {item.type === 'logic_link' && <LogicLinkGame onComplete={(scr, clean) => onCompleteRep('logic_link', scr, clean)} isActive={isActive} theme={theme} />}
       {item.type === 'math_dash' && <MentalMathGame onComplete={(scr) => onCompleteRep('math_dash', scr, true)} isActive={isActive} theme={theme} />}

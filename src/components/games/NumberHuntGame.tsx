@@ -4,7 +4,7 @@ import { View, Pressable, Dimensions } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GameState } from '../../types';
-import { Target, Zap, Play, ChevronDown, Check, AlertTriangle, ArrowRight, Delete } from 'lucide-react-native';
+import { Target, Zap, Play, ChevronDown, Check, AlertTriangle, Delete } from 'lucide-react-native';
 import { Text } from '../../ui/Text';
 
 interface FloatingNumber {
@@ -127,7 +127,7 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
       setFeedback('wrong');
       setTimeout(() => {
         setGameState(GameState.FINISHED);
-        onComplete(level * 10, true); // Level * 10 reps as requested
+        onComplete(level * 10, false);
       }, 600);
     }
   };
@@ -320,32 +320,22 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
               <View className="w-20 h-20 rounded-full bg-emerald-500/20 items-center justify-center mb-8 border border-emerald-500/40">
                 <AlertTriangle color="#10b981" size={40} />
               </View>
-              <Text weight="black" className={`text-4xl italic mb-3 uppercase tracking-tighter text-center ${textColor}`}>REP LOGGED</Text>
-              
-              <View className="bg-indigo-500/10 border border-indigo-500/20 px-10 py-6 rounded-[2.5rem] items-center mb-12">
-                <Text variant="mono" className="text-indigo-400 text-6xl mb-1 tracking-widest text-center">{level * 10}</Text>
-                <Text weight="bold" className="text-indigo-500/60 text-[10px] uppercase tracking-[0.3em]">HUNT SCORE</Text>
-              </View>
+              <Text weight="black" className={`text-3xl italic mb-2 uppercase tracking-tighter text-center ${textColor}`}>
+                Total reps logged
+              </Text>
+              <Text variant="mono" className="text-emerald-400 text-2xl tracking-widest uppercase mb-10">
+                {level * 10} reps logged
+              </Text>
 
-              <View className="items-center gap-6">
-                 <Pressable 
-                    onPress={startGame}
-                    className="bg-white/5 px-8 py-4 rounded-2xl flex-row items-center gap-3 active:scale-95 border border-white/10"
-                 >
-                    <Text weight="black" className="text-emerald-500 uppercase tracking-widest text-xs">RESTART HUNT</Text>
-                    <ArrowRight color="#10b981" size={18} />
-                 </Pressable>
-                 
-                 <View className="items-center gap-2 opacity-40">
-                   <Text weight="bold" className={`${subTextColor} text-[10px] uppercase tracking-[0.4em]`}>Scroll to continue</Text>
-                   <MotiView
-                     from={{ translateY: 0 }}
-                     animate={{ translateY: 10 }}
-                     transition={{ loop: true, type: 'timing', duration: 1000 }}
-                   >
-                     <ChevronDown color={isDark ? "#94a3b8" : "#64748b"} size={24} />
-                   </MotiView>
-                 </View>
+              <View className="items-center gap-2 opacity-40">
+                <Text weight="bold" className={`${subTextColor} text-[10px] uppercase tracking-[0.4em]`}>Scroll to continue</Text>
+                <MotiView
+                  from={{ translateY: 0 }}
+                  animate={{ translateY: 10 }}
+                  transition={{ loop: true, type: 'timing', duration: 1000 }}
+                >
+                  <ChevronDown color={isDark ? "#94a3b8" : "#64748b"} size={24} />
+                </MotiView>
               </View>
           </MotiView>
         )}

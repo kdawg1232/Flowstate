@@ -4,7 +4,7 @@ import { View, Pressable, Dimensions, StyleSheet, PanResponder, GestureResponder
 import { MotiView, AnimatePresence } from 'moti';
 import Svg, { Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Maximize, RotateCcw, Play, Zap, ChevronDown, Eye, Check, Layout } from 'lucide-react-native';
+import { Maximize, RotateCcw, Play, Zap, ChevronDown, Eye } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
 
@@ -400,7 +400,7 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [isAutoSolved, setIsAutoSolved] = useState(false);
-  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+  const [showSolvedSummary, setShowSolvedSummary] = useState(false);
   const insets = useSafeAreaInsets();
   
   // Store edges in a ref for the planarity check to avoid stale closure
@@ -451,7 +451,7 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
     edgesRef.current = puzzle.edges;
     setGameState(GameState.PLAYING);
     setIsAutoSolved(false);
-    setShowSuccessOverlay(false);
+    setShowSolvedSummary(false);
   }, []);
 
   const handleDragStart = useCallback(() => {
@@ -465,35 +465,39 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
   const handleDragEnd = useCallback(() => {
     onLockScroll?.(true);
     
-    // Check planarity after a short delay to ensure state is settled
     setTimeout(() => {
       setNodes(currentNodes => {
         if (checkPlanarity(currentNodes)) {
-          // Schedule victory state changes
           setTimeout(() => {
+            setShowSolvedSummary(false);
             setGameState(GameState.FINISHED);
-            onComplete(50, true);
-            setTimeout(() => setShowSuccessOverlay(true), 1000);
           }, 0);
         }
         return currentNodes;
       });
     }, 50);
-  }, [checkPlanarity, onComplete, onLockScroll]);
+  }, [checkPlanarity, onLockScroll]);
 
   const handleAutoSolve = useCallback(() => {
     setNodes(prev => prev.map(n => ({ ...n, x: n.solvedX, y: n.solvedY })));
     setIsAutoSolved(true);
+    setShowSolvedSummary(false);
     setGameState(GameState.FINISHED);
-    setShowSuccessOverlay(false);
     onComplete(0, false);
   }, [onComplete]);
 
   useEffect(() => {
     if (!isActive) {
       setGameState(GameState.IDLE);
+      setShowSolvedSummary(false);
     }
   }, [isActive]);
+
+  const handleContinueFromSolved = useCallback(() => {
+    setShowSolvedSummary(true);
+    onLockScroll?.(true);
+    setTimeout(() => onComplete(50, true), 120);
+  }, [onComplete, onLockScroll]);
 
   return (
     <View className={`flex-1 w-full ${isDark ? 'bg-black' : 'bg-slate-50'} relative overflow-hidden`}>
@@ -540,122 +544,96 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
             className="flex-1 items-center"
             style={{ paddingTop: insets.top + 80 }}
           >
-            {/* Game Board Section */}
+            {/* Game Board / Solved Summary */}
             <View className="flex-1 w-full items-center justify-center mb-10">
-              <View className="relative w-full items-center">
-                <View
-                  style={{ width: GRID_SIZE, height: GRID_SIZE }}
-                  className={`rounded-[3rem] overflow-hidden border ${
-                    gameState === GameState.FINISHED
-                      ? 'bg-emerald-500/5 border-emerald-500/50'
-                      : isDark
-                      ? 'bg-slate-900/40 border-white/5'
-                      : 'bg-white border-slate-200 shadow-inner'
-                  }`}
-                >
-                  {/* SVG Edges */}
-                  <Svg style={StyleSheet.absoluteFill} viewBox="0 0 100 100">
-                    {edges.map((e, idx) => {
-                      const n1 = nodes[e.a];
-                      const n2 = nodes[e.b];
-                      if (!n1 || !n2) return null;
-                      const isFinished = gameState === GameState.FINISHED;
-                      const color = isFinished ? '#10b981' : isDark ? '#06b6d4' : '#0891b2';
-
-                      return (
-                        <Line
-                          key={idx}
-                          x1={n1.x}
-                          y1={n1.y}
-                          x2={n2.x}
-                          y2={n2.y}
-                          stroke={color}
-                          strokeWidth="1.2"
-                          strokeOpacity={isFinished ? 0.8 : 0.4}
-                          strokeLinecap="round"
-                        />
-                      );
-                    })}
-                  </Svg>
-
-                  {/* Draggable Nodes */}
-                  {nodes.map((node) => (
-                    <DraggableNode
-                      key={node.id}
-                      node={node}
-                      isFinished={gameState === GameState.FINISHED}
-                      isDark={isDark}
-                      onDragStart={handleDragStart}
-                      onDrag={handleDrag}
-                      onDragEnd={handleDragEnd}
-                    />
-                  ))}
-                </View>
-
-                {/* Victory Overlay */}
-                <AnimatePresence>
-                  {showSuccessOverlay && (
-                    <MotiView
-                      from={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ type: 'timing', duration: 300 }}
-                      style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(5, 7, 10, 0.9)', borderRadius: 48 }]}
-                      className="items-center justify-center z-50 p-8"
-                    >
-                      <View className="w-20 h-20 rounded-full bg-emerald-500 items-center justify-center mb-8 border-4 border-emerald-400">
-                        <Check color="white" size={44} strokeWidth={3} />
-                      </View>
-                      <Text weight="black" className="text-4xl text-white italic uppercase tracking-tighter text-center mb-2">
-                        REP LOGGED
-                      </Text>
-                      <Text variant="mono" className="text-cyan-400 text-3xl tracking-widest mb-12 text-center">
-                        +50 LOGIC XP
-                      </Text>
-
-                      <Pressable
-                        onPress={() => setShowSuccessOverlay(false)}
-                        className="w-full py-4 bg-white/5 border border-white/20 rounded-[2rem] flex-row items-center justify-center gap-3"
-                      >
-                        <Eye color="white" size={18} />
-                        <Text weight="black" className="text-white text-[11px] uppercase tracking-widest">
-                          Inspect Grid
-                        </Text>
-                      </Pressable>
-
-                      <View className="items-center gap-6 opacity-60 mt-12">
-                        <Text weight="bold" className="text-white text-[10px] uppercase tracking-[0.5em]">
-                          Swipe for next rep
-                        </Text>
-                        <MotiView
-                          from={{ translateY: 0 }}
-                          animate={{ translateY: 10 }}
-                          transition={{ loop: true, type: 'timing', duration: 1000 }}
-                        >
-                          <ChevronDown color="white" size={28} />
-                        </MotiView>
-                      </View>
-                    </MotiView>
-                  )}
-                </AnimatePresence>
-
-                {/* Layout Button */}
-                {gameState === GameState.FINISHED && !isAutoSolved && !showSuccessOverlay && (
+              <AnimatePresence exitBeforeEnter>
+                {gameState === GameState.FINISHED && !isAutoSolved && showSolvedSummary ? (
                   <MotiView
-                    from={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: 'timing', duration: 200 }}
-                    className="absolute top-6 right-6 z-40"
+                    key="untangle-summary"
+                    from={{ opacity: 0, translateY: 10 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    exit={{ opacity: 0, translateY: -10 }}
+                    transition={{ type: 'timing', duration: 220 }}
+                    style={{ width: GRID_SIZE, minHeight: GRID_SIZE * 0.6 }}
+                    className="items-center justify-center"
                   >
-                    <Pressable
-                      onPress={() => setShowSuccessOverlay(true)}
-                      className="p-4 bg-emerald-500 rounded-3xl shadow-2xl active:scale-90"
+                    <Text weight="black" className={`text-3xl italic uppercase tracking-tighter text-center mb-2 ${textColor}`}>
+                      Total reps logged
+                    </Text>
+                    <Text variant="mono" className="text-emerald-400 text-2xl tracking-widest uppercase">
+                      50 reps logged
+                    </Text>
+                    <View className="items-center gap-4 opacity-80 mt-8">
+                      <Text weight="bold" className={`${subTextColor} text-[10px] uppercase tracking-[0.4em]`}>
+                        Continue to next game
+                      </Text>
+                      <MotiView
+                        from={{ translateY: 0 }}
+                        animate={{ translateY: 10 }}
+                        transition={{ loop: true, type: 'timing', duration: 1000 }}
+                      >
+                        <ChevronDown color={isDark ? "#64748b" : "#94a3b8"} size={24} />
+                      </MotiView>
+                    </View>
+                  </MotiView>
+                ) : (
+                  <MotiView
+                    key="untangle-board"
+                    from={{ opacity: 0.98 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ type: 'timing', duration: 180 }}
+                    className="relative w-full items-center"
+                  >
+                    <View
+                      style={{ width: GRID_SIZE, height: GRID_SIZE }}
+                      className={`rounded-[3rem] overflow-hidden border ${
+                        gameState === GameState.FINISHED
+                          ? 'bg-emerald-500/5 border-emerald-500/50'
+                          : isDark
+                          ? 'bg-slate-900/40 border-white/5'
+                          : 'bg-white border-slate-200 shadow-inner'
+                      }`}
                     >
-                      <Layout color="black" size={24} />
-                    </Pressable>
+                      <Svg style={StyleSheet.absoluteFill} viewBox="0 0 100 100">
+                        {edges.map((e, idx) => {
+                          const n1 = nodes[e.a];
+                          const n2 = nodes[e.b];
+                          if (!n1 || !n2) return null;
+                          const isFinished = gameState === GameState.FINISHED;
+                          const color = isFinished ? '#10b981' : isDark ? '#06b6d4' : '#0891b2';
+
+                          return (
+                            <Line
+                              key={idx}
+                              x1={n1.x}
+                              y1={n1.y}
+                              x2={n2.x}
+                              y2={n2.y}
+                              stroke={color}
+                              strokeWidth="1.2"
+                              strokeOpacity={isFinished ? 0.8 : 0.4}
+                              strokeLinecap="round"
+                            />
+                          );
+                        })}
+                      </Svg>
+
+                      {nodes.map((node) => (
+                        <DraggableNode
+                          key={node.id}
+                          node={node}
+                          isFinished={gameState === GameState.FINISHED}
+                          isDark={isDark}
+                          onDragStart={handleDragStart}
+                          onDrag={handleDrag}
+                          onDragEnd={handleDragEnd}
+                        />
+                      ))}
+                    </View>
                   </MotiView>
                 )}
-              </View>
+              </AnimatePresence>
             </View>
 
             {/* Bottom Controls */}
@@ -734,23 +712,17 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
                           <ChevronDown color="#475569" size={32} />
                         </MotiView>
                       </View>
-                    ) : (
+                    ) : showSolvedSummary ? null : (
                       <View className="items-center gap-4">
                         <Text weight="black" className="text-emerald-500 text-[12px] uppercase tracking-[0.4em] mb-6">
-                          PLANAR RESOLUTION ACHIEVED
+                          Untangle Solved
                         </Text>
                         <Pressable
-                          onPress={initGame}
-                          className={`px-10 py-4 rounded-2xl border flex-row items-center justify-center gap-3 ${
-                            isDark ? 'border-slate-800 bg-slate-900/40' : 'border-slate-200 bg-white'
-                          }`}
+                          onPress={handleContinueFromSolved}
+                          className="bg-emerald-500 px-12 py-4 rounded-2xl flex-row items-center justify-center gap-3 shadow-xl active:scale-95"
                         >
-                          <RotateCcw color={isDark ? '#94a3b8' : '#64748b'} size={16} />
-                          <Text
-                            weight="black"
-                            className={`text-[11px] uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}
-                          >
-                            New Puzzle
+                          <Text weight="black" className="text-white text-[11px] uppercase tracking-widest">
+                            Continue
                           </Text>
                         </Pressable>
                       </View>

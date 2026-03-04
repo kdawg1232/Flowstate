@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Pressable, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView, AnimatePresence } from 'moti';
-import { Zap, Check, X, Timer, Play, ChevronDown, ArrowRight, Shapes } from 'lucide-react-native';
+import { Zap, Check, X, Timer, Play, ChevronDown, Shapes } from 'lucide-react-native';
 import Svg, { Circle, Rect, Polygon, Path } from 'react-native-svg';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
@@ -116,12 +116,13 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
     // Initialize with first shape (observation phase)
     const initialIdx = Math.floor(Math.random() * SHAPES.length);
     setCurrentShapeIdx(initialIdx);
-    setShapeHistory([initialIdx]);
+    // Start with empty compare history so first actionable round has no prior match target.
+    setShapeHistory([]);
     setGameState(GameState.OBSERVATION);
 
     // After brief observation, start playing
     setTimeout(() => {
-      nextRound([initialIdx], 1);
+      nextRound([], 1);
     }, 1000);
   };
 
@@ -154,16 +155,25 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
     }
   }, [isActive]);
 
+  const finishedScoreRef = useRef(0);
+
   useEffect(() => {
     if (gameState === GameState.PLAYING && timeLeft > 0) {
       timerRef.current = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
     } else if (timeLeft <= 0 && gameState === GameState.PLAYING) {
-      setGameState(GameState.FINISHED);
       if (timerRef.current) clearInterval(timerRef.current);
-      setTimeout(() => onComplete(score, true), 100);
+      finishedScoreRef.current = score;
+      setGameState(GameState.FINISHED);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [gameState, timeLeft, score, onComplete]);
+  }, [gameState, timeLeft, score]);
+
+  useEffect(() => {
+    if (gameState === GameState.FINISHED) {
+      const timer = setTimeout(() => onComplete(finishedScoreRef.current, true), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [gameState, onComplete]);
 
   const handleDecision = (userSaysMatch: boolean) => {
     if (gameState !== GameState.PLAYING) return;
@@ -221,7 +231,7 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
     <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-slate-50'}`}>
       <AnimatePresence exitBeforeEnter>
         {gameState === GameState.IDLE ? (
-          <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center justify-center px-6">
+          <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ type: 'timing', duration: 250 }} className="flex-1 items-center justify-center px-6">
             <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-amber-100'} rounded-3xl items-center justify-center mb-6 border`}>
               <Shapes color="#f59e0b" size={40} />
             </View>
@@ -235,7 +245,7 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
             </Pressable>
           </MotiView>
         ) : (gameState === GameState.PLAYING || gameState === GameState.OBSERVATION) ? (
-          <MotiView key="play" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center">
+          <MotiView key="play" from={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ type: 'timing', duration: 250 }} className="flex-1 items-center">
             {/* Header Stats */}
             <View style={{ marginTop: insets.top + 60 }} className="w-full flex-row justify-between px-4 mb-6">
               <View className={`flex-row items-center gap-2 ${controlBgClass} px-4 py-2 rounded-full border`}>
@@ -248,8 +258,8 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
               </View>
             </View>
             
-            {/* N-Back Level Indicator */}
-            {gameState === GameState.PLAYING && (
+            {/* N-Back Level Indicator (only when enough history exists) */}
+            {gameState === GameState.PLAYING && shapeHistory.length >= nBackLevel && (
               <MotiView 
                 key={`nback-${round}`}
                 from={{ opacity: 0, scale: 0.9 }}
@@ -276,8 +286,8 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
             <View className="flex-1 items-center justify-center w-full">
               <MotiView 
                 key={`${currentShapeIdx}-${round}`}
-                from={{ scale: 0.8, opacity: 0, rotate: '-10deg' }} 
-                animate={{ scale: 1, opacity: 1, rotate: '0deg' }}
+                from={{ scale: 0.92, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', damping: 15 }}
                 className={`w-48 h-48 rounded-[2.5rem] border-2 items-center justify-center shadow-xl ${
                   feedback === 'correct' ? 'border-emerald-500 bg-emerald-500/10' : 
@@ -287,30 +297,6 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
               >
                 <ShapeRenderer shape={currentShape} color={shapeColor} size={SHAPE_SIZE} />
               </MotiView>
-              
-              {/* Shape History Preview (small indicators) */}
-              {gameState === GameState.PLAYING && shapeHistory.length > 0 && (
-                <View className="flex-row gap-2 mt-6">
-                  {shapeHistory.slice(-3).map((shapeIdx, i) => {
-                    const historyPosition = shapeHistory.length - (shapeHistory.slice(-3).length - i);
-                    const isTarget = historyPosition === shapeHistory.length - nBackLevel;
-                    return (
-                      <View 
-                        key={`history-${i}-${historyPosition}`}
-                        className={`w-10 h-10 rounded-lg items-center justify-center ${
-                          isTarget ? 'bg-amber-500/20 border-2 border-amber-500/50' : 
-                          (isDark ? 'bg-slate-800/50' : 'bg-slate-200/50')
-                        }`}
-                      >
-                        <ShapeRenderer shape={SHAPES[shapeIdx]} color={isTarget ? '#f59e0b' : (isDark ? '#475569' : '#94a3b8')} size={24} />
-                        <Text className={`text-[8px] absolute -bottom-4 ${isTarget ? 'text-amber-500' : subTextColorClass}`}>
-                          {shapeHistory.length - historyPosition}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
               
               <Text weight="bold" className={`mt-8 ${subTextColorClass} text-[10px] uppercase tracking-[0.4em]`}>
                 {gameState === GameState.OBSERVATION ? "Memorize this shape..." : `Round ${round + 1}`}
@@ -338,27 +324,20 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
             </View>
           </MotiView>
         ) : (
-          <MotiView key="finished" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center justify-center px-6">
+          <MotiView key="finished" from={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ type: 'timing', duration: 250 }} className="flex-1 items-center justify-center px-6">
             <View className="w-16 h-16 rounded-full bg-emerald-500/20 items-center justify-center mb-6 border border-emerald-500/40">
               <Check color="#10b981" size={32} />
             </View>
-            <Text weight="black" className={`text-3xl italic mb-2 uppercase tracking-tighter ${textColorClass}`}>MEMORY TESTED</Text>
-            
-            <View className="bg-amber-500/10 border border-amber-500/20 px-8 py-4 rounded-3xl items-center mb-10">
-              <Text variant="mono" className="text-amber-500 text-4xl mb-1 tracking-widest">{score}</Text>
-              <Text weight="bold" className="text-amber-500/60 text-[10px] uppercase tracking-[0.2em]">CORRECT MATCHES</Text>
-            </View>
+            <Text weight="black" className={`text-3xl italic mb-2 uppercase tracking-tighter text-center ${textColorClass}`}>
+              Total reps logged
+            </Text>
+            <Text variant="mono" className="text-emerald-400 text-2xl tracking-widest uppercase mb-10">
+              {finishedScoreRef.current} reps logged
+            </Text>
 
-            <View className="items-center gap-6">
-              <View className="bg-white/5 px-6 py-4 rounded-2xl flex-row items-center gap-3">
-                <Text weight="black" className="text-emerald-500 uppercase">NEXT GAME READY</Text>
-                <ArrowRight color="#10b981" size={18} />
-              </View>
-               
-              <View className="items-center gap-2 opacity-40">
-                <Text weight="bold" className={`${subTextColorClass} text-[10px] uppercase tracking-[0.4em]`}>Scroll to continue</Text>
-                <ChevronDown color={isDark ? "#94a3b8" : "#64748b"} size={20} />
-              </View>
+            <View className="items-center gap-2 opacity-40">
+              <Text weight="bold" className={`${subTextColorClass} text-[10px] uppercase tracking-[0.4em]`}>Scroll to continue</Text>
+              <ChevronDown color={isDark ? "#94a3b8" : "#64748b"} size={20} />
             </View>
           </MotiView>
         )}
