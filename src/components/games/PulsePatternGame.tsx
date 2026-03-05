@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { View, Pressable, StyleSheet, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView, AnimatePresence } from 'moti';
-import { Zap, AlertTriangle, CheckCircle2, Play, ChevronDown } from 'lucide-react-native';
+import { Zap, AlertTriangle, CheckCircle2, Play, ChevronDown, Info } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { LEVELS } from '../../constants';
 import { Text } from '../../ui/Text';
@@ -20,6 +20,7 @@ const GRID_MAX_WIDTH = Math.min(SCREEN_WIDTH - 48, 300);
 function PulsePatternGame({ onComplete, isActive, theme = 'dark', onLockScroll }: Props) {
   const [internalLevel, setInternalLevel] = useState(1);
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
+  const [showInfo, setShowInfo] = useState(false);
   const [targetNodes, setTargetNodes] = useState<number[]>([]);
   const [decoyNodes, setDecoyNodes] = useState<number[]>([]);
   const [selectedNodes, setSelectedNodes] = useState<number[]>([]);
@@ -146,7 +147,10 @@ function PulsePatternGame({ onComplete, isActive, theme = 'dark', onLockScroll }
             <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-cyan-100'} rounded-3xl items-center justify-center mb-6 border`}>
               <Zap color="#06b6d4" size={40} />
             </View>
-            <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase ${textColorClass}`}>Pulse Pattern</Text>
+            <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase ${textColorClass}`}>Pulse Pattern</Text>
+            <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">
+              <Info size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#64748b'} />
+            </Pressable>
             <Text className={`${subTextColorClass} text-xs uppercase tracking-[0.2em] mb-10 text-center max-w-[240px]`}>Memorize the blue nodes. Re-power the circuit.</Text>
             <Pressable onPress={startNewGame} className="bg-cyan-500 px-10 py-4 rounded-2xl flex-row items-center gap-3 shadow-xl">
               <Play color="white" size={20} fill="white" />
@@ -247,6 +251,42 @@ function PulsePatternGame({ onComplete, isActive, theme = 'dark', onLockScroll }
                 </MotiView>
               )}
             </AnimatePresence>
+          </MotiView>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showInfo && (
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: 'timing', duration: 200 }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 }}
+            className="items-center justify-center px-8 bg-black/85"
+          >
+            <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={() => setShowInfo(false)} />
+            <MotiView
+              from={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'timing', duration: 200 }}
+              style={{ zIndex: 51, width: '100%' }}
+              className="bg-slate-900 rounded-3xl p-8 border border-white/10"
+            >
+              <Text weight="black" className="text-white text-xl uppercase tracking-tighter mb-5">How to Play</Text>
+              <Text className="text-slate-400 text-sm leading-relaxed mb-2">
+                A grid of nodes appears. Some will light up blue — memorize which ones.
+              </Text>
+              <Text className="text-slate-400 text-sm leading-relaxed mb-2">
+                After the flash, the grid goes dark. Tap the nodes that were highlighted to re-power the circuit.
+              </Text>
+              <Text className="text-slate-400 text-sm leading-relaxed">
+                Each level adds more nodes to remember. A wrong tap ends the round.
+              </Text>
+              <Pressable onPress={() => setShowInfo(false)} className="mt-6 bg-cyan-500/20 border border-cyan-500/40 py-3 rounded-2xl items-center">
+                <Text weight="black" className="text-cyan-400 uppercase text-sm tracking-widest">Got It</Text>
+              </Pressable>
+            </MotiView>
           </MotiView>
         )}
       </AnimatePresence>

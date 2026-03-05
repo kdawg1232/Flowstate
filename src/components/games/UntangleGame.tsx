@@ -4,7 +4,7 @@ import { View, Pressable, Dimensions, StyleSheet, PanResponder, GestureResponder
 import { MotiView, AnimatePresence } from 'moti';
 import Svg, { Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Maximize, RotateCcw, Play, Zap, ChevronDown, Eye } from 'lucide-react-native';
+import { Maximize, RotateCcw, Play, Zap, ChevronDown, Eye, Info } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
 
@@ -397,6 +397,7 @@ const DraggableNode: React.FC<DraggableNodeProps> = React.memo(({
 
 const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLockScroll }) => {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
+  const [showInfo, setShowInfo] = useState(false);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [isAutoSolved, setIsAutoSolved] = useState(false);
@@ -518,9 +519,12 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
             >
               <Maximize color="#f59e0b" size={40} />
             </View>
-            <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase text-center ${textColor}`}>
+            <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase text-center ${textColor}`}>
               Planar Shift
             </Text>
+            <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">
+              <Info size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#64748b'} />
+            </Pressable>
             <Text className={`${subTextColor} text-xs uppercase tracking-[0.2em] mb-10 max-w-[240px] text-center leading-relaxed`}>
               Resolve the neural tangle. Reposition nodes until no paths cross.
             </Text>
@@ -731,6 +735,42 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
                 )}
               </AnimatePresence>
             </View>
+          </MotiView>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showInfo && (
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: 'timing', duration: 200 }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 }}
+            className="items-center justify-center px-8 bg-black/85"
+          >
+            <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={() => setShowInfo(false)} />
+            <MotiView
+              from={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'timing', duration: 200 }}
+              style={{ zIndex: 51, width: '100%' }}
+              className="bg-slate-900 rounded-3xl p-8 border border-white/10"
+            >
+              <Text weight="black" className="text-white text-xl uppercase tracking-tighter mb-5">How to Play</Text>
+              <Text className="text-slate-400 text-sm leading-relaxed mb-2">
+                A tangled web of nodes and lines appears on screen.
+              </Text>
+              <Text className="text-slate-400 text-sm leading-relaxed mb-2">
+                Drag the nodes to new positions until no lines cross each other.
+              </Text>
+              <Text className="text-slate-400 text-sm leading-relaxed">
+                When the graph is fully untangled — no crossings — the puzzle is solved.
+              </Text>
+              <Pressable onPress={() => setShowInfo(false)} className="mt-6 bg-amber-500/20 border border-amber-500/40 py-3 rounded-2xl items-center">
+                <Text weight="black" className="text-amber-400 uppercase text-sm tracking-widest">Got It</Text>
+              </Pressable>
+            </MotiView>
           </MotiView>
         )}
       </AnimatePresence>

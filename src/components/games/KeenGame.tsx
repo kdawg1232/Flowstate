@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Pressable, Dimensions, StyleSheet } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Grid3X3, RotateCcw, Play, Zap, ChevronDown, Eye } from 'lucide-react-native';
+import { Grid3X3, RotateCcw, Play, Zap, ChevronDown, Eye, Info } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
 
@@ -142,6 +142,7 @@ const SOLVED_PREVIEW_MS = 1000;
 
 const KeenGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLockScroll }) => {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
+  const [showInfo, setShowInfo] = useState(false);
   const [puzzle, setPuzzle] = useState<PuzzleData | null>(null);
   const [userGrid, setUserGrid] = useState<number[]>([]);
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
@@ -281,7 +282,10 @@ const KeenGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLoc
             <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-cyan-100'} rounded-3xl items-center justify-center mb-6 border`}>
               <Grid3X3 color="#06b6d4" size={40} />
             </View>
-            <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase text-center ${textColor}`}>Keen Logic</Text>
+            <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase text-center ${textColor}`}>Keen Logic</Text>
+            <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">
+              <Info size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#64748b'} />
+            </Pressable>
             <Text className={`${subTextColor} text-xs uppercase tracking-[0.2em] mb-10 max-w-[240px] text-center leading-relaxed`}>
               Complete the grid. Every cage must satisfy the arithmetic target without repeats.
             </Text>
@@ -458,6 +462,42 @@ const KeenGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLoc
                 ) : null}
               </AnimatePresence>
             </View>
+          </MotiView>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showInfo && (
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: 'timing', duration: 200 }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 }}
+            className="items-center justify-center px-8 bg-black/85"
+          >
+            <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={() => setShowInfo(false)} />
+            <MotiView
+              from={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'timing', duration: 200 }}
+              style={{ zIndex: 51, width: '100%' }}
+              className="bg-slate-900 rounded-3xl p-8 border border-white/10"
+            >
+              <Text weight="black" className="text-white text-xl uppercase tracking-tighter mb-5">How to Play</Text>
+              <Text className="text-slate-400 text-sm leading-relaxed mb-2">
+                Fill the 4×4 grid with numbers 1–4. No number can repeat in any row or column.
+              </Text>
+              <Text className="text-slate-400 text-sm leading-relaxed mb-2">
+                Each outlined cage shows a target number and an operation (+  −  ×  ÷). The numbers inside the cage must produce that target using the given operation.
+              </Text>
+              <Text className="text-slate-400 text-sm leading-relaxed">
+                Tap a cell to select it, then tap a number below the grid to fill it in.
+              </Text>
+              <Pressable onPress={() => setShowInfo(false)} className="mt-6 bg-cyan-500/20 border border-cyan-500/40 py-3 rounded-2xl items-center">
+                <Text weight="black" className="text-cyan-400 uppercase text-sm tracking-widest">Got It</Text>
+              </Pressable>
+            </MotiView>
           </MotiView>
         )}
       </AnimatePresence>

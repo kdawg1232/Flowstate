@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView, AnimatePresence } from 'moti';
-import { Calculator, Timer, Zap, Play, ChevronDown, Check } from 'lucide-react-native';
+import { Calculator, Timer, Zap, Play, ChevronDown, Check, Info } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
 
@@ -14,6 +14,7 @@ interface Props {
 
 function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
+  const [showInfo, setShowInfo] = useState(false);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(20);
   const [trial, setTrial] = useState<{ equation: string; answer: number; options: number[] } | null>(null);
@@ -113,12 +114,16 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
   return (
     <View className={`flex-1 items-center justify-center ${isDark ? 'bg-black' : 'bg-slate-50'}`}>
       <AnimatePresence exitBeforeEnter>
+
         {gameState === GameState.IDLE ? (
           <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center px-6">
             <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-blue-100'} rounded-3xl items-center justify-center mb-6 border`}>
               <Calculator color="#3b82f6" size={40} />
             </View>
-            <Text weight="black" className={`text-3xl italic tracking-tighter mb-4 uppercase ${textColorClass}`}>Math Dash</Text>
+            <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase ${textColorClass}`}>Math Dash</Text>
+            <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">
+              <Info size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#64748b'} />
+            </Pressable>
             <Text className={`${subTextColorClass} text-[10px] uppercase tracking-[0.2em] mb-10 text-center max-w-[280px]`}>
               Computational Speed Task: Solve the equations before the buffer clears.
             </Text>
@@ -172,6 +177,42 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
                   </Pressable>
                 ))}
               </View>
+          </MotiView>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showInfo && (
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: 'timing', duration: 200 }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 }}
+            className="items-center justify-center px-8 bg-black/85"
+          >
+            <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={() => setShowInfo(false)} />
+            <MotiView
+              from={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'timing', duration: 200 }}
+              style={{ zIndex: 51, width: '100%' }}
+              className="bg-slate-900 rounded-3xl p-8 border border-white/10"
+            >
+              <Text weight="black" className="text-white text-xl uppercase tracking-tighter mb-5">How to Play</Text>
+              <Text className="text-slate-400 text-sm leading-relaxed mb-2">
+                A math equation appears on screen with 4 possible answers.
+              </Text>
+              <Text className="text-slate-400 text-sm leading-relaxed mb-2">
+                Tap the correct answer as fast as you can. Each correct answer earns 1 rep.
+              </Text>
+              <Text className="text-slate-400 text-sm leading-relaxed">
+                You have 20 seconds. Equations include addition, subtraction, multiplication, and division.
+              </Text>
+              <Pressable onPress={() => setShowInfo(false)} className="mt-6 bg-blue-600/30 border border-blue-500/40 py-3 rounded-2xl items-center">
+                <Text weight="black" className="text-blue-400 uppercase text-sm tracking-widest">Got It</Text>
+              </Pressable>
+            </MotiView>
           </MotiView>
         )}
       </AnimatePresence>
