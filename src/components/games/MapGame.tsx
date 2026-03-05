@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Map as MapIcon, RotateCcw, Play, Zap, ChevronDown, Eye, Info } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
+import GameIconGlow from './GameIconGlow';
 
 /**
  * Region Map Engine: Ported from C implementation (map.c)
@@ -569,8 +570,11 @@ const MapGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLock
             transition={{ type: 'timing', duration: 300 }}
             className="flex-1 items-center justify-center px-6"
           >
-            <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-pink-100'} rounded-3xl items-center justify-center mb-6 border`}>
-              <MapIcon color="#db2777" size={40} />
+            <View className="relative mb-6 items-center justify-center">
+              <GameIconGlow color="#db2777" glowId="regionMapGlow" />
+              <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-pink-100'} rounded-3xl items-center justify-center border`}>
+                <MapIcon color="#db2777" size={40} />
+              </View>
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase text-center ${textColor}`}>Region Map</Text>
             <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">

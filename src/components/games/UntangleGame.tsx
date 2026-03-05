@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Maximize, RotateCcw, Play, Zap, ChevronDown, Eye, Info } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
+import GameIconGlow from './GameIconGlow';
 
 /**
  * Untangle Engine: Ported from Simon Tatham's Puzzles (untangle.c)
@@ -512,12 +513,15 @@ const UntangleGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', o
             transition={{ type: 'timing', duration: 300 }}
             className="flex-1 items-center justify-center px-6"
           >
-            <View
-              className={`w-20 h-20 ${
-                isDark ? 'bg-black border-white/10' : 'bg-white border-amber-100'
-              } rounded-3xl items-center justify-center mb-6 border`}
-            >
-              <Maximize color="#f59e0b" size={40} />
+            <View className="relative mb-6 items-center justify-center">
+              <GameIconGlow color="#f59e0b" glowId="untangleGlow" />
+              <View
+                className={`w-20 h-20 ${
+                  isDark ? 'bg-black border-white/10' : 'bg-white border-amber-100'
+                } rounded-3xl items-center justify-center border`}
+              >
+                <Maximize color="#f59e0b" size={40} />
+              </View>
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase text-center ${textColor}`}>
               Planar Shift

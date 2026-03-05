@@ -5,6 +5,7 @@ import { MotiView, AnimatePresence } from 'moti';
 import { Layers, Timer, Zap, Check, X, Play, ChevronDown, Info } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
+import GameIconGlow from './GameIconGlow';
 
 interface Props {
   onComplete: (score: number, isClean: boolean) => void;
@@ -95,8 +96,11 @@ function LogicLinkGame({ onComplete, isActive, theme = 'dark' }: Props) {
       <AnimatePresence exitBeforeEnter>
         {gameState === GameState.IDLE ? (
           <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 items-center justify-center px-6">
-            <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-rose-100'} rounded-3xl items-center justify-center mb-6 border`}>
-              <Layers color="#f43f5e" size={40} />
+            <View className="relative mb-6 items-center justify-center">
+              <GameIconGlow color="#f43f5e" glowId="logicLinkGlow" />
+              <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-rose-100'} rounded-3xl items-center justify-center border`}>
+                <Layers color="#f43f5e" size={40} />
+              </View>
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase ${textColorClass}`}>Logic Link</Text>
             <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">

@@ -12,13 +12,12 @@ configureReanimatedLogger({
 
 import type { GameType, Tab, UserStats } from './src/types';
 import { FeedScreen } from './src/screens/FeedScreen';
-import { HabitsScreen } from './src/screens/HabitsScreen';
 import { ProgressScreen } from './src/screens/ProgressScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { calculateLevel, defaultStats, FLOWSTATE_AUTH_KEY, FLOWSTATE_LAST_LOGIN_KEY, FLOWSTATE_STATS_KEY, FLOWSTATE_CURRENT_USER_KEY } from './src/initialState';
 import { getJson, getString, remove, setJson, setString } from './src/storage';
 import { useFlowstateFonts } from './src/ui/Fonts';
-import { LayoutGrid, CheckSquare, BarChart3, User as UserIcon } from 'lucide-react-native';
+import { LayoutGrid, BarChart3, User as UserIcon } from 'lucide-react-native';
 import { Text } from './src/ui/Text';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -327,7 +326,6 @@ export default function App() {
   const tabs = useMemo(
     () => [
       { id: 'scroll' as const, label: 'Stream', icon: LayoutGrid },
-      { id: 'habits' as const, label: 'Habits', icon: CheckSquare },
       { id: 'progress' as const, label: 'Metrics', icon: BarChart3 },
       { id: 'profile' as const, label: 'Account', icon: UserIcon },
     ],
@@ -360,7 +358,6 @@ export default function App() {
         <View style={[styles.container, { backgroundColor: bg }]}>
           <View style={{ flex: 1 }}>
             {activeTab === 'scroll' && <FeedScreen theme={theme} onCompleteRep={handleRepComplete} onScrollXp={handleScrollXp} />}
-            {activeTab === 'habits' && <HabitsScreen stats={stats} onUpdateStats={setStats} theme={theme} />}
             {activeTab === 'progress' && <ProgressScreen theme={theme} stats={stats} />}
             {activeTab === 'profile' && (
               <ProfileScreen 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, ScrollView, Pressable, StyleSheet, Linking, Alert, Switch } from 'react-native';
-import { User, Settings, HelpCircle, Sun, Moon, LogOut, Shield, FileText, Trash2, Smartphone, Lock, Unlock } from 'lucide-react-native';
+import { Settings, HelpCircle, Sun, Moon, LogOut, Shield, FileText, Trash2, Smartphone, Lock, Unlock } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '../ui/Text';
 import type { UserStats } from '../types';
 import ScreenTime from '../native/ScreenTime';
@@ -19,7 +20,8 @@ type Props = {
   onDeleteAccount: () => void;
 };
 
-export function ProfileScreen({ theme, username, stats, onUpdateStats, onToggleTheme, onLogout, onDeleteAccount }: Props) {
+export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLogout, onDeleteAccount }: Props) {
+  const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
   const textColorClass = isDark ? 'text-white' : 'text-slate-900';
   const subTextColorClass = isDark ? 'text-slate-500' : 'text-slate-400';
@@ -97,21 +99,15 @@ export function ProfileScreen({ theme, username, stats, onUpdateStats, onToggleT
   };
 
   return (
-    <ScrollView className={`flex-1 ${bgClass}`} contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
-      <View className="items-center py-8">
-        <View className="relative mb-4">
-          <View className="w-24 h-24 rounded-full bg-cyan-600 p-1">
-            <View className={`w-full h-full rounded-full ${isDark ? 'bg-slate-900' : 'bg-white'} items-center justify-center overflow-hidden`}>
-              <User size={48} color={isDark ? "#94a3b8" : "#cbd5e1"} />
-            </View>
-          </View>
-          <View className="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-2 border-slate-950 rounded-full" />
-        </View>
-        <Text weight="black" className={`text-2xl ${textColorClass}`}>{username || 'Flow Member'}</Text>
-        <Text weight="bold" variant="mono" className={`${subTextColorClass} text-sm`}>FLOW_ID: {Math.floor(Math.random() * 90000) + 10000}-XP</Text>
-      </View>
-
-      <View className="gap-6">
+    <ScrollView
+      className={`flex-1 ${bgClass}`}
+      contentContainerStyle={{
+        paddingHorizontal: 24,
+        paddingTop: insets.top + 12,
+        paddingBottom: Math.max(100, insets.bottom + 84),
+      }}
+    >
+      <View className="gap-6 w-full self-center max-w-[520px]">
         <View>
           <Text weight="black" className={`text-xs ${subTextColorClass} uppercase tracking-widest mb-3 ml-1`}>Screen Time Control</Text>
           <View className={`${cardBgClass} rounded-3xl overflow-hidden`}>

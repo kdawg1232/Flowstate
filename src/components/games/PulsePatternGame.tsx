@@ -6,6 +6,7 @@ import { Zap, AlertTriangle, CheckCircle2, Play, ChevronDown, Info } from 'lucid
 import { GameState } from '../../types';
 import { LEVELS } from '../../constants';
 import { Text } from '../../ui/Text';
+import GameIconGlow from './GameIconGlow';
 
 interface Props {
   onComplete: (level: number, isClean: boolean) => void;
@@ -144,8 +145,11 @@ function PulsePatternGame({ onComplete, isActive, theme = 'dark', onLockScroll }
       <AnimatePresence exitBeforeEnter>
         {(gameState === GameState.IDLE && !hasInitialized.current) ? (
           <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="items-center z-20 px-6">
-            <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-cyan-100'} rounded-3xl items-center justify-center mb-6 border`}>
-              <Zap color="#06b6d4" size={40} />
+            <View className="relative mb-6 items-center justify-center">
+              <GameIconGlow color="#06b6d4" glowId="pulsePatternGlow" />
+              <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-cyan-100'} rounded-3xl items-center justify-center border`}>
+                <Zap color="#06b6d4" size={40} />
+              </View>
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase ${textColorClass}`}>Pulse Pattern</Text>
             <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">

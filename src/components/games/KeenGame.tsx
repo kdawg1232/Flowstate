@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Grid3X3, RotateCcw, Play, Zap, ChevronDown, Eye, Info } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
+import GameIconGlow from './GameIconGlow';
 
 /** 
  * Ported logic from original C implementation 
@@ -279,8 +280,11 @@ const KeenGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLoc
             transition={{ type: 'timing', duration: 300 }}
             className="flex-1 items-center justify-center px-6"
           >
-            <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-cyan-100'} rounded-3xl items-center justify-center mb-6 border`}>
-              <Grid3X3 color="#06b6d4" size={40} />
+            <View className="relative mb-6 items-center justify-center">
+              <GameIconGlow color="#06b6d4" glowId="keenGlow" />
+              <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-cyan-100'} rounded-3xl items-center justify-center border`}>
+                <Grid3X3 color="#06b6d4" size={40} />
+              </View>
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase text-center ${textColor}`}>Keen Logic</Text>
             <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">

@@ -5,6 +5,7 @@ import { MotiView, AnimatePresence } from 'moti';
 import { Calculator, Timer, Zap, Play, ChevronDown, Check, Info } from 'lucide-react-native';
 import { GameState } from '../../types';
 import { Text } from '../../ui/Text';
+import GameIconGlow from './GameIconGlow';
 
 interface Props {
   onComplete: (score: number, isClean: boolean) => void;
@@ -117,8 +118,11 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
 
         {gameState === GameState.IDLE ? (
           <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center px-6">
-            <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-blue-100'} rounded-3xl items-center justify-center mb-6 border`}>
-              <Calculator color="#3b82f6" size={40} />
+            <View className="relative mb-6 items-center justify-center">
+              <GameIconGlow color="#3b82f6" glowId="mathDashGlow" />
+              <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-blue-100'} rounded-3xl items-center justify-center border`}>
+                <Calculator color="#3b82f6" size={40} />
+              </View>
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase ${textColorClass}`}>Math Dash</Text>
             <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">
