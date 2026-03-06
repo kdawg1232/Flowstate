@@ -5,6 +5,7 @@ import { MotiView, AnimatePresence } from 'moti';
 import { Text } from '../ui/Text';
 import type { Habit, UserStats } from '../types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { formatLocalDateKey } from '../date';
 
 interface Props {
   stats: UserStats;
@@ -58,7 +59,7 @@ export function HabitsScreen({ stats, onUpdateStats, theme }: Props) {
     for (let i = 13; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = formatLocalDateKey(date);
       const isToday = i === 0;
       
       let status: 'success' | 'fail' | 'current' = 'fail';
@@ -115,7 +116,7 @@ export function HabitsScreen({ stats, onUpdateStats, theme }: Props) {
       setSealHoldProgress(progress);
       if (progress >= 100) {
         if (sealTimerRef.current) clearInterval(sealTimerRef.current);
-        const today = new Date().toISOString().split('T')[0];
+        const today = formatLocalDateKey();
         const newIsSealed = !isSealed;
         
         onUpdateStats({ 
@@ -139,7 +140,7 @@ export function HabitsScreen({ stats, onUpdateStats, theme }: Props) {
   };
 
   const completeHabit = (id: string) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalDateKey();
     const newHabits = habits.map(h => 
       h.id === id ? { ...h, completedToday: true, lastCompletedDate: today, streak: h.streak + 1 } : h
     );
@@ -159,7 +160,7 @@ export function HabitsScreen({ stats, onUpdateStats, theme }: Props) {
   };
 
   const uncompleteHabit = (id: string) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalDateKey();
     const newHabits = habits.map(h => 
       h.id === id ? { ...h, completedToday: false, streak: Math.max(0, h.streak - 1) } : h
     );

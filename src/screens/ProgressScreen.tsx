@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
-import { View, ScrollView, StyleSheet, Dimensions } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, ScrollView, StyleSheet, Dimensions, Pressable } from 'react-native';
 import { MotiView } from 'moti';
 import { Shield, Flame, Brain, Zap, Target, Dumbbell, BarChart3, Layers, Calculator, CheckCircle2 } from 'lucide-react-native';
 import type { UserStats, Category } from '../types';
 import { Text } from '../ui/Text';
 import FlowPressure from '../components/FlowPressure';
+import { formatLocalDateKey } from '../date';
 
 type Props = {
   theme: 'light' | 'dark';
@@ -23,8 +24,10 @@ const THEME_MAP: Record<Category, string> = {
 };
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const ACTIVITY_WINDOW_DAYS = 28;
 
 export function ProgressScreen({ theme, stats }: Props) {
+  const [activityWindowIndex, setActivityWindowIndex] = useState(0);
   const isDark = theme === 'dark';
   const textColorClass = isDark ? 'text-white' : 'text-slate-900';
   const cardBgClass = isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200';
@@ -38,33 +41,34 @@ export function ProgressScreen({ theme, stats }: Props) {
   const progressPercent = Math.min(100, (xpInCurrentLevel / xpNeededToPassCurrentLevel) * 100);
 
   const getStrength = (cat: Category) => {
-    if (cat === 'MEMORY') return Math.min(100, (stats.gameStats.pulse?.cleanFinishes || 0) * 20);
-    if (cat === 'SPEED') return Math.min(100, (stats.gameStats.signal?.cleanFinishes || 0) * 20);
-    if (cat === 'LOGIC') {
-      const totalClean = (stats.gameStats.keen?.cleanFinishes || 0) + 
-                         (stats.gameStats.bridges?.cleanFinishes || 0);
-      return Math.min(100, totalClean * 20);
-    }
-    if (cat === 'FLEXIBILITY') return Math.min(100, (stats.gameStats.logic_link?.cleanFinishes || 0) * 20);
-    if (cat === 'MATH') return Math.min(100, (stats.gameStats.math_dash?.cleanFinishes || 0) * 20);
-    if (cat === 'PHYSICAL') {
-      const totalClean = (stats.gameStats.pushups?.cleanFinishes || 0) + 
-                         (stats.gameStats.situps?.cleanFinishes || 0) + 
-                         (stats.gameStats.planks?.cleanFinishes || 0);
-      return Math.min(100, totalClean * 20);
-    }
-    return 0;
+    const totalClean = Object.values(stats.gameStats).reduce((sum, gameStat) => {
+      if (!gameStat || typeof gameStat !== 'object') return sum;
+      const cleanFinishes = Number.isFinite(gameStat.cleanFinishes) ? gameStat.cleanFinishes : 0;
+      return gameStat.category === cat ? sum + cleanFinishes : sum;
+    }, 0);
+    return Math.min(100, totalClean * 20);
+  };
+
+  const formatRangeLabel = (dateKey: string) => {
+    const [year, month, day] = dateKey.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const activityNodes = useMemo(() => {
-    return Array.from({ length: 28 }, (_, i) => {
+    const oldestDaysAgoInWindow = ((activityWindowIndex + 1) * ACTIVITY_WINDOW_DAYS) - 1;
+    return Array.from({ length: ACTIVITY_WINDOW_DAYS }, (_, i) => {
       const d = new Date();
-      d.setDate(d.getDate() - (27 - i));
-      const dateStr = d.toISOString().split('T')[0];
+      d.setDate(d.getDate() - (oldestDaysAgoInWindow - i));
+      const dateStr = formatLocalDateKey(d);
       const reps = stats.activityHistory[dateStr] || 0;
       return { date: dateStr, reps };
     });
-  }, [stats.activityHistory]);
+  }, [stats.activityHistory, activityWindowIndex]);
+
+  const activityRangeStart = activityNodes[0]?.date ?? formatLocalDateKey();
+  const activityRangeEnd = activityNodes[activityNodes.length - 1]?.date ?? formatLocalDateKey();
+  const canGoNewer = activityWindowIndex > 0;
 
   return (
     <ScrollView 
@@ -130,7 +134,7 @@ export function ProgressScreen({ theme, stats }: Props) {
       </View>
 
       <View className={`${cardBgClass} p-6 rounded-3xl mb-8 border`}>
-        <View className="flex-row justify-between items-center mb-6">
+        <View className="flex-row justify-between items-center mb-3">
           <Text weight="black" className={`text-[10px] ${subTextColorClass} uppercase tracking-[0.3em]`}>Activity Matrix</Text>
           <View className="flex-row gap-3 items-center">
             <View className="flex-row gap-1 items-center">
@@ -146,6 +150,24 @@ export function ProgressScreen({ theme, stats }: Props) {
               <Text weight="bold" className={`text-[7px] ${subTextColorClass} uppercase`}>1000+</Text>
             </View>
           </View>
+        </View>
+        <View className="flex-row items-center justify-between mb-6">
+          <Pressable
+            onPress={() => setActivityWindowIndex((prev) => prev + 1)}
+            className={`px-3 py-1.5 rounded-xl border ${isDark ? 'border-slate-700 bg-slate-950' : 'border-slate-300 bg-slate-50'}`}
+          >
+            <Text weight="bold" className={`text-[8px] uppercase tracking-wider ${subTextColorClass}`}>Older</Text>
+          </Pressable>
+          <Text weight="bold" className={`text-[8px] ${subTextColorClass} uppercase tracking-widest`}>
+            {formatRangeLabel(activityRangeStart)} - {formatRangeLabel(activityRangeEnd)}
+          </Text>
+          <Pressable
+            disabled={!canGoNewer}
+            onPress={() => setActivityWindowIndex((prev) => Math.max(0, prev - 1))}
+            className={`px-3 py-1.5 rounded-xl border ${canGoNewer ? (isDark ? 'border-slate-700 bg-slate-950' : 'border-slate-300 bg-slate-50') : (isDark ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-slate-100')}`}
+          >
+            <Text weight="bold" className={`text-[8px] uppercase tracking-wider ${canGoNewer ? subTextColorClass : (isDark ? 'text-slate-700' : 'text-slate-300')}`}>Newer</Text>
+          </Pressable>
         </View>
         <View className="flex-row flex-wrap gap-2 justify-center">
           {activityNodes.map((node, i) => (
@@ -165,8 +187,8 @@ export function ProgressScreen({ theme, stats }: Props) {
           ))}
         </View>
         <View className="flex-row justify-between mt-3 px-1">
-          <Text weight="bold" className={`text-[8px] ${subTextColorClass} uppercase`}>28 Days Ago</Text>
-          <Text weight="bold" className={`text-[8px] ${subTextColorClass} uppercase`}>Today</Text>
+          <Text weight="bold" className={`text-[8px] ${subTextColorClass} uppercase`}>{formatRangeLabel(activityRangeStart)}</Text>
+          <Text weight="bold" className={`text-[8px] ${subTextColorClass} uppercase`}>{formatRangeLabel(activityRangeEnd)}</Text>
         </View>
       </View>
 

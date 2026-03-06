@@ -49,20 +49,22 @@ const FeedItem = React.memo(({
   
   return (
     <View style={{ height: flatListHeight, width: '100%' }}>
-      {item.type === 'pulse' && <PulsePatternGame onComplete={(lvl) => onCompleteRep('pulse', lvl, true)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-      {item.type === 'signal' && <SignalScanGame onComplete={(scr) => onCompleteRep('signal', scr, true)} isActive={isActive} theme={theme} />}
-      {item.type === 'logic_link' && <LogicLinkGame onComplete={(scr, clean) => onCompleteRep('logic_link', scr, clean)} isActive={isActive} theme={theme} />}
-      {item.type === 'math_dash' && <MentalMathGame onComplete={(scr) => onCompleteRep('math_dash', scr, true)} isActive={isActive} theme={theme} />}
-      {item.type === 'untangle' && <UntangleGame onComplete={(scr, clean) => onCompleteRep('untangle', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-      {item.type === 'bridges' && <BridgesGame onComplete={(scr, clean) => onCompleteRep('bridges', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-      {item.type === 'keen' && <KeenGame onComplete={(scr, clean) => onCompleteRep('keen', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-      {item.type === 'color_memory' && <ColorMemoryGame onComplete={(scr, clean) => onCompleteRep('color_memory', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-      {item.type === 'number_hunt' && <NumberHuntGame onComplete={(scr, clean) => onCompleteRep('number_hunt', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-      {item.type === 'map' && <MapGame onComplete={(scr, clean) => onCompleteRep('map', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-      
-      {item.type === 'pushups' && <PushupTracker onComplete={(reps) => onCompleteRep('pushups', reps, true)} isActive={isActive} theme={theme} />}
-      {item.type === 'situps' && <SitupTracker onComplete={(reps) => onCompleteRep('situps', reps, true)} isActive={isActive} theme={theme} />}
-      {item.type === 'planks' && <PlankTracker onComplete={(reps) => onCompleteRep('planks', reps, true)} isActive={isActive} theme={theme} />}
+      <View style={styles.feedItemScale}>
+        {item.type === 'pulse' && <PulsePatternGame onComplete={(lvl, clean) => onCompleteRep('pulse', lvl, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+        {item.type === 'signal' && <SignalScanGame onComplete={(scr, clean) => onCompleteRep('signal', scr, clean)} isActive={isActive} theme={theme} />}
+        {item.type === 'logic_link' && <LogicLinkGame onComplete={(scr, clean) => onCompleteRep('logic_link', scr, clean)} isActive={isActive} theme={theme} />}
+        {item.type === 'math_dash' && <MentalMathGame onComplete={(scr, clean) => onCompleteRep('math_dash', scr, clean)} isActive={isActive} theme={theme} />}
+        {item.type === 'untangle' && <UntangleGame onComplete={(scr, clean) => onCompleteRep('untangle', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+        {item.type === 'bridges' && <BridgesGame onComplete={(scr, clean) => onCompleteRep('bridges', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+        {item.type === 'keen' && <KeenGame onComplete={(scr, clean) => onCompleteRep('keen', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+        {item.type === 'color_memory' && <ColorMemoryGame onComplete={(scr, clean) => onCompleteRep('color_memory', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+        {item.type === 'number_hunt' && <NumberHuntGame onComplete={(scr, clean) => onCompleteRep('number_hunt', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+        {item.type === 'map' && <MapGame onComplete={(scr, clean) => onCompleteRep('map', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+        
+        {item.type === 'pushups' && <PushupTracker onComplete={(reps, clean) => onCompleteRep('pushups', reps, clean)} isActive={isActive} theme={theme} />}
+        {item.type === 'situps' && <SitupTracker onComplete={(reps, clean) => onCompleteRep('situps', reps, clean)} isActive={isActive} theme={theme} />}
+        {item.type === 'planks' && <PlankTracker onComplete={(reps, clean) => onCompleteRep('planks', reps, clean)} isActive={isActive} theme={theme} />}
+      </View>
     </View>
   );
 }, (prev, next) => {
@@ -114,7 +116,6 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
   }, [mode]);
 
   const bg = isDark ? '#020617' : '#f8fafc';
-  const panel = isDark ? '#0b1220' : '#ffffff';
   const panelBorder = isDark ? '#0f172a' : '#e2e8f0';
   const text = isDark ? '#ffffff' : '#0f172a';
   const subText = isDark ? '#94a3b8' : '#64748b';
@@ -224,11 +225,6 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    zIndex: 100,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
   },
   modeBarInner: {
     flexDirection: 'row',
@@ -253,5 +249,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
+  },
+  feedItemScale: {
+    flex: 1,
+    transform: [{ translateY: -18 }, { scale: 1.06 }],
   },
 });

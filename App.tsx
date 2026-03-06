@@ -23,9 +23,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { calculateAllocatedMinutes } from './src/screentime';
 import ScreenTime from './src/native/ScreenTime';
+import { formatLocalDateKey } from './src/date';
 
 import OnboardingFlow from './src/screens/onboarding/OnboardingFlow';
 import { DismissScreen } from './src/screens/DismissScreen';
+
+const FLOWSTATE_LAST_CALIBRATION_RESET_KEY = 'flowstate_last_calibration_reset';
 
 export default function App() {
   const fontsLoaded = useFlowstateFonts();
@@ -187,52 +190,110 @@ export default function App() {
     void setJson(FLOWSTATE_STATS_KEY, stats);
   }, [stats, isBooting]);
 
-  useEffect(() => {
-    if (isBooting) return;
-    (async () => {
-      const today = new Date().toISOString().split('T')[0];
-      const lastLogin = await getString(FLOWSTATE_LAST_LOGIN_KEY);
-      if (lastLogin !== today) {
-        await setString(FLOWSTATE_LAST_LOGIN_KEY, today);
-        setStats((prev) => {
-          const newXp = prev.xp + 5;
-          
-          // Yesterday's date string
-          const yesterday = new Date();
-          yesterday.setDate(yesterday.getDate() - 1);
-          const yesterdayStr = yesterday.toISOString().split('T')[0];
-          
-          // Reset habits for the new day
-          const updatedHabits = (prev.habits || []).map(h => {
-            // If the habit was NOT completed yesterday, reset streak to 0
-            const wasCompletedYesterday = h.lastCompletedDate === yesterdayStr;
-            return {
-              ...h,
-              completedToday: false,
-              streak: wasCompletedYesterday ? h.streak : 0
-            };
-          });
+  const runDailyResetIfNeeded = useCallback(async () => {
+    const today = formatLocalDateKey();
+    const [lastLogin, lastCalibrationReset] = await Promise.all([
+      getString(FLOWSTATE_LAST_LOGIN_KEY),
+      getString(FLOWSTATE_LAST_CALIBRATION_RESET_KEY),
+    ]);
+    const shouldRunLoginReset = lastLogin !== today;
+    const shouldRunCalibrationReset = lastCalibrationReset !== today;
+    if (!shouldRunLoginReset && !shouldRunCalibrationReset) return;
 
-          return { 
-            ...prev, 
-            xp: newXp, 
-            dailyReps: 0,
-            maxDailyReps: 0, // Reset milestone progress for the new day
-            level: calculateLevel(newXp),
-            habits: updatedHabits,
-            isDaySealed: false,
-            screenTime: {
-              ...prev.screenTime,
-              allocatedMinutes: 0, // Reset hourly allocation
-              usedMinutes: 0,
-              maxMilestoneReached: 0, // Reset milestone tracker
-              lastUpdateTimestamp: Date.now(),
-            }
+    const writes: Promise<void>[] = [];
+    if (shouldRunLoginReset) {
+      writes.push(setString(FLOWSTATE_LAST_LOGIN_KEY, today));
+    }
+    if (shouldRunCalibrationReset) {
+      writes.push(setString(FLOWSTATE_LAST_CALIBRATION_RESET_KEY, today));
+    }
+    await Promise.all(writes);
+
+    setStats((prev) => {
+      let nextStats: UserStats = prev;
+
+      if (shouldRunLoginReset) {
+        const newXp = prev.xp + 5;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = formatLocalDateKey(yesterday);
+
+        // Reset habits for the new day
+        const updatedHabits = (prev.habits || []).map((h) => {
+          // If the habit was NOT completed yesterday, reset streak to 0.
+          const wasCompletedYesterday = h.lastCompletedDate === yesterdayStr;
+          return {
+            ...h,
+            completedToday: false,
+            streak: wasCompletedYesterday ? h.streak : 0,
           };
         });
+
+        nextStats = {
+          ...nextStats,
+          xp: newXp,
+          dailyReps: 0,
+          maxDailyReps: 0, // Reset milestone progress for the new day
+          level: calculateLevel(newXp),
+          habits: updatedHabits,
+          isDaySealed: false,
+          screenTime: {
+            ...nextStats.screenTime,
+            allocatedMinutes: 0, // Reset hourly allocation
+            usedMinutes: 0,
+            maxMilestoneReached: 0, // Reset milestone tracker
+            lastUpdateTimestamp: Date.now(),
+          },
+        };
       }
-    })();
-  }, [isBooting]);
+
+      if (shouldRunCalibrationReset) {
+        // Neural Calibration is daily, so clear clean finishes at day rollover.
+        const dailyCalibrationStats: UserStats['gameStats'] = Object.keys(nextStats.gameStats).reduce(
+          (acc, key) => {
+            const game = nextStats.gameStats[key];
+            acc[key] = { ...game, cleanFinishes: 0 };
+            return acc;
+          },
+          {} as UserStats['gameStats'],
+        );
+        nextStats = {
+          ...nextStats,
+          gameStats: dailyCalibrationStats,
+        };
+      }
+
+      return nextStats;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isBooting || !isLoggedIn) return;
+
+    let cancelled = false;
+    let midnightTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleNextMidnightReset = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0);
+      const msUntilNextMidnight = nextMidnight.getTime() - now.getTime() + 250;
+
+      midnightTimer = setTimeout(async () => {
+        if (cancelled) return;
+        await runDailyResetIfNeeded();
+        scheduleNextMidnightReset();
+      }, msUntilNextMidnight);
+    };
+
+    void runDailyResetIfNeeded();
+    scheduleNextMidnightReset();
+
+    return () => {
+      cancelled = true;
+      if (midnightTimer) clearTimeout(midnightTimer);
+    };
+  }, [isBooting, isLoggedIn, runDailyResetIfNeeded]);
 
   const handleLoginSuccess = async (username: string, screenTimeEnabled?: boolean) => {
     await setString(FLOWSTATE_AUTH_KEY, 'true');
@@ -272,7 +333,7 @@ export default function App() {
   const handleScrollXp = React.useCallback(() => {}, []);
 
   const handleRepComplete = React.useCallback((type: GameType, score: number, isClean: boolean = true) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalDateKey();
     setStats((prev) => {
       const isPhysical = ['pushups', 'situps', 'planks'].includes(type);
       const gameKey = type as string;
