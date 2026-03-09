@@ -1,8 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Dimensions, FlatList, Pressable, StyleSheet, View, ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { FlowMode, GameType, UserStats } from '../types';
-import { Brain, Dumbbell, Zap } from 'lucide-react-native';
+import type { GameType, UserStats } from '../types';
+import { Brain } from 'lucide-react-native';
 import { Text } from '../ui/Text';
 
 // Ported Games
@@ -49,16 +49,28 @@ const FeedItem = React.memo(({
   
   return (
     <View style={{ height: flatListHeight, width: '100%' }}>
-      <View style={styles.feedItemScale}>
+      <View style={styles.feedItemFrame}>
         {item.type === 'pulse' && <PulsePatternGame onComplete={(lvl, clean) => onCompleteRep('pulse', lvl, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
         {item.type === 'signal' && <SignalScanGame onComplete={(scr, clean) => onCompleteRep('signal', scr, clean)} isActive={isActive} theme={theme} />}
         {item.type === 'logic_link' && <LogicLinkGame onComplete={(scr, clean) => onCompleteRep('logic_link', scr, clean)} isActive={isActive} theme={theme} />}
         {item.type === 'math_dash' && <MentalMathGame onComplete={(scr, clean) => onCompleteRep('math_dash', scr, clean)} isActive={isActive} theme={theme} />}
         {item.type === 'untangle' && <UntangleGame onComplete={(scr, clean) => onCompleteRep('untangle', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-        {item.type === 'bridges' && <BridgesGame onComplete={(scr, clean) => onCompleteRep('bridges', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+        {item.type === 'bridges' && (
+          <View style={styles.bridgesOffset}>
+            <BridgesGame onComplete={(scr, clean) => onCompleteRep('bridges', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />
+          </View>
+        )}
         {item.type === 'keen' && <KeenGame onComplete={(scr, clean) => onCompleteRep('keen', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-        {item.type === 'color_memory' && <ColorMemoryGame onComplete={(scr, clean) => onCompleteRep('color_memory', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
-        {item.type === 'number_hunt' && <NumberHuntGame onComplete={(scr, clean) => onCompleteRep('number_hunt', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
+        {item.type === 'color_memory' && (
+          <View style={styles.colorMemoryOffset}>
+            <ColorMemoryGame onComplete={(scr, clean) => onCompleteRep('color_memory', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />
+          </View>
+        )}
+        {item.type === 'number_hunt' && (
+          <View style={styles.numberHuntOffset}>
+            <NumberHuntGame onComplete={(scr, clean) => onCompleteRep('number_hunt', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />
+          </View>
+        )}
         {item.type === 'map' && <MapGame onComplete={(scr, clean) => onCompleteRep('map', scr, clean)} isActive={isActive} theme={theme} onLockScroll={setScrollEnabled} />}
         
         {item.type === 'pushups' && <PushupTracker onComplete={(reps, clean) => onCompleteRep('pushups', reps, clean)} isActive={isActive} theme={theme} />}
@@ -85,7 +97,6 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const NAV_HEIGHT = 84;
 
 export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
-  const [mode, setMode] = useState<FlowMode>('mixed');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flatListHeight, setFlatListHeight] = useState(SCREEN_HEIGHT - NAV_HEIGHT);
   const [scrollEnabled, setScrollEnabled] = useState(true);
@@ -96,39 +107,28 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
 
   const reps = useMemo(() => {
     const mentalPool: GameType[] = ['pulse', 'signal', 'logic_link', 'math_dash', 'untangle', 'bridges', 'keen', 'color_memory', 'number_hunt', 'map'];
-    const physicalPool: GameType[] = ['pushups', 'situps', 'planks'];
     const generated: Rep[] = [];
     let lastType: GameType | null = null;
 
     for (let i = 0; i < 60; i++) {
-      let currentPool: GameType[];
-      if (mode === 'physical') currentPool = physicalPool;
-      else if (mode === 'mental') currentPool = mentalPool;
-      else currentPool = (i + 1) % 6 === 0 ? physicalPool : mentalPool;
-
-      const available = currentPool.filter((t) => t !== lastType);
+      const available = mentalPool.filter((t) => t !== lastType);
       const selected = available[Math.floor(Math.random() * available.length)];
-      generated.push({ id: `node-${i}-${mode}`, type: selected });
+      generated.push({ id: `node-${i}-mental`, type: selected });
       lastType = selected;
     }
 
     return generated;
-  }, [mode]);
+  }, []);
 
   const bg = isDark ? '#020617' : '#f8fafc';
   const panelBorder = isDark ? '#0f172a' : '#e2e8f0';
   const text = isDark ? '#ffffff' : '#0f172a';
   const subText = isDark ? '#94a3b8' : '#64748b';
 
-  const ModeButton = ({ id, label, icon: Icon }: { id: FlowMode; label: string; icon: any }) => {
-    const active = mode === id;
+  const ModeButton = ({ label, icon: Icon }: { label: string; icon: any }) => {
+    const active = true; // Always active for Mental in V1
     return (
       <Pressable
-        onPress={() => {
-          setMode(id);
-          setCurrentIndex(0);
-          flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-        }}
         style={({ pressed }) => [
           styles.modeButton,
           {
@@ -138,6 +138,7 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
             transform: [{ scale: active ? 1.05 : 1 }],
           },
         ]}
+        disabled
       >
         <Icon size={18} color={active ? '#06b6d4' : (isDark ? '#64748b' : '#94a3b8')} />
         <Text weight="black" style={[styles.modeButtonText, { color: active ? text : subText }]}>{label}</Text>
@@ -178,18 +179,6 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <View style={[styles.modeBar, { 
-        paddingTop: insets.top + 8,
-        borderBottomColor: panelBorder, 
-        backgroundColor: isDark ? '#020617cc' : '#ffffffcc' 
-      }]}>
-        <View style={styles.modeBarInner}>
-          <ModeButton id="mental" label="Mental" icon={Brain} />
-          <ModeButton id="physical" label="Physical" icon={Dumbbell} />
-          <ModeButton id="mixed" label="Mixed" icon={Zap} />
-        </View>
-      </View>
-
       <FlatList
         ref={flatListRef}
         data={reps}
@@ -225,6 +214,11 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
   },
   modeBarInner: {
     flexDirection: 'row',
@@ -250,8 +244,20 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1.5,
   },
-  feedItemScale: {
+  feedItemFrame: {
     flex: 1,
-    transform: [{ translateY: -18 }, { scale: 1.06 }],
+    transform: [{ translateY: -12 }],
+  },
+  bridgesOffset: {
+    flex: 1,
+    transform: [{ translateY: 10 }],
+  },
+  colorMemoryOffset: {
+    flex: 1,
+    transform: [{ translateY: 80 }],
+  },
+  numberHuntOffset: {
+    flex: 1,
+    transform: [{ translateY: 10 }],
   },
 });

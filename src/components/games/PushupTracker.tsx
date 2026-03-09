@@ -18,10 +18,12 @@ function PushupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
   const [timeLeft, setTimeLeft] = useState(30);
   const [isStarted, setIsStarted] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const hasReportedCompletionRef = React.useRef(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!isActive) {
+      hasReportedCompletionRef.current = false;
       setIsStarted(false);
       setIsFinished(false);
       setReps(0);
@@ -39,10 +41,10 @@ function PushupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
   }, [isStarted, timeLeft, isFinished]);
 
   useEffect(() => {
-    if (isFinished) {
-      const timer = setTimeout(() => onComplete(reps, true), 100);
-      return () => clearTimeout(timer);
-    }
+    if (!isFinished || hasReportedCompletionRef.current) return;
+    hasReportedCompletionRef.current = true;
+    const timer = setTimeout(() => onComplete(reps, true), 900);
+    return () => clearTimeout(timer);
   }, [isFinished, reps, onComplete]);
 
   const handleManualRep = () => {
@@ -77,9 +79,34 @@ function PushupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
         </AnimatePresence>
 
         <View className="flex-1 items-center justify-center px-6">
-          <AnimatePresence exitBeforeEnter>
-            {!isStarted && !isFinished ? (
-              <MotiView key="intro" from={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="items-center text-center max-w-[340px]">
+          {isFinished ? (
+            <MotiView key="finish" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center">
+              <View className="w-20 h-20 rounded-full bg-emerald-500/20 items-center justify-center mb-6 border border-emerald-500/40">
+                <CheckCircle2 color="#34d399" size={40} />
+              </View>
+              <Text weight="black" className="text-3xl text-white italic mb-2 uppercase tracking-tighter">PROTOCOL COMPLETE</Text>
+              
+              <View className="bg-emerald-500/10 border border-emerald-500/20 px-8 py-4 rounded-3xl items-center mb-10">
+                <Text variant="mono" className="text-emerald-400 text-4xl mb-1 tracking-widest">{reps}</Text>
+                <Text weight="bold" className="text-emerald-400/60 text-[10px] uppercase tracking-[0.2em]">REPS LOGGED</Text>
+              </View>
+
+              <View className="items-center gap-6">
+                 <View className="bg-white/5 px-6 py-4 rounded-2xl flex-row items-center gap-3">
+                    <Text weight="black" className="text-emerald-500 uppercase">NEXT TASK READY</Text>
+                    <ArrowRight color="#10b981" size={18} />
+                 </View>
+                 
+                 <View className="items-center gap-2 opacity-40">
+                   <Text weight="bold" className="text-slate-400 text-[10px] uppercase tracking-[0.4em]">Scroll to continue</Text>
+                   <ChevronDown color="#94a3b8" size={20} />
+                 </View>
+              </View>
+            </MotiView>
+          ) : (
+            <AnimatePresence exitBeforeEnter>
+              {!isStarted ? (
+                <MotiView key="intro" from={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="items-center text-center max-w-[340px]">
                  <View className="w-20 h-20 bg-black rounded-3xl items-center justify-center mb-8 border border-white/10">
                     <Dumbbell color="#34d399" size={36} />
                  </View>
@@ -94,37 +121,13 @@ function PushupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
                       <Text className="text-slate-400 text-[11px] font-medium uppercase tracking-wide">Tap interface to log rep.</Text>
                     </View>
                  </View>
-                 <Pressable onPress={() => setIsStarted(true)} className="bg-emerald-500 px-12 py-4 rounded-2xl flex-row items-center gap-3 shadow-xl">
+                 <Pressable onPress={() => { hasReportedCompletionRef.current = false; setIsStarted(true); }} className="bg-emerald-500 px-12 py-4 rounded-2xl flex-row items-center gap-3 shadow-xl">
                     <Play color="black" size={20} fill="black" />
                     <Text weight="black" className="text-black uppercase text-sm tracking-[0.2em]">Start Session</Text>
                  </Pressable>
-              </MotiView>
-            ) : isFinished ? (
-              <MotiView key="finish" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center">
-                <View className="w-20 h-20 rounded-full bg-emerald-500/20 items-center justify-center mb-6 border border-emerald-500/40">
-                  <CheckCircle2 color="#34d399" size={40} />
-                </View>
-                <Text weight="black" className="text-3xl text-white italic mb-2 uppercase tracking-tighter">PROTOCOL COMPLETE</Text>
-                
-                <View className="bg-emerald-500/10 border border-emerald-500/20 px-8 py-4 rounded-3xl items-center mb-10">
-                  <Text variant="mono" className="text-emerald-400 text-4xl mb-1 tracking-widest">{reps}</Text>
-                  <Text weight="bold" className="text-emerald-400/60 text-[10px] uppercase tracking-[0.2em]">REPS LOGGED</Text>
-                </View>
-
-                <View className="items-center gap-6">
-                   <View className="bg-white/5 px-6 py-4 rounded-2xl flex-row items-center gap-3">
-                      <Text weight="black" className="text-emerald-500 uppercase">NEXT TASK READY</Text>
-                      <ArrowRight color="#10b981" size={18} />
-                   </View>
-                   
-                   <View className="items-center gap-2 opacity-40">
-                     <Text weight="bold" className="text-slate-400 text-[10px] uppercase tracking-[0.4em]">Scroll to continue</Text>
-                     <ChevronDown color="#94a3b8" size={20} />
-                   </View>
-                </View>
-              </MotiView>
-            ) : (
-              <MotiView key="action" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full h-full items-center justify-center">
+                </MotiView>
+              ) : (
+                <MotiView key="action" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full h-full items-center justify-center">
                 <Pressable onPress={handleManualRep} className="w-64 h-64 rounded-full bg-emerald-500/5 border-2 border-emerald-500/20 items-center justify-center shadow-xl active:scale-95">
                   <Text weight="black" className="text-8xl text-emerald-400 mb-2">{reps}</Text>
                   <View className="flex-row items-center gap-2">
@@ -136,9 +139,10 @@ function PushupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
                 <Pressable onPress={() => setIsFinished(true)} className="mt-16 px-8 py-3 bg-white/5 border border-white/10 rounded-full">
                   <Text weight="black" className="text-white/40 text-[10px] uppercase tracking-[0.4em]">End Session Early</Text>
                 </Pressable>
-              </MotiView>
-            )}
-          </AnimatePresence>
+                </MotiView>
+              )}
+            </AnimatePresence>
+          )}
         </View>
       </View>
     </View>

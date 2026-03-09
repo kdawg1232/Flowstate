@@ -21,6 +21,7 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const [trial, setTrial] = useState<{ equation: string; answer: number; options: number[] } | null>(null);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasReportedCompletionRef = useRef(false);
 
   const isDark = theme === 'dark';
   const insets = useSafeAreaInsets();
@@ -75,6 +76,7 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
   }, []);
 
   const startGame = () => {
+    hasReportedCompletionRef.current = false;
     setScore(0);
     setTimeLeft(20);
     setGameState(GameState.PLAYING);
@@ -82,7 +84,10 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
   };
 
   useEffect(() => {
-    if (!isActive) setGameState(GameState.IDLE);
+    if (!isActive) {
+      hasReportedCompletionRef.current = false;
+      setGameState(GameState.IDLE);
+    }
   }, [isActive]);
 
   useEffect(() => {
@@ -91,10 +96,17 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
     } else if (timeLeft <= 0 && gameState === GameState.PLAYING) {
       setGameState(GameState.FINISHED);
       if (timerRef.current) clearInterval(timerRef.current);
-      setTimeout(() => onComplete(score, true), 100);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [gameState, timeLeft, score, onComplete]);
+  }, [gameState, timeLeft]);
+
+  useEffect(() => {
+    if (gameState !== GameState.FINISHED || hasReportedCompletionRef.current) return;
+    hasReportedCompletionRef.current = true;
+    // Keep finish UI visible before persisting completion.
+    const doneTimer = setTimeout(() => onComplete(score, true), 900);
+    return () => clearTimeout(doneTimer);
+  }, [gameState, score, onComplete]);
 
   const handleAnswer = (val: number) => {
     if (gameState !== GameState.PLAYING || !trial) return;
@@ -114,8 +126,25 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
 
   return (
     <View className={`flex-1 items-center justify-center ${isDark ? 'bg-black' : 'bg-slate-50'}`}>
-      <AnimatePresence exitBeforeEnter>
+      {gameState === GameState.FINISHED ? (
+        <MotiView key="finished" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center px-6">
+          <View className="w-16 h-16 rounded-full bg-emerald-500/20 items-center justify-center mb-6 border border-emerald-500/40">
+            <Check color="#10b981" size={32} />
+          </View>
+          <Text weight="black" className={`text-3xl italic mb-2 uppercase tracking-tighter text-center ${textColorClass}`}>
+            Total reps logged
+          </Text>
+          <Text variant="mono" className="text-emerald-400 text-2xl tracking-widest uppercase mb-10">
+            {score} reps logged
+          </Text>
 
+          <View className="items-center gap-2 opacity-40">
+            <Text weight="bold" className={`${subTextColorClass} text-[10px] uppercase tracking-[0.4em]`}>Scroll to continue</Text>
+            <ChevronDown color={isDark ? "#94a3b8" : "#64748b"} size={20} />
+          </View>
+        </MotiView>
+      ) : (
+        <AnimatePresence exitBeforeEnter>
         {gameState === GameState.IDLE ? (
           <MotiView key="instructions" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center px-6">
             <View className="relative mb-6 items-center justify-center">
@@ -135,23 +164,6 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
               <Play color="white" size={20} fill="white" />
               <Text weight="black" className="text-white uppercase">START COMPUTE</Text>
             </Pressable>
-          </MotiView>
-        ) : gameState === GameState.FINISHED ? (
-          <MotiView key="finished" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center px-6">
-            <View className="w-16 h-16 rounded-full bg-emerald-500/20 items-center justify-center mb-6 border border-emerald-500/40">
-              <Check color="#10b981" size={32} />
-            </View>
-            <Text weight="black" className={`text-3xl italic mb-2 uppercase tracking-tighter text-center ${textColorClass}`}>
-              Total reps logged
-            </Text>
-            <Text variant="mono" className="text-emerald-400 text-2xl tracking-widest uppercase mb-10">
-              {score} reps logged
-            </Text>
-
-            <View className="items-center gap-2 opacity-40">
-              <Text weight="bold" className={`${subTextColorClass} text-[10px] uppercase tracking-[0.4em]`}>Scroll to continue</Text>
-              <ChevronDown color={isDark ? "#94a3b8" : "#64748b"} size={20} />
-            </View>
           </MotiView>
         ) : (
           <MotiView key="play" from={{ opacity: 1 }} className="w-full items-center">
@@ -184,6 +196,7 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
           </MotiView>
         )}
       </AnimatePresence>
+      )}
 
       <AnimatePresence>
         {showInfo && (

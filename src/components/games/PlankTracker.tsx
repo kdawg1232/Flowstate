@@ -15,10 +15,12 @@ function PlankTracker({ onComplete, isActive, theme = 'dark' }: Props) {
   const [timeLeft, setTimeLeft] = useState(30);
   const [isStarted, setIsStarted] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const hasReportedCompletionRef = React.useRef(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!isActive) {
+      hasReportedCompletionRef.current = false;
       setIsStarted(false);
       setIsFinished(false);
       setTimeLeft(30);
@@ -38,10 +40,10 @@ function PlankTracker({ onComplete, isActive, theme = 'dark' }: Props) {
   }, [isStarted, isFinished, timeLeft]);
 
   useEffect(() => {
-    if (isFinished) {
-      const timer = setTimeout(() => onComplete(30 - timeLeft, true), 100);
-      return () => clearTimeout(timer);
-    }
+    if (!isFinished || hasReportedCompletionRef.current) return;
+    hasReportedCompletionRef.current = true;
+    const timer = setTimeout(() => onComplete(30 - timeLeft, true), 900);
+    return () => clearTimeout(timer);
   }, [isFinished, onComplete, timeLeft]);
 
   const handleEndPlank = () => {
@@ -75,45 +77,46 @@ function PlankTracker({ onComplete, isActive, theme = 'dark' }: Props) {
         </AnimatePresence>
 
         <View className="flex-1 items-center justify-center px-6">
-          <AnimatePresence exitBeforeEnter>
-            {!isStarted && !isFinished ? (
-              <MotiView key="intro" from={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="items-center">
+          {isFinished ? (
+            <MotiView key="finish" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center">
+              <View className="w-20 h-20 rounded-full bg-emerald-500/20 items-center justify-center mb-6 border border-emerald-500/40">
+                <CheckCircle2 color="#34d399" size={40} />
+              </View>
+              <Text weight="black" className="text-3xl text-white italic mb-2 uppercase tracking-tighter">PROTOCOL COMPLETE</Text>
+              
+              <View className="bg-emerald-500/10 border border-emerald-500/20 px-8 py-4 rounded-3xl items-center mb-10">
+                <Text variant="mono" className="text-emerald-400 text-4xl mb-1 tracking-widest">{30 - timeLeft}</Text>
+                <Text weight="bold" className="text-emerald-400/60 text-[10px] uppercase tracking-[0.2em]">SECONDS LOGGED</Text>
+              </View>
+
+              <View className="items-center gap-6">
+                 <View className="bg-white/5 px-6 py-4 rounded-2xl flex-row items-center gap-3">
+                    <Text weight="black" className="text-emerald-500 uppercase">NEXT TASK READY</Text>
+                    <ArrowRight color="#10b981" size={18} />
+                 </View>
+                 
+                 <View className="items-center gap-2 opacity-40">
+                   <Text weight="bold" className="text-slate-400 text-[10px] uppercase tracking-[0.4em]">Scroll to continue</Text>
+                   <ChevronDown color="#94a3b8" size={20} />
+                 </View>
+              </View>
+            </MotiView>
+          ) : (
+            <AnimatePresence exitBeforeEnter>
+              {!isStarted ? (
+                <MotiView key="intro" from={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="items-center">
                  <View className="w-20 h-20 bg-black rounded-3xl items-center justify-center mb-8 border border-white/10">
                     <ShieldCheck color="#10b981" size={48} />
                  </View>
                  <Text weight="black" className="text-white text-3xl italic uppercase tracking-tighter mb-4 text-center">Plank</Text>
                  <Text className="text-slate-400 text-xs uppercase tracking-widest mb-10 text-center max-w-[240px]">Maintain a straight line. Gravity protocol active.</Text>
-                 <Pressable onPress={() => setIsStarted(true)} className="bg-emerald-500 px-12 py-4 rounded-2xl flex-row items-center gap-3 shadow-xl">
+                 <Pressable onPress={() => { hasReportedCompletionRef.current = false; setIsStarted(true); }} className="bg-emerald-500 px-12 py-4 rounded-2xl flex-row items-center gap-3 shadow-xl">
                     <Play color="black" size={20} fill="black" />
                     <Text weight="black" className="text-black uppercase">INITIATE</Text>
                  </Pressable>
-              </MotiView>
-            ) : isFinished ? (
-              <MotiView key="finish" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="items-center">
-                <View className="w-20 h-20 rounded-full bg-emerald-500/20 items-center justify-center mb-6 border border-emerald-500/40">
-                  <CheckCircle2 color="#34d399" size={40} />
-                </View>
-                <Text weight="black" className="text-3xl text-white italic mb-2 uppercase tracking-tighter">PROTOCOL COMPLETE</Text>
-                
-                <View className="bg-emerald-500/10 border border-emerald-500/20 px-8 py-4 rounded-3xl items-center mb-10">
-                  <Text variant="mono" className="text-emerald-400 text-4xl mb-1 tracking-widest">{30 - timeLeft}</Text>
-                  <Text weight="bold" className="text-emerald-400/60 text-[10px] uppercase tracking-[0.2em]">SECONDS LOGGED</Text>
-                </View>
-
-                <View className="items-center gap-6">
-                   <View className="bg-white/5 px-6 py-4 rounded-2xl flex-row items-center gap-3">
-                      <Text weight="black" className="text-emerald-500 uppercase">NEXT TASK READY</Text>
-                      <ArrowRight color="#10b981" size={18} />
-                   </View>
-                   
-                   <View className="items-center gap-2 opacity-40">
-                     <Text weight="bold" className="text-slate-400 text-[10px] uppercase tracking-[0.4em]">Scroll to continue</Text>
-                     <ChevronDown color="#94a3b8" size={20} />
-                   </View>
-                </View>
-              </MotiView>
-            ) : (
-              <MotiView key="action" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full items-center justify-center">
+                </MotiView>
+              ) : (
+                <MotiView key="action" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full items-center justify-center">
                 <View className="relative w-72 h-72 items-center justify-center">
                   <MotiView from={{ rotate: '0deg' }} animate={{ rotate: '360deg' }} transition={{ loop: true, duration: 10000, type: 'timing' }} className="absolute inset-0 rounded-full border border-emerald-500/20">
                     <View className="w-full h-full border-t-2 border-emerald-500 rounded-full" />
@@ -128,9 +131,10 @@ function PlankTracker({ onComplete, isActive, theme = 'dark' }: Props) {
                   <Square color="white" size={16} fill="white" />
                   <Text weight="black" className="text-white uppercase tracking-widest text-xs">End Plank</Text>
                 </Pressable>
-              </MotiView>
-            )}
-          </AnimatePresence>
+                </MotiView>
+              )}
+            </AnimatePresence>
+          )}
         </View>
       </View>
     </View>

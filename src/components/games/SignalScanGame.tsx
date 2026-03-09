@@ -255,7 +255,7 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
         ) : (gameState === GameState.PLAYING || gameState === GameState.OBSERVATION) ? (
           <MotiView key="play" from={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ type: 'timing', duration: 250 }} className="flex-1 items-center">
             {/* Header Stats */}
-            <View style={{ marginTop: insets.top + 60 }} className="w-full flex-row justify-between px-4 mb-6">
+            <View style={{ marginTop: insets.top + 72 }} className="w-full flex-row justify-between px-4 mb-6">
               <View className={`flex-row items-center gap-2 ${controlBgClass} px-4 py-2 rounded-full border`}>
                 <Timer size={14} color="#f59e0b" />
                 <Text variant="mono" className="text-amber-500 text-sm">{timeLeft}s</Text>
