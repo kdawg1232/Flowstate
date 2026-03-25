@@ -10,11 +10,11 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Props {
   onNext: () => void;
-  onLogin: () => void;
-  onSignUp: () => void;
+  onLogin?: () => void;
+  onSignUp?: () => void;
 }
 
-const Landing: React.FC<Props> = ({ onNext, onLogin, onSignUp }) => (
+const Landing: React.FC<Props> = ({ onNext }) => (
   <View className="flex-1 bg-[#0a0a0c] items-center justify-center px-6">
     {/* Sharp Edge Currents - 1px thickness for high-precision look */}
     <View className="absolute top-0 left-0 right-0 h-[1px] overflow-hidden">
@@ -121,15 +121,7 @@ const Landing: React.FC<Props> = ({ onNext, onLogin, onSignUp }) => (
       </View>
     </View>
     
-    <View className="w-full gap-4">
-      <Pressable 
-        onPress={onLogin}
-        className="w-full py-5 bg-white/5 border border-white/10 rounded-2xl items-center active:scale-95"
-      >
-        <Text weight="black" className="text-white text-sm uppercase tracking-widest">
-          Sign In
-        </Text>
-      </Pressable>
+    <View className="w-full">
       <Pressable 
         onPress={onNext}
         className="w-full py-5 bg-cyan-500 rounded-2xl items-center active:scale-95 shadow-lg"
@@ -141,7 +133,7 @@ const Landing: React.FC<Props> = ({ onNext, onLogin, onSignUp }) => (
         }}
       >
         <Text weight="black" className="text-black text-sm uppercase tracking-widest">
-          Create Account
+          Let's Get Started
         </Text>
       </Pressable>
     </View>

@@ -299,19 +299,19 @@ export default function App() {
     };
   }, [isBooting, isLoggedIn, runDailyResetIfNeeded]);
 
-  const handleLoginSuccess = async (username: string, screenTimeEnabled?: boolean) => {
+  const handleLoginSuccess = async (username: string, screenTimeEnabled?: boolean, restrictedAppCount?: number) => {
     await setString(FLOWSTATE_AUTH_KEY, 'true');
     await setString(FLOWSTATE_CURRENT_USER_KEY, username);
     setUsername(username);
     setIsLoggedIn(true);
     
-    // If Screen Time was enabled during onboarding, update stats
     if (screenTimeEnabled) {
       setStats(prev => ({
         ...prev,
         screenTime: {
           ...prev.screenTime,
           isTrackingEnabled: true,
+          restrictedAppCount: restrictedAppCount || 0,
         }
       }));
     }
@@ -410,7 +410,7 @@ export default function App() {
       <SafeAreaProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <OnboardingFlow 
-            onComplete={(screenTimeEnabled) => handleLoginSuccess('FlowState User', screenTimeEnabled)}
+            onComplete={(screenTimeEnabled, restrictedAppCount) => handleLoginSuccess('FlowState User', screenTimeEnabled, restrictedAppCount)}
           />
         </GestureHandlerRootView>
       </SafeAreaProvider>

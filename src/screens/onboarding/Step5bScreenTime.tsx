@@ -8,7 +8,7 @@ import ScreenTime from '../../native/ScreenTime';
 interface Props {
   onNext: () => void;
   onBack: () => void;
-  onScreenTimeEnabled: (enabled: boolean) => void;
+  onScreenTimeEnabled: (enabled: boolean, appCount?: number) => void;
 }
 
 const Step5bScreenTime: React.FC<Props> = ({ onNext, onBack, onScreenTimeEnabled }) => {
@@ -75,7 +75,7 @@ const Step5bScreenTime: React.FC<Props> = ({ onNext, onBack, onScreenTimeEnabled
       if (typeof count === 'number' && count > 0) {
         setSelectedApps(true);
         await ScreenTime.setScreenTimeBudget(0);
-        onScreenTimeEnabled(true);
+        onScreenTimeEnabled(true, count);
       }
     } catch (error) {
       console.error('App selection error:', error);

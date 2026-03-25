@@ -17,7 +17,7 @@ import Step8Payoff from './Step8Payoff';
 import { ProgressBar } from './ProgressBar';
 
 interface Props {
-  onComplete: (screenTimeEnabled?: boolean) => void;
+  onComplete: (screenTimeEnabled?: boolean, restrictedAppCount?: number) => void;
 }
 
 const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
@@ -25,6 +25,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   const [direction, setDirection] = useState(1); // 1 for forward, -1 for back
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [screenTimeEnabled, setScreenTimeEnabled] = useState(false);
+  const [restrictedAppCount, setRestrictedAppCount] = useState(0);
 
   const nextStep = () => {
     setDirection(1);
@@ -44,7 +45,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   const renderStep = () => {
     switch (step) {
       case 0:
-        return <Landing onNext={nextStep} onLogin={nextStep} onSignUp={nextStep} />;
+        return <Landing onNext={nextStep} />;
       case 1:
         return <Step1Hook onNext={nextStep} onBack={prevStep} />;
       case 2:
@@ -65,13 +66,16 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       case 6:
         return <Step5Solution onNext={nextStep} onBack={prevStep} />;
       case 7:
-        return <Step5bScreenTime onNext={nextStep} onBack={prevStep} onScreenTimeEnabled={setScreenTimeEnabled} />;
+        return <Step5bScreenTime onNext={nextStep} onBack={prevStep} onScreenTimeEnabled={(enabled, count) => {
+          setScreenTimeEnabled(enabled);
+          if (count) setRestrictedAppCount(count);
+        }} />;
       case 8:
         return <Step6Proof onNext={nextStep} onBack={prevStep} />;
       case 9:
         return <Step7Arsenal onNext={nextStep} onBack={prevStep} />;
       case 10:
-        return <Step8Payoff onComplete={() => onComplete(screenTimeEnabled)} onBack={prevStep} />;
+        return <Step8Payoff onComplete={() => onComplete(screenTimeEnabled, restrictedAppCount)} onBack={prevStep} />;
       default:
         return <Landing onNext={nextStep} />;
     }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ScrollView, Pressable, StyleSheet, Linking, Alert, Switch } from 'react-native';
-import { Settings, HelpCircle, Sun, Moon, LogOut, Shield, FileText, Trash2, Smartphone, Lock, Unlock } from 'lucide-react-native';
+import { HelpCircle, Sun, Moon, LogOut, Shield, FileText, Trash2, Smartphone, Lock, Unlock } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '../ui/Text';
 import type { UserStats } from '../types';
@@ -112,9 +112,9 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
           <Text weight="black" className={`text-xs ${subTextColorClass} uppercase tracking-widest mb-3 ml-1`}>Screen Time Control</Text>
           <View className={`${cardBgClass} rounded-3xl overflow-hidden`}>
              <View className={`flex-row items-center justify-between p-4 ${isDark ? 'border-b border-slate-800' : 'border-b border-slate-100'}`}>
-               <View className="flex-row items-center gap-3">
+               <View className="flex-row items-center gap-3 flex-1 mr-3">
                  <Lock size={18} color="#06b6d4" />
-                 <View>
+                 <View className="flex-1">
                    <Text weight="semibold" className={`text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>Active Enforcement</Text>
                    <Text weight="black" className="text-[9px] text-slate-500 uppercase tracking-widest">Limits daily screen time based on reps earned</Text>
                  </View>
@@ -195,13 +195,6 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
                </View>
              </Pressable>
              
-             <View className={`flex-row items-center justify-between p-4 ${isDark ? 'border-b border-slate-800' : 'border-b border-slate-100'}`}>
-               <View className="flex-row items-center gap-3">
-                 <Settings size={18} color="#94a3b8" />
-                 <Text weight="semibold" className={`text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>Settings</Text>
-               </View>
-             </View>
-
              <Pressable onPress={onLogout} className="flex-row items-center justify-between p-4">
                <View className="flex-row items-center gap-3">
                  <LogOut size={18} color="#f43f5e" />
