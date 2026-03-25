@@ -19,7 +19,6 @@ module.exports = function withScreenTime(config) {
 
   // 2. Add Info.plist entries for the Main App
   config = withInfoPlist(config, (config) => {
-    config.modResults['NSAppleMusicUsageDescription'] = 'FlowState needs access to monitor your app usage.';
     if (!config.modResults['UIBackgroundModes']) {
       config.modResults['UIBackgroundModes'] = [];
     }

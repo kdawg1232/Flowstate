@@ -10,8 +10,6 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Props {
   onNext: () => void;
-  onLogin?: () => void;
-  onSignUp?: () => void;
 }
 
 const Landing: React.FC<Props> = ({ onNext }) => (

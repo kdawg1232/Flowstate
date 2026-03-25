@@ -1,9 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Dimensions, FlatList, Pressable, StyleSheet, View, ViewToken } from 'react-native';
+import { Dimensions, FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { GameType, UserStats } from '../types';
-import { Brain } from 'lucide-react-native';
-import { Text } from '../ui/Text';
+import type { GameType } from '../types';
 
 // Ported Games
 import PulsePatternGame from '../components/games/PulsePatternGame';
@@ -122,30 +120,6 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
   }, []);
 
   const bg = isDark ? '#020617' : '#f8fafc';
-  const panelBorder = isDark ? '#0f172a' : '#e2e8f0';
-  const text = isDark ? '#ffffff' : '#0f172a';
-  const subText = isDark ? '#94a3b8' : '#64748b';
-
-  const ModeButton = ({ label, icon: Icon }: { label: string; icon: any }) => {
-    const active = true; // Always active for Mental in V1
-    return (
-      <Pressable
-        style={({ pressed }) => [
-          styles.modeButton,
-          {
-            backgroundColor: active ? (isDark ? '#1e293b' : '#ffffff') : isDark ? '#0f172a66' : '#f1f5f9',
-            borderColor: active ? (isDark ? '#334155' : '#cbd5e1') : isDark ? '#1e293b80' : '#e2e8f0',
-            opacity: pressed ? 0.7 : active ? 1 : 0.6,
-            transform: [{ scale: active ? 1.05 : 1 }],
-          },
-        ]}
-        disabled
-      >
-        <Icon size={18} color={active ? '#06b6d4' : (isDark ? '#64748b' : '#94a3b8')} />
-        <Text weight="black" style={[styles.modeButtonText, { color: active ? text : subText }]}>{label}</Text>
-      </Pressable>
-    );
-  };
 
   const onScrollXpRef = useRef(onScrollXp);
   onScrollXpRef.current = onScrollXp;
@@ -214,40 +188,6 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  modeBar: {
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-  },
-  modeBarInner: {
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    maxWidth: 500,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  modeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'column',
-    gap: 6,
-  },
-  modeButtonText: {
-    fontSize: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-  },
   feedItemFrame: {
     flex: 1,
     transform: [{ translateY: -12 }],

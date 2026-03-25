@@ -339,11 +339,11 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
           >
             {/* Header Pills - positioned below status bar with extra padding */}
             <View style={{ position: 'absolute', top: insets.top + 60, left: 0, right: 0 }} className="flex-row justify-between px-4">
-              <View className="flex-row items-center gap-2 bg-[#121620] border border-white/5 px-4 py-2 rounded-full">
+              <View className={`flex-row items-center gap-2 ${isDark ? 'bg-[#121620] border-white/5' : 'bg-white border-slate-200'} border px-4 py-2 rounded-full`}>
                 <Zap size={14} color="#6366f1" fill="#6366f1" />
                 <Text variant="mono" weight="bold" className="text-indigo-400 text-xs uppercase tracking-widest">LVL {level}</Text>
               </View>
-              <View className="flex-row items-center gap-2 bg-[#121620] border border-white/5 px-4 py-2 rounded-full">
+              <View className={`flex-row items-center gap-2 ${isDark ? 'bg-[#121620] border-white/5' : 'bg-white border-slate-200'} border px-4 py-2 rounded-full`}>
                 <Check size={14} color="#10b981" />
                 <Text variant="mono" weight="bold" className="text-emerald-500 text-xs uppercase tracking-widest">{userSequence.length} / {sequence.length}</Text>
               </View>

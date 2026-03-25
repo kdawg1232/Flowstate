@@ -13,8 +13,8 @@ class FlowStateMonitor: DeviceActivityMonitor {
         
         let sharedDefaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
         
-        // Record that the user hit their daily quota so the app can display it
-        let quota = sharedDefaults?.integer(forKey: "dailyQuota") ?? 0
+        // Record that the user hit their hourly quota so the app can display it
+        let quota = sharedDefaults?.integer(forKey: "hourlyQuota") ?? 0
         sharedDefaults?.set(quota, forKey: "usedMinutes")
         
         if let selectionData = sharedDefaults?.data(forKey: "selectedApps") {
@@ -29,7 +29,7 @@ class FlowStateMonitor: DeviceActivityMonitor {
     
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
-        // Reset shield and usage counter at the start of each new day
+        // Reset shield and usage counter at the start of each new hour
         store.shield.applications = nil
         store.shield.applicationCategories = nil
         store.shield.webDomains = nil

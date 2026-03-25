@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { View, ScrollView, StyleSheet, Dimensions, Pressable } from 'react-native';
+import { View, ScrollView, Dimensions, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
-import { Shield, Flame, Brain, Zap, Target, Dumbbell, BarChart3, Layers, Calculator, CheckCircle2 } from 'lucide-react-native';
+import { Target, BarChart3, CheckCircle2 } from 'lucide-react-native';
 import type { UserStats, Category } from '../types';
 import { Text } from '../ui/Text';
 import FlowPressure from '../components/FlowPressure';

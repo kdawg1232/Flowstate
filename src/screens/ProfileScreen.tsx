@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView, Pressable, StyleSheet, Linking, Alert, Switch } from 'react-native';
+import { View, ScrollView, Pressable, Linking, Alert, Switch } from 'react-native';
 import { HelpCircle, Sun, Moon, LogOut, Shield, FileText, Trash2, Smartphone, Lock, Unlock } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '../ui/Text';
@@ -7,8 +7,8 @@ import type { UserStats } from '../types';
 import ScreenTime from '../native/ScreenTime';
 import { getMilestoneForReps, UNLIMITED_MINUTES } from '../screentime';
 
-const handleOpenPrivacy = () => Linking.openURL('https://getflowstate.netlify.app/privacy');
-const handleOpenTerms = () => Linking.openURL('https://getflowstate.netlify.app/terms');
+const handleOpenPrivacy = () => Linking.openURL('https://getflowstate.netlify.app/privacy').catch(() => {});
+const handleOpenTerms = () => Linking.openURL('https://getflowstate.netlify.app/terms').catch(() => {});
 
 type Props = {
   theme: 'light' | 'dark';
@@ -23,12 +23,11 @@ type Props = {
 export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLogout, onDeleteAccount }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
-  const textColorClass = isDark ? 'text-white' : 'text-slate-900';
   const subTextColorClass = isDark ? 'text-slate-500' : 'text-slate-400';
   const cardBgClass = isDark ? 'bg-slate-900' : 'bg-white border border-slate-200';
   const bgClass = isDark ? 'bg-slate-950' : 'bg-slate-50';
 
-  const handleOpenSupport = () => Linking.openURL('https://getflowstate.netlify.app/support');
+  const handleOpenSupport = () => Linking.openURL('https://getflowstate.netlify.app/support').catch(() => {});
 
   const screenTime = stats.screenTime || {
     allocatedMinutes: 0,
@@ -81,7 +80,7 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
 
   const currentMilestone = getMilestoneForReps(stats.maxDailyReps || 0);
   const protocolName = currentMilestone ? `${currentMilestone.label.toUpperCase()} PROTOCOL` : 'BASE PROTOCOL';
-  const displayMinutes = screenTime.allocatedMinutes >= UNLIMITED_MINUTES ? '∞' : `${screenTime.allocatedMinutes}m/day`;
+  const displayMinutes = screenTime.allocatedMinutes >= UNLIMITED_MINUTES ? '∞' : `${screenTime.allocatedMinutes}m/hr`;
 
   const confirmDelete = () => {
     Alert.alert(
@@ -116,7 +115,7 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
                  <Lock size={18} color="#06b6d4" />
                  <View className="flex-1">
                    <Text weight="semibold" className={`text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>Active Enforcement</Text>
-                   <Text weight="black" className="text-[9px] text-slate-500 uppercase tracking-widest">Limits daily screen time based on reps earned</Text>
+                   <Text weight="black" className="text-[9px] text-slate-500 uppercase tracking-widest">Limits hourly screen time based on reps earned</Text>
                  </View>
                </View>
                <Switch 
@@ -150,7 +149,7 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
                      </View>
                      <View className="items-end">
                        <Text weight="black" variant="mono" className="text-slate-400 text-lg">{screenTime.usedMinutes}m</Text>
-                       <Text weight="bold" className="text-[10px] text-slate-500 uppercase">Daily Consumption</Text>
+                       <Text weight="bold" className="text-[10px] text-slate-500 uppercase">Hourly Usage</Text>
                      </View>
                   </View>
                   <View className={`h-1.5 w-full ${isDark ? 'bg-slate-800' : 'bg-slate-200'} rounded-full mt-3 overflow-hidden`}>

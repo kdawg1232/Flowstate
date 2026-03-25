@@ -14,7 +14,7 @@ import type { GameType, Tab, UserStats } from './src/types';
 import { FeedScreen } from './src/screens/FeedScreen';
 import { ProgressScreen } from './src/screens/ProgressScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
-import { calculateLevel, defaultStats, FLOWSTATE_AUTH_KEY, FLOWSTATE_LAST_LOGIN_KEY, FLOWSTATE_STATS_KEY, FLOWSTATE_CURRENT_USER_KEY } from './src/initialState';
+import { calculateLevel, defaultStats, FLOWSTATE_AUTH_KEY, FLOWSTATE_LAST_LOGIN_KEY, FLOWSTATE_STATS_KEY, FLOWSTATE_CURRENT_USER_KEY, FLOWSTATE_USERS_KEY } from './src/initialState';
 import { getJson, getString, remove, setJson, setString } from './src/storage';
 import { useFlowstateFonts } from './src/ui/Fonts';
 import { LayoutGrid, BarChart3, User as UserIcon } from 'lucide-react-native';
@@ -108,11 +108,16 @@ export default function App() {
         if (savedUsername) setUsername(savedUsername);
       }
       if (savedStats) {
+        const defaults = defaultStats();
         setStats({
-          ...defaultStats(),
+          ...defaults,
           ...savedStats,
+          gameStats: {
+            ...defaults.gameStats,
+            ...(savedStats.gameStats || {}),
+          },
           screenTime: {
-            ...defaultStats().screenTime,
+            ...defaults.screenTime,
             ...(savedStats.screenTime || {}),
           },
           habits: savedStats.habits || [],
@@ -324,12 +329,13 @@ export default function App() {
   };
 
   const handleDeleteAccount = async () => {
-    // According to App Store Review Guideline 5.1.1(v), 
-    // we must provide a way to delete the account and all associated data.
+    // App Store Review Guideline 5.1.1(v): delete all associated data
     await remove(FLOWSTATE_AUTH_KEY);
     await remove(FLOWSTATE_STATS_KEY);
     await remove(FLOWSTATE_LAST_LOGIN_KEY);
     await remove(FLOWSTATE_CURRENT_USER_KEY);
+    await remove(FLOWSTATE_USERS_KEY);
+    await remove(FLOWSTATE_LAST_CALIBRATION_RESET_KEY);
     setStats(defaultStats());
     setIsLoggedIn(false);
   };

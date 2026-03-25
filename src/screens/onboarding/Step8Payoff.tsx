@@ -6,8 +6,8 @@ import { Brain } from 'lucide-react-native';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { Text } from '../../ui/Text';
 
-const TERMS_URL = 'https://flowstate.app/terms';
-const PRIVACY_URL = 'https://flowstate.app/privacy';
+const TERMS_URL = 'https://getflowstate.netlify.app/terms';
+const PRIVACY_URL = 'https://getflowstate.netlify.app/privacy';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 

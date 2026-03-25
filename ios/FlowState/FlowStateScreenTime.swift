@@ -95,7 +95,7 @@ class ScreenTimeModule: NSObject {
         logger.log("Setting Screen Time budget to \(minutes) minutes")
         let sharedDefaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
         logger.log("Shared defaults available: \(sharedDefaults != nil)")
-        sharedDefaults?.set(minutes, forKey: "dailyQuota")
+        sharedDefaults?.set(minutes, forKey: "hourlyQuota")
         
         // If selection is empty, try to load from UserDefaults FIRST
         if selection.applicationTokens.isEmpty && selection.categoryTokens.isEmpty && selection.webDomainTokens.isEmpty {
@@ -110,9 +110,9 @@ class ScreenTimeModule: NSObject {
             logger.log("Selection web domains: \(self.selection.webDomainTokens.count)")
         }
         
-        // If minutes are high (unlimited / full day), remove any existing shield immediately
-        if minutes >= 1440 {
-            logger.log("Minutes >= 1440 (unlimited), clearing existing shields")
+        // If minutes are high (unlimited / full hour), remove any existing shield immediately
+        if minutes >= 60 {
+            logger.log("Minutes >= 60 (unlimited), clearing existing shields")
             store.shield.applications = nil
             store.shield.applicationCategories = nil
             store.shield.webDomains = nil
@@ -127,13 +127,13 @@ class ScreenTimeModule: NSObject {
             logger.log("Shields applied from main app")
         }
         
-        let dailySchedule = DeviceActivitySchedule(
-            intervalStart: DateComponents(hour: 0, minute: 0),
-            intervalEnd: DateComponents(hour: 23, minute: 59),
+        let hourlySchedule = DeviceActivitySchedule(
+            intervalStart: DateComponents(minute: 0),
+            intervalEnd: DateComponents(minute: 59),
             repeats: true
         )
         
-        logger.log("Configuring DeviceActivityEvent with threshold: \(minutes)m")
+        logger.log("Configuring DeviceActivityEvent with threshold: \(minutes)m per hour")
         let events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [
             .reachedLimit: DeviceActivityEvent(
                 applications: selection.applicationTokens,
@@ -145,10 +145,10 @@ class ScreenTimeModule: NSObject {
         logger.log("Event configured: apps=\(self.selection.applicationTokens.count), categories=\(self.selection.categoryTokens.count), webDomains=\(self.selection.webDomainTokens.count)")
         
         do {
-            // Stop any legacy hourly monitoring from older app versions
-            activityCenter.stopMonitoring([.hourlyBudget])
-            logger.log("Starting monitoring for .dailyBudget")
-            try activityCenter.startMonitoring(.dailyBudget, during: dailySchedule, events: events)
+            // Stop any legacy daily monitoring from older app versions
+            activityCenter.stopMonitoring([.dailyBudget])
+            logger.log("Starting monitoring for .hourlyBudget")
+            try activityCenter.startMonitoring(.hourlyBudget, during: hourlySchedule, events: events)
             logger.log("Monitoring started successfully")
             resolve(nil)
         } catch {

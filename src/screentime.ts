@@ -1,11 +1,11 @@
 export const MILESTONES = [
-  { reps: 250, label: 'Focused', reward: 30, rewardLabel: '30 Minutes per Day' },
-  { reps: 500, label: 'High Performance', reward: 60, rewardLabel: '1 Hour per Day' },
-  { reps: 750, label: 'Peak Calibration', reward: 120, rewardLabel: '2 Hours per Day' },
-  { reps: 1000, label: 'FLOWSTATE', reward: 1440, rewardLabel: 'Unlimited' },
+  { reps: 250, label: 'Focused', reward: 10, rewardLabel: '10 Minutes per Hour' },
+  { reps: 500, label: 'High Performance', reward: 15, rewardLabel: '15 Minutes per Hour' },
+  { reps: 750, label: 'Peak Calibration', reward: 20, rewardLabel: '20 Minutes per Hour' },
+  { reps: 1000, label: 'FLOWSTATE', reward: 60, rewardLabel: 'Unlimited' },
 ];
 
-export const UNLIMITED_MINUTES = 1440;
+export const UNLIMITED_MINUTES = 60;
 
 export function getMilestoneForReps(reps: number) {
   for (let i = MILESTONES.length - 1; i >= 0; i--) {

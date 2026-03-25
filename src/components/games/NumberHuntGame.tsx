@@ -148,7 +148,7 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
       setFeedback('wrong');
       safeTimeout(() => {
         setGameState(GameState.FINISHED);
-        onComplete(level * 10, false);
+        onComplete(Math.max(0, (level - 1) * 10), false);
       }, 600);
     }
   };
@@ -353,14 +353,14 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
               transition={{ type: 'timing', duration: 300 }}
               className="flex-1 items-center justify-center px-6"
             >
-              <View className="w-20 h-20 rounded-full bg-emerald-500/20 items-center justify-center mb-8 border border-emerald-500/40">
-                <AlertTriangle color="#10b981" size={40} />
+              <View className={`w-20 h-20 rounded-full ${feedback === 'correct' ? 'bg-emerald-500/20 border-emerald-500/40' : 'bg-rose-500/20 border-rose-500/40'} items-center justify-center mb-8 border`}>
+                {feedback === 'correct' ? <Check color="#10b981" size={40} /> : <AlertTriangle color="#f43f5e" size={40} />}
               </View>
               <Text weight="black" className={`text-3xl italic mb-2 uppercase tracking-tighter text-center ${textColor}`}>
                 Total reps logged
               </Text>
-              <Text variant="mono" className="text-emerald-400 text-2xl tracking-widest uppercase mb-10">
-                {level * 10} reps logged
+              <Text variant="mono" className={`${feedback === 'correct' ? 'text-emerald-400' : 'text-rose-400'} text-2xl tracking-widest uppercase mb-10`}>
+                +{feedback === 'correct' ? level * 10 : Math.max(0, (level - 1) * 10)}
               </Text>
 
               <View className="items-center gap-2 opacity-40">
