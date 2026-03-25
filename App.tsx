@@ -50,14 +50,18 @@ export default function App() {
     }
   }, []);
 
-  // Check for pending deep links from shield (stored in shared UserDefaults)
   const checkPendingDeepLink = useCallback(async () => {
     if (Platform.OS !== 'ios') return;
     
     try {
-      // We can't directly read UserDefaults from JS, but we can check the initial URL
       const initialUrl = await Linking.getInitialURL();
       handleDeepLink(initialUrl);
+      
+      // Also check shared UserDefaults for deep links stored by shield extensions
+      const pending = await ScreenTime.getPendingDeepLink();
+      if (pending) {
+        handleDeepLink(`flowstate://${pending}`);
+      }
     } catch (e) {
       console.error('Error checking deep link:', e);
     }
@@ -239,7 +243,7 @@ export default function App() {
           isDaySealed: false,
           screenTime: {
             ...nextStats.screenTime,
-            allocatedMinutes: 0, // Reset hourly allocation
+            allocatedMinutes: 0,
             usedMinutes: 0,
             maxMilestoneReached: 0, // Reset milestone tracker
             lastUpdateTimestamp: Date.now(),

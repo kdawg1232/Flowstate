@@ -11,14 +11,15 @@ class FlowStateMonitor: DeviceActivityMonitor {
     override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
         super.eventDidReachThreshold(event, activity: activity)
         
-        // This is called when the user reaches their hourly limit
         let sharedDefaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
         
-        // Retrieve the saved selection (encoded as Data)
+        // Record that the user hit their daily quota so the app can display it
+        let quota = sharedDefaults?.integer(forKey: "dailyQuota") ?? 0
+        sharedDefaults?.set(quota, forKey: "usedMinutes")
+        
         if let selectionData = sharedDefaults?.data(forKey: "selectedApps") {
             let decoder = JSONDecoder()
             if let selection = try? decoder.decode(FamilyActivitySelection.self, from: selectionData) {
-                // Apply the shield to selected apps
                 store.shield.applications = selection.applicationTokens
                 store.shield.applicationCategories = .specific(selection.categoryTokens)
                 store.shield.webDomains = selection.webDomainTokens
@@ -28,10 +29,12 @@ class FlowStateMonitor: DeviceActivityMonitor {
     
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
-        // Reset shield at the start of every hour
+        // Reset shield and usage counter at the start of each new day
         store.shield.applications = nil
         store.shield.applicationCategories = nil
         store.shield.webDomains = nil
+        let sharedDefaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
+        sharedDefaults?.set(0, forKey: "usedMinutes")
     }
 
     override func intervalDidEnd(for activity: DeviceActivityName) {

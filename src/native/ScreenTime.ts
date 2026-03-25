@@ -11,17 +11,19 @@ if (!ScreenTimeModule && Platform.OS === 'ios') {
 export interface ScreenTimeInterface {
   requestAuthorization(): Promise<boolean>;
   setScreenTimeBudget(minutes: number): Promise<void>;
-  selectAppsToRestrict(): Promise<string[]>;
+  selectAppsToRestrict(): Promise<number>;
   getUsedMinutes(): Promise<number>;
   clearShield(): Promise<boolean>;
+  getPendingDeepLink(): Promise<string | null>;
 }
 
 const dummyImplementation: ScreenTimeInterface = {
   requestAuthorization: async () => true,
   setScreenTimeBudget: async () => {},
-  selectAppsToRestrict: async () => [],
+  selectAppsToRestrict: async () => 0,
   getUsedMinutes: async () => 0,
   clearShield: async () => true,
+  getPendingDeepLink: async () => null,
 };
 
 const ScreenTime: ScreenTimeInterface = Platform.OS === 'ios' && ScreenTimeModule 

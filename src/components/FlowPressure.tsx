@@ -84,13 +84,13 @@ export default function FlowPressure({ dailyReps, maxDailyReps, theme }: Props) 
                     {m.label} Protocol
                   </Text>
                   <Text weight="bold" className={`text-[9px] ${subTextColor}`}>
-                    {m.rewardLabel} Screen Time
+                    {m.rewardLabel}
                   </Text>
                 </View>
               </View>
               <View className="items-end">
                 <Text variant="mono" weight="bold" className={`text-[10px] ${isUnlocked ? 'text-cyan-500' : subTextColor}`}>
-                  {isUnlocked ? Math.min(m.reps, Math.floor(maxDailyReps)) : Math.floor(dailyReps)} <Text className="text-[8px] opacity-50">/ {m.reps}</Text>
+                  {Math.min(m.reps, Math.floor(maxDailyReps))} <Text className="text-[8px] opacity-50">/ {m.reps}</Text>
                 </Text>
               </View>
             </View>
@@ -114,7 +114,7 @@ export default function FlowPressure({ dailyReps, maxDailyReps, theme }: Props) 
           </View>
           <View className="items-end">
             <Text variant="mono" weight="bold" className={`text-[10px] ${maxDailyReps >= 1000 ? 'text-cyan-500' : subTextColor}`}>
-              {maxDailyReps >= 1000 ? '1000' : Math.floor(dailyReps)} <Text className="text-[8px] opacity-50">/ 1000</Text>
+              {Math.min(1000, Math.floor(maxDailyReps))} <Text className="text-[8px] opacity-50">/ 1000</Text>
             </Text>
           </View>
         </View>

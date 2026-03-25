@@ -41,10 +41,10 @@ export interface GameStat {
 export interface ScreenTimeStats {
   allocatedMinutes: number;
   usedMinutes: number;
-  restrictedAppTokens: string[]; // Persistent tokens from FamilyControls
+  restrictedAppCount: number;
   isTrackingEnabled: boolean;
-  maxMilestoneReached: number; // The highest rep count milestone reached today
-  lastUpdateTimestamp: number; // For neural decay calculations
+  maxMilestoneReached: number;
+  lastUpdateTimestamp: number;
 }
 
 export interface UserStats {

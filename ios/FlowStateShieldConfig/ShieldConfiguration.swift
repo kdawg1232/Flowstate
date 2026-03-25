@@ -18,7 +18,7 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
                 color: UIColor(red: 6/255, green: 182/255, blue: 212/255, alpha: 1.0)
             ),
             subtitle: ShieldConfiguration.Label(
-                text: "You've reached your hourly limit.\nEarn more screen time with reps.",
+                text: "You've reached your daily limit.\nEarn more screen time with reps.",
                 color: UIColor(red: 148/255, green: 163/255, blue: 184/255, alpha: 1.0)
             ),
             primaryButtonLabel: ShieldConfiguration.Label(

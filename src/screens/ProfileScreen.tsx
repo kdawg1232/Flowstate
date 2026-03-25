@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '../ui/Text';
 import type { UserStats } from '../types';
 import ScreenTime from '../native/ScreenTime';
-import { getMilestoneForReps } from '../screentime';
+import { getMilestoneForReps, UNLIMITED_MINUTES } from '../screentime';
 
 const handleOpenPrivacy = () => Linking.openURL('https://getflowstate.netlify.app/privacy');
 const handleOpenTerms = () => Linking.openURL('https://getflowstate.netlify.app/terms');
@@ -33,7 +33,7 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
   const screenTime = stats.screenTime || {
     allocatedMinutes: 0,
     usedMinutes: 0,
-    restrictedAppTokens: [],
+    restrictedAppCount: 0,
     isTrackingEnabled: false
   };
 
@@ -66,12 +66,12 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
 
   const selectApps = async () => {
     try {
-      const tokens = await ScreenTime.selectAppsToRestrict();
+      const count = await ScreenTime.selectAppsToRestrict();
       onUpdateStats({
         ...stats,
         screenTime: {
           ...screenTime,
-          restrictedAppTokens: tokens
+          restrictedAppCount: typeof count === 'number' ? count : 0,
         }
       });
     } catch (error) {
@@ -81,7 +81,7 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
 
   const currentMilestone = getMilestoneForReps(stats.maxDailyReps || 0);
   const protocolName = currentMilestone ? `${currentMilestone.label.toUpperCase()} PROTOCOL` : 'BASE PROTOCOL';
-  const displayMinutes = screenTime.allocatedMinutes === 60 ? '∞' : `${screenTime.allocatedMinutes}m/hr`;
+  const displayMinutes = screenTime.allocatedMinutes >= UNLIMITED_MINUTES ? '∞' : `${screenTime.allocatedMinutes}m/day`;
 
   const confirmDelete = () => {
     Alert.alert(
@@ -116,7 +116,7 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
                  <Lock size={18} color="#06b6d4" />
                  <View>
                    <Text weight="semibold" className={`text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>Active Enforcement</Text>
-                   <Text weight="black" className="text-[9px] text-slate-500 uppercase tracking-widest">Blocks apps when reps run out</Text>
+                   <Text weight="black" className="text-[9px] text-slate-500 uppercase tracking-widest">Limits daily screen time based on reps earned</Text>
                  </View>
                </View>
                <Switch 
@@ -137,35 +137,37 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
                  <Text weight="semibold" className={`text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>Restricted Apps</Text>
                </View>
                <View className="flex-row items-center gap-2">
-                 <Text weight="bold" className="text-xs text-cyan-500">{screenTime.restrictedAppTokens.length} Selected</Text>
+                 <Text weight="bold" className="text-xs text-cyan-500">{screenTime.restrictedAppCount || 0} Selected</Text>
                </View>
              </Pressable>
 
-             <View className="p-4 bg-cyan-500/5">
-                <View className="flex-row justify-between items-end">
-                   <View>
-                     <Text weight="black" variant="mono" className="text-cyan-500 text-lg">{displayMinutes}</Text>
-                     <Text weight="bold" className="text-[10px] text-slate-500 uppercase">{protocolName}</Text>
-                   </View>
-                   <View className="items-end">
-                     <Text weight="black" variant="mono" className="text-slate-400 text-lg">{screenTime.usedMinutes}m</Text>
-                     <Text weight="bold" className="text-[10px] text-slate-500 uppercase">Hourly Consumption</Text>
-                   </View>
-                </View>
-                <View className="h-1.5 w-full bg-slate-800 rounded-full mt-3 overflow-hidden">
-                   <View 
-                     className="h-full bg-cyan-500" 
-                     style={{ width: `${Math.min(100, (screenTime.usedMinutes / (screenTime.allocatedMinutes || 1)) * 100)}%` }} 
-                   />
-                </View>
-             </View>
+             {screenTime.isTrackingEnabled && (
+               <View className="p-4 bg-cyan-500/5">
+                  <View className="flex-row justify-between items-end">
+                     <View>
+                       <Text weight="black" variant="mono" className="text-cyan-500 text-lg">{displayMinutes}</Text>
+                       <Text weight="bold" className="text-[10px] text-slate-500 uppercase">{protocolName}</Text>
+                     </View>
+                     <View className="items-end">
+                       <Text weight="black" variant="mono" className="text-slate-400 text-lg">{screenTime.usedMinutes}m</Text>
+                       <Text weight="bold" className="text-[10px] text-slate-500 uppercase">Daily Consumption</Text>
+                     </View>
+                  </View>
+                  <View className={`h-1.5 w-full ${isDark ? 'bg-slate-800' : 'bg-slate-200'} rounded-full mt-3 overflow-hidden`}>
+                     <View 
+                       className="h-full bg-cyan-500" 
+                       style={{ width: `${Math.min(100, (screenTime.usedMinutes / (screenTime.allocatedMinutes || 1)) * 100)}%` }} 
+                     />
+                  </View>
+               </View>
+             )}
 
              {screenTime.isTrackingEnabled && (
                <Pressable 
                  onPress={async () => {
                    try {
                      await ScreenTime.clearShield();
-                     Alert.alert("Restriction Removed", "App restrictions have been cleared. You can now use your apps freely until your next hourly limit is reached.");
+                     Alert.alert("Restriction Removed", "App restrictions have been cleared for today. Monitoring will resume when you earn more screen time through reps.");
                    } catch (error) {
                      console.error('Failed to clear shield:', error);
                      Alert.alert("Error", "Failed to remove restriction. Please try again.");

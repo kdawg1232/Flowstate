@@ -95,7 +95,7 @@ class ScreenTimeModule: NSObject {
         logger.log("Setting Screen Time budget to \(minutes) minutes")
         let sharedDefaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
         logger.log("Shared defaults available: \(sharedDefaults != nil)")
-        sharedDefaults?.set(minutes, forKey: "hourlyQuota")
+        sharedDefaults?.set(minutes, forKey: "dailyQuota")
         
         // If selection is empty, try to load from UserDefaults FIRST
         if selection.applicationTokens.isEmpty && selection.categoryTokens.isEmpty && selection.webDomainTokens.isEmpty {
@@ -110,9 +110,9 @@ class ScreenTimeModule: NSObject {
             logger.log("Selection web domains: \(self.selection.webDomainTokens.count)")
         }
         
-        // If minutes are high (e.g. 60), we remove any existing shield immediately
-        if minutes >= 60 {
-            logger.log("Minutes >= 60, clearing existing shields")
+        // If minutes are high (unlimited / full day), remove any existing shield immediately
+        if minutes >= 1440 {
+            logger.log("Minutes >= 1440 (unlimited), clearing existing shields")
             store.shield.applications = nil
             store.shield.applicationCategories = nil
             store.shield.webDomains = nil
@@ -127,7 +127,7 @@ class ScreenTimeModule: NSObject {
             logger.log("Shields applied from main app")
         }
         
-        let hourlySchedule = DeviceActivitySchedule(
+        let dailySchedule = DeviceActivitySchedule(
             intervalStart: DateComponents(hour: 0, minute: 0),
             intervalEnd: DateComponents(hour: 23, minute: 59),
             repeats: true
@@ -145,8 +145,10 @@ class ScreenTimeModule: NSObject {
         logger.log("Event configured: apps=\(self.selection.applicationTokens.count), categories=\(self.selection.categoryTokens.count), webDomains=\(self.selection.webDomainTokens.count)")
         
         do {
-            logger.log("Starting monitoring for .hourlyBudget")
-            try activityCenter.startMonitoring(.hourlyBudget, during: hourlySchedule, events: events)
+            // Stop any legacy hourly monitoring from older app versions
+            activityCenter.stopMonitoring([.hourlyBudget])
+            logger.log("Starting monitoring for .dailyBudget")
+            try activityCenter.startMonitoring(.dailyBudget, during: dailySchedule, events: events)
             logger.log("Monitoring started successfully")
             resolve(nil)
         } catch {
@@ -154,6 +156,8 @@ class ScreenTimeModule: NSObject {
             reject("MONITOR_FAILED", "Failed to start monitoring: \(error.localizedDescription)", error)
         }
     }
+
+    private var pickerResolve: RCTPromiseResolveBlock?
 
     @objc
     func selectAppsToRestrict(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
@@ -164,12 +168,15 @@ class ScreenTimeModule: NSObject {
         }
         logger.log("Opening FamilyActivityPicker...")
         DispatchQueue.main.async {
+            self.pickerResolve = resolve
             let picker = FamilyActivityPicker(selection: Binding(
                 get: { self.selection },
                 set: { self.selection = $0 }
             ))
             
             let hostingController = UIHostingController(rootView: picker)
+            hostingController.presentationController?.delegate = self
+            
             let rootVC = UIApplication.shared.connectedScenes
                 .compactMap { $0 as? UIWindowScene }
                 .flatMap { $0.windows }
@@ -178,13 +185,20 @@ class ScreenTimeModule: NSObject {
 
             if let vc = rootVC {
                 vc.present(hostingController, animated: true)
-                self.logger.log("Picker presented")
-                resolve(true)
+                self.logger.log("Picker presented, waiting for dismissal")
             } else {
                 self.logger.error("Failed to find root view controller to present picker")
+                self.pickerResolve = nil
                 reject("NO_ROOT_VC", "Could not find root view controller", nil)
             }
         }
+    }
+
+    private func resolvePickerWithCount() {
+        let count = selection.applicationTokens.count + selection.categoryTokens.count + selection.webDomainTokens.count
+        logger.log("Picker dismissed. Selected items: \(count)")
+        pickerResolve?(count)
+        pickerResolve = nil
     }
 
     @objc
@@ -201,18 +215,49 @@ class ScreenTimeModule: NSObject {
     }
 
     @objc
+    func getPendingDeepLink(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        let sharedDefaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
+        let link = sharedDefaults?.string(forKey: "pendingDeepLink")
+        let timestamp = sharedDefaults?.double(forKey: "pendingDeepLinkTimestamp") ?? 0
+        
+        if let link = link, timestamp > 0 {
+            let age = Date().timeIntervalSince1970 - timestamp
+            // Only return links created within the last 5 minutes
+            if age < 300 {
+                sharedDefaults?.removeObject(forKey: "pendingDeepLink")
+                sharedDefaults?.removeObject(forKey: "pendingDeepLinkTimestamp")
+                logger.log("Returning pending deep link: \(link)")
+                resolve(link)
+                return
+            }
+        }
+        
+        sharedDefaults?.removeObject(forKey: "pendingDeepLink")
+        sharedDefaults?.removeObject(forKey: "pendingDeepLinkTimestamp")
+        resolve(nil)
+    }
+
+    @objc
     func clearShield(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
         guard #available(iOS 16.0, *) else {
             logger.error("clearShield called on unsupported iOS version")
             reject("UNSUPPORTED_IOS", "Screen Time requires iOS 16.0 or later", nil)
             return
         }
-        logger.log("Clearing all shields...")
+        logger.log("Clearing all shields and stopping monitoring...")
         store.shield.applications = nil
         store.shield.applicationCategories = nil
         store.shield.webDomains = nil
-        logger.log("All shields cleared successfully")
+        activityCenter.stopMonitoring([.dailyBudget, .hourlyBudget])
+        logger.log("Shields cleared and monitoring stopped")
         resolve(true)
+    }
+}
+
+@available(iOS 16.0, *)
+extension ScreenTimeModule: UIAdaptivePresentationControllerDelegate {
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        resolvePickerWithCount()
     }
 }
 

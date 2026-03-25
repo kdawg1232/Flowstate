@@ -71,15 +71,12 @@ const Step5bScreenTime: React.FC<Props> = ({ onNext, onBack, onScreenTimeEnabled
 
   const handleSelectApps = async () => {
     try {
-      await ScreenTime.selectAppsToRestrict();
-      setSelectedApps(true);
-      
-      // Set initial budget to 0 minutes - this starts blocking apps immediately
-      // User must earn time through reps to access them
-      await ScreenTime.setScreenTimeBudget(0);
-      
-      // Notify parent that Screen Time is fully configured
-      onScreenTimeEnabled(true);
+      const count = await ScreenTime.selectAppsToRestrict();
+      if (typeof count === 'number' && count > 0) {
+        setSelectedApps(true);
+        await ScreenTime.setScreenTimeBudget(0);
+        onScreenTimeEnabled(true);
+      }
     } catch (error) {
       console.error('App selection error:', error);
     }
@@ -275,7 +272,7 @@ const Step5bScreenTime: React.FC<Props> = ({ onNext, onBack, onScreenTimeEnabled
             </Text>
           </Pressable>
 
-          {!authorized && (
+          {!isComplete && (
             <Pressable 
               onPress={onNext}
               className="w-full py-4 items-center active:scale-95"

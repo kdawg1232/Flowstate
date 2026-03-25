@@ -42,7 +42,7 @@ export function defaultStats(): UserStats {
     screenTime: {
       allocatedMinutes: 0,
       usedMinutes: 0,
-      restrictedAppTokens: [],
+      restrictedAppCount: 0,
       isTrackingEnabled: false,
       maxMilestoneReached: 0,
       lastUpdateTimestamp: Date.now(),
