@@ -1,10 +1,13 @@
 import React from 'react';
-import { View, Pressable, Dimensions } from 'react-native';
+import { View, Pressable, Dimensions, Linking } from 'react-native';
 import { MotiView } from 'moti';
 import { Easing } from 'react-native-reanimated';
 import { Brain } from 'lucide-react-native';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { Text } from '../../ui/Text';
+
+const TERMS_URL = 'https://flowstate.app/terms';
+const PRIVACY_URL = 'https://flowstate.app/privacy';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -123,6 +126,23 @@ const Step8Payoff: React.FC<Props> = ({ onComplete, onBack }) => (
           ENTER FLOWSTATE
         </Text>
       </Pressable>
+
+      <Text className="text-slate-500 text-[10px] text-center mt-6 leading-relaxed px-4">
+        By continuing, you agree to our{' '}
+        <Text
+          className="text-slate-400 underline text-[10px]"
+          onPress={() => Linking.openURL(TERMS_URL)}
+        >
+          Terms of Service
+        </Text>
+        {' '}and{' '}
+        <Text
+          className="text-slate-400 underline text-[10px]"
+          onPress={() => Linking.openURL(PRIVACY_URL)}
+        >
+          Privacy Policy
+        </Text>
+      </Text>
     </View>
   </View>
 );

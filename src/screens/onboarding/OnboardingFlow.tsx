@@ -84,7 +84,8 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
           <View className="absolute top-16 left-6 right-6 flex-row items-center z-[200]">
             <Pressable 
               onPress={prevStep}
-              className="p-2 mr-4"
+              hitSlop={8}
+              className="p-2.5 mr-3"
             >
               <ArrowLeft size={24} color="#64748b" />
             </Pressable>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Pressable, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView, AnimatePresence } from 'moti';
@@ -93,6 +93,16 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const [timeLeft, setTimeLeft] = useState(20);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+
+  const safeTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      timeoutsRef.current = timeoutsRef.current.filter(t => t !== id);
+      fn();
+    }, ms);
+    timeoutsRef.current.push(id);
+    return id;
+  }, []);
 
   const isDark = theme === 'dark';
   const insets = useSafeAreaInsets();
@@ -122,8 +132,7 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
     setShapeHistory([]);
     setGameState(GameState.OBSERVATION);
 
-    // After brief observation, start playing
-    setTimeout(() => {
+    safeTimeout(() => {
       nextRound([], 1);
     }, 1000);
   };
@@ -154,28 +163,40 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
     if (!isActive) {
       setGameState(GameState.IDLE);
       if (timerRef.current) clearInterval(timerRef.current);
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
     }
   }, [isActive]);
 
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
+    };
+  }, []);
+
   const finishedScoreRef = useRef(0);
+
+  useEffect(() => {
+    finishedScoreRef.current = score;
+  }, [score]);
 
   useEffect(() => {
     if (gameState === GameState.PLAYING && timeLeft > 0) {
       timerRef.current = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
     } else if (timeLeft <= 0 && gameState === GameState.PLAYING) {
       if (timerRef.current) clearInterval(timerRef.current);
-      finishedScoreRef.current = score;
       setGameState(GameState.FINISHED);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [gameState, timeLeft, score]);
+  }, [gameState, timeLeft]);
 
   useEffect(() => {
     if (gameState === GameState.FINISHED) {
-      const timer = setTimeout(() => onComplete(finishedScoreRef.current, true), 1200);
-      return () => clearTimeout(timer);
+      const id = safeTimeout(() => onComplete(finishedScoreRef.current, true), 1200);
+      return () => clearTimeout(id);
     }
-  }, [gameState, onComplete]);
+  }, [gameState, onComplete, safeTimeout]);
 
   const handleDecision = (userSaysMatch: boolean) => {
     if (gameState !== GameState.PLAYING) return;
@@ -208,7 +229,7 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
     const trimmedHistory = newHistory.slice(-4);
     setShapeHistory(trimmedHistory);
     
-    setTimeout(() => {
+    safeTimeout(() => {
       nextRound(trimmedHistory, round + 1);
     }, 200);
   };
@@ -241,7 +262,7 @@ function SignalScanGame({ onComplete, isActive, theme = 'dark' }: Props) {
               </View>
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase ${textColorClass}`}>Shape Memory</Text>
-            <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">
+            <Pressable onPress={() => setShowInfo(true)} hitSlop={12} className="mb-2 p-2 self-center">
               <Info size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#64748b'} />
             </Pressable>
             <Text className={`${subTextColorClass} text-xs uppercase tracking-[0.2em] mb-10 text-center max-w-[260px] leading-relaxed`}>

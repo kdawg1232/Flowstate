@@ -445,7 +445,7 @@ export default function App() {
                 <Pressable
                   key={t.id}
                   onPress={() => setActiveTab(t.id)}
-                  className="items-center justify-center gap-1 flex-1 h-full"
+                  className="items-center justify-center gap-1 flex-1 h-full pt-2"
                   style={({ pressed }) => [pressed && { opacity: 0.7 }]}
                 >
                   <Icon size={22} color={active ? '#06b6d4' : navIconInactive} />

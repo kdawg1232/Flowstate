@@ -29,6 +29,17 @@ function LogicLinkGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [trial, setTrial] = useState<{ topWord: string; bottomWord: string; bottomColorHex: string; isMatch: boolean } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scoreRef = useRef(0);
+  const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+
+  const safeTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      timeoutsRef.current = timeoutsRef.current.filter(t => t !== id);
+      fn();
+    }, ms);
+    timeoutsRef.current.push(id);
+    return id;
+  }, []);
 
   const isDark = theme === 'dark';
   const insets = useSafeAreaInsets();
@@ -55,14 +66,26 @@ function LogicLinkGame({ onComplete, isActive, theme = 'dark' }: Props) {
 
   const startGame = () => {
     setScore(0);
+    scoreRef.current = 0;
     setTimeLeft(15);
     setGameState(GameState.PLAYING);
     generateTrial();
   };
 
   useEffect(() => {
-    if (!isActive) setGameState(GameState.IDLE);
+    if (!isActive) {
+      setGameState(GameState.IDLE);
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
+    }
   }, [isActive]);
+
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     if (gameState === GameState.PLAYING && timeLeft > 0) {
@@ -70,20 +93,21 @@ function LogicLinkGame({ onComplete, isActive, theme = 'dark' }: Props) {
     } else if (timeLeft <= 0 && gameState === GameState.PLAYING) {
       setGameState(GameState.FINISHED);
       if (timerRef.current) clearInterval(timerRef.current);
-      setTimeout(() => onComplete(score, true), 100);
+      safeTimeout(() => onComplete(scoreRef.current, true), 100);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [gameState, timeLeft, score, onComplete]);
+  }, [gameState, timeLeft, onComplete, safeTimeout]);
 
   const handleDecision = (choice: boolean) => {
     if (gameState !== GameState.PLAYING || !trial) return;
     if (choice === trial.isMatch) {
       setScore(s => s + 1);
+      scoreRef.current += 1;
       setFeedback('correct');
-      setTimeout(generateTrial, 100);
+      safeTimeout(generateTrial, 100);
     } else {
       setFeedback('wrong');
-      setTimeout(generateTrial, 300);
+      safeTimeout(generateTrial, 300);
     }
   };
 
@@ -103,7 +127,7 @@ function LogicLinkGame({ onComplete, isActive, theme = 'dark' }: Props) {
               </View>
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase ${textColorClass}`}>Logic Link</Text>
-            <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">
+            <Pressable onPress={() => setShowInfo(true)} hitSlop={12} className="mb-2 p-2 self-center">
               <Info size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#64748b'} />
             </Pressable>
             <Text className={`${subTextColorClass} text-[10px] uppercase tracking-[0.2em] mb-10 text-center max-w-[280px]`}>

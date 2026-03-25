@@ -22,6 +22,16 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasReportedCompletionRef = useRef(false);
+  const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+
+  const safeTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      timeoutsRef.current = timeoutsRef.current.filter(t => t !== id);
+      fn();
+    }, ms);
+    timeoutsRef.current.push(id);
+    return id;
+  }, []);
 
   const isDark = theme === 'dark';
   const insets = useSafeAreaInsets();
@@ -87,8 +97,17 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
     if (!isActive) {
       hasReportedCompletionRef.current = false;
       setGameState(GameState.IDLE);
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
     }
   }, [isActive]);
+
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     if (gameState === GameState.PLAYING && timeLeft > 0) {
@@ -113,10 +132,10 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
     if (val === trial.answer) {
       setScore(s => s + 1);
       setFeedback('correct');
-      setTimeout(generateTrial, 150);
+      safeTimeout(generateTrial, 150);
     } else {
       setFeedback('wrong');
-      setTimeout(generateTrial, 400);
+      safeTimeout(generateTrial, 400);
     }
   };
 
@@ -154,7 +173,7 @@ function MentalMathGame({ onComplete, isActive, theme = 'dark' }: Props) {
               </View>
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase ${textColorClass}`}>Math Dash</Text>
-            <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">
+            <Pressable onPress={() => setShowInfo(true)} hitSlop={12} className="mb-2 p-2 self-center">
               <Info size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#64748b'} />
             </Pressable>
             <Text className={`${subTextColorClass} text-[10px] uppercase tracking-[0.2em] mb-10 text-center max-w-[280px]`}>

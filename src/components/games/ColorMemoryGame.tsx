@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Pressable, Dimensions, StyleSheet } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +27,7 @@ const GRID_SIZE = Math.min(SCREEN_WIDTH - 64, 320);
 const PADDING = 16;
 const GAP = 12;
 const BUTTON_SIZE = (GRID_SIZE - PADDING * 2 - GAP) / 2;
+const MAX_LEVEL = 10;
 
 const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLockScroll }) => {
   const [level, setLevel] = useState(1);
@@ -39,8 +40,18 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
   const [playbackId, setPlaybackId] = useState(0); // Used to cancel stale playbacks
   const [showFailureFeedback, setShowFailureFeedback] = useState(false);
   const [failureReps, setFailureReps] = useState(0);
+  const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const isDark = theme === 'dark';
   const insets = useSafeAreaInsets();
+
+  const safeTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      timeoutsRef.current = timeoutsRef.current.filter(t => t !== id);
+      fn();
+    }, ms);
+    timeoutsRef.current.push(id);
+    return id;
+  }, []);
 
   const startLevel = useCallback(async (lvl: number, currentPlaybackId: number) => {
     setGameState(GameState.OBSERVATION);
@@ -87,9 +98,8 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
     const nextUserSequence = [...userSequence, colorId];
     setUserSequence(nextUserSequence);
     
-    // Visual feedback
     setActiveColor(colorId);
-    setTimeout(() => setActiveColor(null), 200);
+    safeTimeout(() => setActiveColor(null), 200);
 
     const currentIndex = nextUserSequence.length - 1;
     if (nextUserSequence[currentIndex] !== sequence[currentIndex]) {
@@ -102,18 +112,25 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
     }
 
     if (nextUserSequence.length === sequence.length) {
-      setGameState(GameState.SUCCESS);
-      setShowSuccess(true);
-      setTimeout(() => {
-        const nextLevel = level + 1;
-        setLevel(nextLevel);
-        // Increment playbackId to cancel any stale playbacks and start new one
-        setPlaybackId(prev => {
-          const newId = prev + 1;
-          startLevel(nextLevel, newId);
-          return newId;
-        });
-      }, 1000);
+      if (level >= MAX_LEVEL) {
+        setGameState(GameState.FINISHED);
+        setShowSuccess(true);
+        safeTimeout(() => {
+          onComplete(level * 10, true);
+        }, 1000);
+      } else {
+        setGameState(GameState.SUCCESS);
+        setShowSuccess(true);
+        safeTimeout(() => {
+          const nextLevel = level + 1;
+          setLevel(nextLevel);
+          setPlaybackId(prev => {
+            const newId = prev + 1;
+            startLevel(nextLevel, newId);
+            return newId;
+          });
+        }, 1000);
+      }
     }
   };
 
@@ -135,12 +152,20 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
   useEffect(() => {
     if (!isActive) {
       setGameState(GameState.IDLE);
-      // Cancel any ongoing playback by incrementing the playbackId
       setPlaybackId(prev => prev + 1);
       setActiveColor(null);
       setShowFailureFeedback(false);
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
     }
   }, [isActive]);
+
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
+    };
+  }, []);
 
   const sequenceText = sequence.map(idx => COLORS[idx]?.name ?? '?').join(' -> ');
 
@@ -186,7 +211,7 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
               </View>
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase text-center ${textColor}`}>Color Memory</Text>
-            <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">
+            <Pressable onPress={() => setShowInfo(true)} hitSlop={12} className="mb-2 p-2 self-center">
               <Info size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#64748b'} />
             </Pressable>
             <Text className={`${subTextColor} text-xs uppercase tracking-[0.2em] mb-10 max-w-[240px] text-center leading-relaxed`}>
@@ -199,6 +224,36 @@ const ColorMemoryGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark'
               <Play color="white" size={20} fill="white" />
               <Text weight="black" className="text-white uppercase">BEGIN SEQUENCE</Text>
             </Pressable>
+          </MotiView>
+        ) : gameState === GameState.FINISHED ? (
+          <MotiView 
+            key="finished" 
+            from={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            transition={{ type: 'timing', duration: 300 }}
+            className="flex-1 items-center justify-center px-6"
+          >
+            <View className="w-20 h-20 rounded-full bg-emerald-500/20 items-center justify-center mb-8 border border-emerald-500/40">
+              <Check color="#10b981" size={40} />
+            </View>
+            <Text weight="black" className={`text-3xl italic mb-2 uppercase tracking-tighter text-center ${textColor}`}>
+              Total reps logged
+            </Text>
+            <Text variant="mono" className="text-emerald-400 text-2xl tracking-widest uppercase mb-10">
+              {level * 10} reps logged
+            </Text>
+
+            <View className="items-center gap-2 opacity-40">
+              <Text weight="bold" className={`${subTextColor} text-[10px] uppercase tracking-[0.4em]`}>Scroll to continue</Text>
+              <MotiView
+                from={{ translateY: 0 }}
+                animate={{ translateY: 10 }}
+                transition={{ loop: true, type: 'timing', duration: 1000 }}
+              >
+                <ChevronDown color={isDark ? "#94a3b8" : "#64748b"} size={24} />
+              </MotiView>
+            </View>
           </MotiView>
         ) : gameState === GameState.FAILURE ? (
           showFailureFeedback ? (

@@ -20,6 +20,7 @@ function SitupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
   const [isFinished, setIsFinished] = useState(false);
   const hasReportedCompletionRef = React.useRef(false);
   const insets = useSafeAreaInsets();
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     if (!isActive) {
@@ -54,7 +55,7 @@ function SitupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
   };
 
   return (
-    <View className="flex-1 bg-black items-center justify-center relative overflow-hidden">
+    <View className={`flex-1 ${isDark ? 'bg-black' : 'bg-slate-50'} items-center justify-center relative overflow-hidden`}>
       <View className="absolute inset-0 z-20">
         <AnimatePresence>
           {isStarted && !isFinished && (
@@ -65,13 +66,13 @@ function SitupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
               style={{ marginTop: insets.top + 80 }} 
               className="flex-row justify-between w-full px-6"
             >
-               <View className="bg-black/40 px-4 py-2 rounded-full border border-white/10 flex-row items-center gap-2">
+               <View className={`${isDark ? 'bg-black/40 border-white/10' : 'bg-white border-slate-200'} px-4 py-2 rounded-full border flex-row items-center gap-2`}>
                  <Timer size={16} color="#34d399" />
                  <Text weight="black" variant="mono" className="text-emerald-400">{timeLeft}s</Text>
                </View>
-               <View className="bg-black/40 px-4 py-2 rounded-full border border-white/10 flex-row items-center gap-2">
-                 <Activity size={16} color="white" />
-                 <Text weight="black" variant="mono" className="text-white text-[10px] uppercase">Situps</Text>
+               <View className={`${isDark ? 'bg-black/40 border-white/10' : 'bg-white border-slate-200'} px-4 py-2 rounded-full border flex-row items-center gap-2`}>
+                 <Activity size={16} color={isDark ? 'white' : '#0f172a'} />
+                 <Text weight="black" variant="mono" className={`${isDark ? 'text-white' : 'text-slate-900'} text-[10px] uppercase`}>Situps</Text>
                </View>
             </MotiView>
           )}
@@ -83,7 +84,7 @@ function SitupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
               <View className="w-20 h-20 rounded-full bg-emerald-500/20 items-center justify-center mb-6 border border-emerald-500/40">
                 <CheckCircle2 color="#34d399" size={40} />
               </View>
-              <Text weight="black" className="text-3xl text-white italic mb-2 uppercase tracking-tighter">PROTOCOL COMPLETE</Text>
+              <Text weight="black" className={`text-3xl ${isDark ? 'text-white' : 'text-slate-900'} italic mb-2 uppercase tracking-tighter`}>PROTOCOL COMPLETE</Text>
               
               <View className="bg-emerald-500/10 border border-emerald-500/20 px-8 py-4 rounded-3xl items-center mb-10">
                 <Text variant="mono" className="text-emerald-400 text-4xl mb-1 tracking-widest">{reps}</Text>
@@ -91,14 +92,14 @@ function SitupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
               </View>
 
               <View className="items-center gap-6">
-                 <View className="bg-white/5 px-6 py-4 rounded-2xl flex-row items-center gap-3">
+                 <View className={`${isDark ? 'bg-white/5' : 'bg-emerald-50 border border-emerald-200'} px-6 py-4 rounded-2xl flex-row items-center gap-3`}>
                     <Text weight="black" className="text-emerald-500 uppercase">NEXT TASK READY</Text>
                     <ArrowRight color="#10b981" size={18} />
                  </View>
                  
                  <View className="items-center gap-2 opacity-40">
-                   <Text weight="bold" className="text-slate-400 text-[10px] uppercase tracking-[0.4em]">Scroll to continue</Text>
-                   <ChevronDown color="#94a3b8" size={20} />
+                   <Text weight="bold" className={`${isDark ? 'text-slate-400' : 'text-slate-500'} text-[10px] uppercase tracking-[0.4em]`}>Scroll to continue</Text>
+                   <ChevronDown color={isDark ? "#94a3b8" : "#64748b"} size={20} />
                  </View>
               </View>
             </MotiView>
@@ -106,11 +107,11 @@ function SitupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
             <AnimatePresence exitBeforeEnter>
               {!isStarted ? (
                 <MotiView key="intro" from={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="items-center">
-                 <View className="w-20 h-20 bg-black rounded-3xl items-center justify-center mb-8 border border-white/10">
+                 <View className={`w-20 h-20 ${isDark ? 'bg-black border-white/10' : 'bg-white border-emerald-100 shadow-sm'} rounded-3xl items-center justify-center mb-8 border`}>
                     <Layers color="#10b981" size={48} />
                  </View>
-                 <Text weight="black" className="text-white text-3xl italic uppercase tracking-tighter mb-4 text-center">Situps</Text>
-                 <Text className="text-slate-400 text-xs uppercase tracking-widest mb-10 text-center max-w-[240px]">Maintain shoulder-to-knee compression.</Text>
+                 <Text weight="black" className={`${isDark ? 'text-white' : 'text-slate-900'} text-3xl italic uppercase tracking-tighter mb-4 text-center`}>Situps</Text>
+                 <Text className={`${isDark ? 'text-slate-400' : 'text-slate-500'} text-xs uppercase tracking-widest mb-10 text-center max-w-[240px]`}>Maintain shoulder-to-knee compression.</Text>
                  <Pressable onPress={() => { hasReportedCompletionRef.current = false; setIsStarted(true); }} className="bg-emerald-500 px-12 py-4 rounded-2xl flex-row items-center gap-3 shadow-xl">
                     <Play color="black" size={20} fill="black" />
                     <Text weight="black" className="text-black uppercase">START SET</Text>
@@ -118,15 +119,15 @@ function SitupTracker({ onComplete, isActive, theme = 'dark' }: Props) {
                 </MotiView>
               ) : (
                 <MotiView key="action" from={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full h-full items-center justify-center">
-                <Pressable onPress={handleManualRep} className="w-64 h-64 rounded-[3rem] bg-emerald-500/10 border-4 border-emerald-500/30 items-center justify-center active:scale-90 shadow-xl">
+                <Pressable onPress={handleManualRep} className={`w-64 h-64 rounded-[3rem] ${isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-300'} border-4 items-center justify-center active:scale-90 shadow-xl`}>
                   <Text weight="black" className="text-8xl text-emerald-400">{reps}</Text>
                   <View className="mt-4 flex-row items-center gap-2">
                     <Plus color="#6ee7b7" size={16} />
                     <Text weight="bold" className="text-emerald-300 uppercase tracking-[0.2em] text-xs">Tap Rep</Text>
                   </View>
                 </Pressable>
-                <Pressable onPress={() => setIsFinished(true)} className="mt-12">
-                  <Text weight="black" className="text-emerald-500/40 text-[10px] uppercase tracking-[0.4em]">Terminate Set</Text>
+                <Pressable onPress={() => setIsFinished(true)} className="mt-12 px-6 py-3">
+                  <Text weight="black" className={`${isDark ? 'text-emerald-500/40' : 'text-slate-400'} text-[10px] uppercase tracking-[0.4em]`}>Terminate Set</Text>
                 </Pressable>
                 </MotiView>
               )}

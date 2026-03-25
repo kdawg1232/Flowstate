@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+
 import { View, Pressable, Dimensions } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +29,7 @@ interface Props {
 const COLORS = ['#06b6d4', '#f59e0b', '#6366f1', '#ec4899', '#10b981', '#ef4444'];
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BOX_SIZE = Math.min(SCREEN_WIDTH - 48, 280);
+const MAX_LEVEL = 10;
 
 const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark', onLockScroll }) => {
   const [level, setLevel] = useState(1);
@@ -37,7 +39,17 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
   const [inputValue, setInputValue] = useState('');
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const requestRef = useRef<number>(null);
+  const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const insets = useSafeAreaInsets();
+
+  const safeTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      timeoutsRef.current = timeoutsRef.current.filter(t => t !== id);
+      fn();
+    }, ms);
+    timeoutsRef.current.push(id);
+    return id;
+  }, []);
 
   const isDark = theme === 'dark';
 
@@ -120,14 +132,21 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
 
     if (userSum === sum) {
       setFeedback('correct');
-      setTimeout(() => {
-        const nextLevel = level + 1;
-        setLevel(nextLevel);
-        generateLevel(nextLevel);
-      }, 600);
+      if (level >= MAX_LEVEL) {
+        safeTimeout(() => {
+          setGameState(GameState.FINISHED);
+          onComplete(level * 10, true);
+        }, 600);
+      } else {
+        safeTimeout(() => {
+          const nextLevel = level + 1;
+          setLevel(nextLevel);
+          generateLevel(nextLevel);
+        }, 600);
+      }
     } else {
       setFeedback('wrong');
-      setTimeout(() => {
+      safeTimeout(() => {
         setGameState(GameState.FINISHED);
         onComplete(level * 10, false);
       }, 600);
@@ -141,8 +160,17 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
   useEffect(() => {
     if (!isActive) {
       setGameState(GameState.IDLE);
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
     }
   }, [isActive]);
+
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
+    };
+  }, []);
 
   return (
     <View className={`flex-1 w-full ${isDark ? 'bg-black' : 'bg-slate-50'} relative overflow-hidden`}>
@@ -163,7 +191,7 @@ const NumberHuntGame: React.FC<Props> = ({ onComplete, isActive, theme = 'dark',
               </View>
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase text-center ${textColor}`}>Number Hunt</Text>
-            <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">
+            <Pressable onPress={() => setShowInfo(true)} hitSlop={12} className="mb-2 p-2 self-center">
               <Info size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#64748b'} />
             </Pressable>
             <Text className={`${subTextColor} text-xs uppercase tracking-[0.2em] mb-10 max-w-[240px] text-center leading-relaxed`}>

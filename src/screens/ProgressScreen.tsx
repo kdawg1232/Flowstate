@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, ScrollView, StyleSheet, Dimensions, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
 import { Shield, Flame, Brain, Zap, Target, Dumbbell, BarChart3, Layers, Calculator, CheckCircle2 } from 'lucide-react-native';
 import type { UserStats, Category } from '../types';
@@ -28,6 +29,7 @@ const ACTIVITY_WINDOW_DAYS = 28;
 
 export function ProgressScreen({ theme, stats }: Props) {
   const [activityWindowIndex, setActivityWindowIndex] = useState(0);
+  const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
   const textColorClass = isDark ? 'text-white' : 'text-slate-900';
   const cardBgClass = isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200';
@@ -73,10 +75,10 @@ export function ProgressScreen({ theme, stats }: Props) {
   return (
     <ScrollView 
       className={`flex-1 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}
-      contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 20 }}
+      contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 20, paddingTop: insets.top }}
       showsVerticalScrollIndicator={false}
     >
-      <View className="mb-8 mt-16 flex-row items-center justify-between">
+      <View className="mb-8 mt-4 flex-row items-center justify-between">
         <View>
            <Text weight="black" className={`text-3xl italic tracking-tighter ${textColorClass}`}>METRICS</Text>
            <Text weight="bold" variant="mono" className={`${subTextColorClass} text-[10px] uppercase tracking-widest`}>
@@ -154,7 +156,7 @@ export function ProgressScreen({ theme, stats }: Props) {
         <View className="flex-row items-center justify-between mb-6">
           <Pressable
             onPress={() => setActivityWindowIndex((prev) => prev + 1)}
-            className={`px-3 py-1.5 rounded-xl border ${isDark ? 'border-slate-700 bg-slate-950' : 'border-slate-300 bg-slate-50'}`}
+            className={`px-4 py-2.5 rounded-xl border ${isDark ? 'border-slate-700 bg-slate-950' : 'border-slate-300 bg-slate-50'}`}
           >
             <Text weight="bold" className={`text-[8px] uppercase tracking-wider ${subTextColorClass}`}>Older</Text>
           </Pressable>
@@ -164,7 +166,7 @@ export function ProgressScreen({ theme, stats }: Props) {
           <Pressable
             disabled={!canGoNewer}
             onPress={() => setActivityWindowIndex((prev) => Math.max(0, prev - 1))}
-            className={`px-3 py-1.5 rounded-xl border ${canGoNewer ? (isDark ? 'border-slate-700 bg-slate-950' : 'border-slate-300 bg-slate-50') : (isDark ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-slate-100')}`}
+            className={`px-4 py-2.5 rounded-xl border ${canGoNewer ? (isDark ? 'border-slate-700 bg-slate-950' : 'border-slate-300 bg-slate-50') : (isDark ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-slate-100')}`}
           >
             <Text weight="bold" className={`text-[8px] uppercase tracking-wider ${canGoNewer ? subTextColorClass : (isDark ? 'text-slate-700' : 'text-slate-300')}`}>Newer</Text>
           </Pressable>

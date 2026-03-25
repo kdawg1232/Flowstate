@@ -98,10 +98,11 @@ const NAV_HEIGHT = 84;
 
 export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [flatListHeight, setFlatListHeight] = useState(SCREEN_HEIGHT - NAV_HEIGHT);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const flatListRef = useRef<FlatList<Rep>>(null);
+  const currentIndexRef = useRef(0);
   const insets = useSafeAreaInsets();
+  const [flatListHeight, setFlatListHeight] = useState(SCREEN_HEIGHT - NAV_HEIGHT - insets.top);
 
   const isDark = theme === 'dark';
 
@@ -146,21 +147,24 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
     );
   };
 
+  const onScrollXpRef = useRef(onScrollXp);
+  onScrollXpRef.current = onScrollXp;
+
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<any> }) => {
-    // Find the item that is most visible
     const mostVisible = viewableItems.sort((a, b) => (b.itemVisiblePercent || 0) - (a.itemVisiblePercent || 0))[0];
     
     if (!mostVisible || (!mostVisible.index && mostVisible.index !== 0)) return;
     const newIndex = mostVisible.index;
+    const idx = currentIndexRef.current;
     
-    if (newIndex < currentIndex) {
-      // Block backwards scrolling, matching web behavior.
-      flatListRef.current?.scrollToIndex({ index: currentIndex, animated: false });
+    if (newIndex < idx) {
+      flatListRef.current?.scrollToIndex({ index: idx, animated: false });
       return;
     }
 
-    if (newIndex > currentIndex) {
-      onScrollXp();
+    if (newIndex > idx) {
+      onScrollXpRef.current();
+      currentIndexRef.current = newIndex;
       setCurrentIndex(newIndex);
     }
   }).current;
@@ -178,7 +182,7 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
   ), [currentIndex, flatListHeight, onCompleteRep, theme, setScrollEnabled]);
 
   return (
-    <View style={[styles.container, { backgroundColor: bg }]}>
+    <View style={[styles.container, { backgroundColor: bg, paddingTop: insets.top }]}>
       <FlatList
         ref={flatListRef}
         data={reps}

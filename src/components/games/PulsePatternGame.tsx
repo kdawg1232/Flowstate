@@ -30,6 +30,16 @@ function PulsePatternGame({ onComplete, isActive, theme = 'dark', onLockScroll }
   const [endReps, setEndReps] = useState(0);
   const [endIsClean, setEndIsClean] = useState(false);
   const hasInitialized = useRef(false);
+  const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+
+  const safeTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      timeoutsRef.current = timeoutsRef.current.filter(t => t !== id);
+      fn();
+    }, ms);
+    timeoutsRef.current.push(id);
+    return id;
+  }, []);
 
   const isDark = theme === 'dark';
   const insets = useSafeAreaInsets();
@@ -54,14 +64,14 @@ function PulsePatternGame({ onComplete, isActive, theme = 'dark', onLockScroll }
     setEndIsClean(false);
     setGameState(GameState.OBSERVATION);
 
-    setTimeout(() => {
+    safeTimeout(() => {
       setGameState(GameState.RETENTION);
-      setTimeout(() => {
+      safeTimeout(() => {
         if (levelConfig.rotationDegrees) setRotation(levelConfig.rotationDegrees);
         setGameState(GameState.ACTION);
       }, 800);
     }, levelConfig.flashSpeed);
-  }, [internalLevel]);
+  }, [internalLevel, safeTimeout]);
 
   useEffect(() => {
     if (!isActive) {
@@ -75,8 +85,17 @@ function PulsePatternGame({ onComplete, isActive, theme = 'dark', onLockScroll }
       setShowEndSummary(false);
       setEndIsClean(false);
       hasInitialized.current = false;
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
     }
   }, [isActive]);
+
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
+    };
+  }, []);
 
   const startNewGame = () => {
     hasInitialized.current = true;
@@ -103,7 +122,7 @@ function PulsePatternGame({ onComplete, isActive, theme = 'dark', onLockScroll }
     
     if (newSelection.length === targetNodes.length) {
       setGameState(GameState.SUCCESS);
-      setTimeout(() => {
+      safeTimeout(() => {
         if (internalLevel < 10) {
           const nextLevel = internalLevel + 1;
           setInternalLevel(nextLevel);
@@ -121,8 +140,7 @@ function PulsePatternGame({ onComplete, isActive, theme = 'dark', onLockScroll }
 
   const handleContinueFromReveal = () => {
     setShowEndSummary(true);
-    // Delay completion callback slightly so summary screen paints first.
-    setTimeout(() => onComplete(endReps, endIsClean), 120);
+    safeTimeout(() => onComplete(endReps, endIsClean), 120);
   };
 
   const textColorClass = isDark ? 'text-white' : 'text-slate-900';
@@ -152,7 +170,7 @@ function PulsePatternGame({ onComplete, isActive, theme = 'dark', onLockScroll }
               </View>
             </View>
             <Text weight="black" className={`text-3xl italic tracking-tighter mb-2 uppercase ${textColorClass}`}>Pulse Pattern</Text>
-            <Pressable onPress={() => setShowInfo(true)} className="mb-2 self-center">
+            <Pressable onPress={() => setShowInfo(true)} hitSlop={12} className="mb-2 p-2 self-center">
               <Info size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#64748b'} />
             </Pressable>
             <Text className={`${subTextColorClass} text-xs uppercase tracking-[0.2em] mb-10 text-center max-w-[240px]`}>Memorize the blue nodes. Re-power the circuit.</Text>
