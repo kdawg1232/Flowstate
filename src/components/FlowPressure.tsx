@@ -13,10 +13,17 @@ type Props = {
 
 export default function FlowPressure({ dailyReps, maxDailyReps, theme }: Props) {
   const isDark = theme === 'dark';
-  const cardBg = isDark ? 'bg-slate-900/50' : 'bg-white';
-  const borderColor = isDark ? 'border-slate-800' : 'border-slate-200';
+  const accentColor = '#3b82f6';
+  const cardBg = isDark ? 'bg-blue-500/10' : 'bg-white';
+  const borderColor = isDark ? 'border-blue-400/25' : 'border-slate-200';
   const textColor = isDark ? 'text-white' : 'text-slate-900';
   const subTextColor = isDark ? 'text-slate-500' : 'text-slate-400';
+  const protocolPalette = [
+    { color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.14)', border: 'rgba(6, 182, 212, 0.35)' },
+    { color: '#10b981', bg: 'rgba(16, 185, 129, 0.14)', border: 'rgba(16, 185, 129, 0.35)' },
+    { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.14)', border: 'rgba(245, 158, 11, 0.35)' },
+  ] as const;
+  const absolutePalette = { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.14)', border: 'rgba(59, 130, 246, 0.35)' };
 
   const progress = Math.min(100, (dailyReps / 1000) * 100);
 
@@ -36,19 +43,19 @@ export default function FlowPressure({ dailyReps, maxDailyReps, theme }: Props) 
             </Text>
           </View>
         </View>
-        <View className={`${isDark ? 'bg-slate-800' : 'bg-slate-100'} p-4 rounded-3xl`}>
-          <Zap size={24} color={dailyReps > 0 ? '#06b6d4' : (isDark ? '#1e293b' : '#cbd5e1')} />
+        <View className={`${isDark ? 'bg-blue-500/15 border border-blue-400/30' : 'bg-slate-100'} p-4 rounded-3xl`}>
+          <Zap size={24} color={dailyReps > 0 ? accentColor : (isDark ? '#1e3a8a' : '#cbd5e1')} />
         </View>
       </View>
 
       {/* Progress Bar with Milestone Markers */}
       <View className="relative h-2 w-full mb-10 mt-4">
-        <View className={`absolute inset-0 ${isDark ? 'bg-slate-800' : 'bg-slate-100'} rounded-full`} />
+        <View className={`absolute inset-0 ${isDark ? 'bg-blue-950/70' : 'bg-slate-100'} rounded-full`} />
         <MotiView
           from={{ width: '0%' }}
           animate={{ width: `${progress}%` }}
           transition={{ type: 'timing', duration: 1000 }}
-          style={{ height: '100%', backgroundColor: '#06b6d4', borderRadius: 999 }}
+          style={{ height: '100%', backgroundColor: accentColor, borderRadius: 999 }}
         />
         {/* Milestone Markers */}
         {MILESTONES.map((m, i) => {
@@ -58,7 +65,7 @@ export default function FlowPressure({ dailyReps, maxDailyReps, theme }: Props) 
             <View 
               key={i} 
               className="absolute h-4 w-[2px] -top-1" 
-              style={{ left: `${pos}%`, backgroundColor: dailyReps >= m.reps ? '#06b6d4' : (isDark ? '#334155' : '#e2e8f0') }}
+              style={{ left: `${pos}%`, backgroundColor: dailyReps >= m.reps ? accentColor : (isDark ? '#1e3a8a' : '#e2e8f0') }}
             />
           );
         })}
@@ -72,12 +79,28 @@ export default function FlowPressure({ dailyReps, maxDailyReps, theme }: Props) 
         {MILESTONES.slice(0, 3).map((m, i) => {
           const isUnlocked = maxDailyReps >= m.reps;
           const Icon = i === 0 ? Lock : (i === 1 ? Flame : Shield);
+          const palette = protocolPalette[i] ?? protocolPalette[0];
           
           return (
-            <View key={i} className={`flex-row items-center justify-between p-4 rounded-3xl ${isDark ? 'bg-slate-950/40' : 'bg-slate-50'} border ${isUnlocked ? 'border-cyan-500/30' : borderColor}`}>
+            <View
+              key={i}
+              className={`flex-row items-center justify-between p-4 rounded-3xl ${isDark ? '' : 'bg-slate-50'} border ${isUnlocked ? '' : borderColor}`}
+              style={{
+                backgroundColor: isDark ? (isUnlocked ? palette.bg : 'rgba(15, 23, 42, 0.35)') : undefined,
+                borderColor: isUnlocked ? palette.border : undefined,
+                shadowColor: isUnlocked ? palette.color : undefined,
+                shadowOpacity: isUnlocked ? 0.25 : 0,
+                shadowRadius: isUnlocked ? 10 : 0,
+                shadowOffset: { width: 0, height: 0 },
+                elevation: isUnlocked ? 2 : 0,
+              }}
+            >
               <View className="flex-row items-center gap-4">
-                <View className={`${isUnlocked ? 'bg-cyan-500/10' : (isDark ? 'bg-slate-800' : 'bg-slate-200')} p-3 rounded-2xl`}>
-                  <Icon size={18} color={isUnlocked ? '#06b6d4' : (isDark ? '#475569' : '#94a3b8')} />
+                <View
+                  className={`p-3 rounded-2xl ${!isDark ? (isUnlocked ? '' : 'bg-slate-200') : ''}`}
+                  style={{ backgroundColor: isDark ? (isUnlocked ? palette.bg : 'rgba(2, 6, 23, 0.65)') : undefined }}
+                >
+                  <Icon size={18} color={isUnlocked ? palette.color : (isDark ? '#475569' : '#94a3b8')} />
                 </View>
                 <View>
                   <Text weight="black" className={`text-[11px] uppercase tracking-wider ${isUnlocked ? textColor : subTextColor}`}>
@@ -89,7 +112,12 @@ export default function FlowPressure({ dailyReps, maxDailyReps, theme }: Props) 
                 </View>
               </View>
               <View className="items-end">
-                <Text variant="mono" weight="bold" className={`text-[10px] ${isUnlocked ? 'text-cyan-500' : subTextColor}`}>
+                <Text
+                  variant="mono"
+                  weight="bold"
+                  className={`text-[10px] ${isUnlocked ? '' : subTextColor}`}
+                  style={isUnlocked ? { color: palette.color } : undefined}
+                >
                   {Math.min(m.reps, Math.floor(maxDailyReps))} <Text className="text-[8px] opacity-50">/ {m.reps}</Text>
                 </Text>
               </View>
@@ -98,10 +126,24 @@ export default function FlowPressure({ dailyReps, maxDailyReps, theme }: Props) 
         })}
         
         {/* Absolute Flow / Unlimited */}
-        <View className={`flex-row items-center justify-between p-4 rounded-3xl ${isDark ? 'bg-slate-950/40' : 'bg-slate-50'} border ${maxDailyReps >= 1000 ? 'border-cyan-500/30' : borderColor}`}>
+        <View
+          className={`flex-row items-center justify-between p-4 rounded-3xl ${isDark ? '' : 'bg-slate-50'} border ${maxDailyReps >= 1000 ? '' : borderColor}`}
+          style={{
+            backgroundColor: isDark ? (maxDailyReps >= 1000 ? absolutePalette.bg : 'rgba(15, 23, 42, 0.35)') : undefined,
+            borderColor: maxDailyReps >= 1000 ? absolutePalette.border : undefined,
+            shadowColor: maxDailyReps >= 1000 ? absolutePalette.color : undefined,
+            shadowOpacity: maxDailyReps >= 1000 ? 0.25 : 0,
+            shadowRadius: maxDailyReps >= 1000 ? 10 : 0,
+            shadowOffset: { width: 0, height: 0 },
+            elevation: maxDailyReps >= 1000 ? 2 : 0,
+          }}
+        >
           <View className="flex-row items-center gap-4">
-            <View className={`${maxDailyReps >= 1000 ? 'bg-cyan-500/10' : (isDark ? 'bg-slate-800' : 'bg-slate-200')} p-3 rounded-2xl`}>
-              <Shield size={18} color={maxDailyReps >= 1000 ? '#06b6d4' : (isDark ? '#475569' : '#94a3b8')} />
+            <View
+              className={`p-3 rounded-2xl ${!isDark ? (maxDailyReps >= 1000 ? '' : 'bg-slate-200') : ''}`}
+              style={{ backgroundColor: isDark ? (maxDailyReps >= 1000 ? absolutePalette.bg : 'rgba(2, 6, 23, 0.65)') : undefined }}
+            >
+              <Shield size={18} color={maxDailyReps >= 1000 ? absolutePalette.color : (isDark ? '#475569' : '#94a3b8')} />
             </View>
             <View>
               <Text weight="black" className={`text-[11px] uppercase tracking-wider ${maxDailyReps >= 1000 ? textColor : subTextColor}`}>
@@ -113,7 +155,12 @@ export default function FlowPressure({ dailyReps, maxDailyReps, theme }: Props) 
             </View>
           </View>
           <View className="items-end">
-            <Text variant="mono" weight="bold" className={`text-[10px] ${maxDailyReps >= 1000 ? 'text-cyan-500' : subTextColor}`}>
+            <Text
+              variant="mono"
+              weight="bold"
+              className={`text-[10px] ${maxDailyReps >= 1000 ? '' : subTextColor}`}
+              style={maxDailyReps >= 1000 ? { color: absolutePalette.color } : undefined}
+            >
               {Math.min(1000, Math.floor(maxDailyReps))} <Text className="text-[8px] opacity-50">/ 1000</Text>
             </Text>
           </View>

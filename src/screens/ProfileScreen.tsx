@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ScrollView, Pressable, Linking, Alert, Switch } from 'react-native';
-import { HelpCircle, Sun, Moon, LogOut, Shield, FileText, Trash2, Smartphone, Lock, Unlock } from 'lucide-react-native';
+import { HelpCircle, Sun, Moon, LogOut, Shield, FileText, Trash2, Smartphone, Lock } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '../ui/Text';
 import type { UserStats } from '../types';
@@ -24,8 +24,14 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
   const subTextColorClass = isDark ? 'text-slate-500' : 'text-slate-400';
-  const cardBgClass = isDark ? 'bg-slate-900' : 'bg-white border border-slate-200';
-  const bgClass = isDark ? 'bg-slate-950' : 'bg-slate-50';
+  const cardBgClass = isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white border border-slate-200';
+  const bgClass = isDark ? 'bg-black' : 'bg-slate-50';
+  const sectionCardClasses = {
+    screenTime: isDark ? 'bg-cyan-500/10 border border-cyan-400/25' : cardBgClass,
+    account: isDark ? 'bg-blue-500/10 border border-blue-400/25' : cardBgClass,
+    legal: isDark ? 'bg-amber-500/10 border border-amber-400/25' : cardBgClass,
+    support: isDark ? 'bg-emerald-500/10 border border-emerald-400/25' : cardBgClass,
+  };
 
   const handleOpenSupport = () => Linking.openURL('https://getflowstate.netlify.app/support').catch(() => {});
 
@@ -51,6 +57,13 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
       const currentAllocatedMinutes = screenTime.allocatedMinutes || 0;
       console.log('[ScreenTime] Setting initial budget from Profile toggle:', currentAllocatedMinutes);
       await ScreenTime.setScreenTimeBudget(currentAllocatedMinutes);
+    } else {
+      // Turning enforcement off should immediately remove active restrictions.
+      try {
+        await ScreenTime.clearShield();
+      } catch (error) {
+        console.error('Failed to clear shield while turning off tracking:', error);
+      }
     }
     console.log('[ScreenTime] Setting isTrackingEnabled to', turningOn);
 
@@ -66,6 +79,14 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
   const selectApps = async () => {
     try {
       const count = await ScreenTime.selectAppsToRestrict();
+
+      // If enforcement is active, apply updated picker selection immediately.
+      // This avoids requiring the user to toggle enforcement off/on.
+      if (screenTime.isTrackingEnabled) {
+        await ScreenTime.clearShield();
+        await ScreenTime.setScreenTimeBudget(screenTime.allocatedMinutes || 0);
+      }
+
       onUpdateStats({
         ...stats,
         screenTime: {
@@ -109,7 +130,7 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
       <View className="gap-6 w-full self-center max-w-[520px]">
         <View>
           <Text weight="black" className={`text-xs ${subTextColorClass} uppercase tracking-widest mb-3 ml-1`}>Screen Time Control</Text>
-          <View className={`${cardBgClass} rounded-3xl overflow-hidden`}>
+          <View className={`${sectionCardClasses.screenTime} rounded-3xl overflow-hidden`}>
              <View className={`flex-row items-center justify-between p-4 ${isDark ? 'border-b border-slate-800' : 'border-b border-slate-100'}`}>
                <View className="flex-row items-center gap-3 flex-1 mr-3">
                  <Lock size={18} color="#06b6d4" />
@@ -161,29 +182,12 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
                </View>
              )}
 
-             {screenTime.isTrackingEnabled && (
-               <Pressable 
-                 onPress={async () => {
-                   try {
-                     await ScreenTime.clearShield();
-                     Alert.alert("Restriction Removed", "App restrictions have been cleared for today. Monitoring will resume when you earn more screen time through reps.");
-                   } catch (error) {
-                     console.error('Failed to clear shield:', error);
-                     Alert.alert("Error", "Failed to remove restriction. Please try again.");
-                   }
-                 }}
-                 className={`flex-row items-center justify-center gap-2 p-4 ${isDark ? 'border-t border-slate-800' : 'border-t border-slate-100'}`}
-               >
-                 <Unlock size={16} color="#f59e0b" />
-                 <Text weight="bold" className="text-sm text-amber-500">Remove Current Restriction</Text>
-               </Pressable>
-             )}
           </View>
         </View>
 
         <View>
           <Text weight="black" className={`text-xs ${subTextColorClass} uppercase tracking-widest mb-3 ml-1`}>Account</Text>
-          <View className={`${cardBgClass} rounded-3xl overflow-hidden`}>
+          <View className={`${sectionCardClasses.account} rounded-3xl overflow-hidden`}>
              <Pressable onPress={onToggleTheme} className={`flex-row items-center justify-between p-4 ${isDark ? 'border-b border-slate-800' : 'border-b border-slate-100'}`}>
                <View className="flex-row items-center gap-3">
                  {isDark ? <Moon size={18} color="#818cf8" /> : <Sun size={18} color="#f59e0b" />}
@@ -205,7 +209,7 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
 
         <View>
           <Text weight="black" className={`text-xs ${subTextColorClass} uppercase tracking-widest mb-3 ml-1`}>Legal</Text>
-          <View className={`${cardBgClass} rounded-3xl overflow-hidden`}>
+          <View className={`${sectionCardClasses.legal} rounded-3xl overflow-hidden`}>
              <Pressable onPress={handleOpenPrivacy} className={`flex-row items-center justify-between p-4 ${isDark ? 'border-b border-slate-800' : 'border-b border-slate-100'}`}>
                <View className="flex-row items-center gap-3">
                  <Shield size={18} color="#94a3b8" />
@@ -231,7 +235,7 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
 
         <View>
           <Text weight="black" className={`text-xs ${subTextColorClass} uppercase tracking-widest mb-3 ml-1`}>Support</Text>
-          <View className={`${cardBgClass} rounded-3xl overflow-hidden`}>
+          <View className={`${sectionCardClasses.support} rounded-3xl overflow-hidden`}>
              <Pressable onPress={handleOpenSupport} className="flex-row items-center justify-between p-4">
                <View className="flex-row items-center gap-3">
                  <HelpCircle size={18} color="#94a3b8" />

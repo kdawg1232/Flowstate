@@ -13,11 +13,12 @@ type Props = {
   stats: UserStats;
 };
 
-const CATEGORIES: Category[] = ['MEMORY', 'SPEED', 'LOGIC', 'FLEXIBILITY', 'MATH', 'PHYSICAL'];
+const CATEGORIES: Category[] = ['MEMORY', 'SPEED', 'ATTENTION', 'LOGIC', 'FLEXIBILITY', 'MATH', 'PHYSICAL'];
 
 const THEME_MAP: Record<Category, string> = {
   'MEMORY': '#06b6d4',
   'SPEED': '#f59e0b',
+  'ATTENTION': '#8b5cf6',
   'LOGIC': '#6366f1',
   'FLEXIBILITY': '#f43f5e',
   'MATH': '#3b82f6',
@@ -34,6 +35,13 @@ export function ProgressScreen({ theme, stats }: Props) {
   const textColorClass = isDark ? 'text-white' : 'text-slate-900';
   const cardBgClass = isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200';
   const subTextColorClass = isDark ? 'text-slate-500' : 'text-slate-400';
+  const darkCardClasses = {
+    totals: 'bg-cyan-500/10 border-cyan-400/25',
+    daily: 'bg-emerald-500/10 border-emerald-400/25',
+    evolution: 'bg-indigo-500/10 border-indigo-400/25',
+    matrix: 'bg-amber-500/10 border-amber-400/25',
+    calibration: 'bg-rose-500/10 border-rose-400/25',
+  };
 
   // Progression Logic
   const level = stats.level;
@@ -74,7 +82,7 @@ export function ProgressScreen({ theme, stats }: Props) {
 
   return (
     <ScrollView 
-      className={`flex-1 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}
+      className={`flex-1 ${isDark ? 'bg-black' : 'bg-slate-50'}`}
       contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 20, paddingTop: insets.top }}
       showsVerticalScrollIndicator={false}
     >
@@ -85,7 +93,7 @@ export function ProgressScreen({ theme, stats }: Props) {
              Flow Level: {level}
            </Text>
         </View>
-        <View className={`${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} p-3 rounded-2xl border`}>
+        <View className={`${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200 shadow-sm'} p-3 rounded-2xl border`}>
            <BarChart3 size={20} color="#06b6d4" />
         </View>
       </View>
@@ -97,19 +105,19 @@ export function ProgressScreen({ theme, stats }: Props) {
       />
 
       <View className="flex-row gap-4 mb-6">
-        <View className={`flex-1 ${cardBgClass} p-5 rounded-3xl relative overflow-hidden border`}>
+        <View className={`flex-1 ${isDark ? darkCardClasses.totals : cardBgClass} p-5 rounded-3xl relative overflow-hidden border`}>
           <Target size={32} color="#06b6d4" style={{ position: 'absolute', right: -8, top: -8, opacity: 0.1 }} />
           <Text weight="bold" className={`${subTextColorClass} text-[10px] uppercase tracking-widest`}>Total Reps</Text>
           <Text weight="black" variant="mono" className={`text-3xl mt-1 ${textColorClass}`}>{stats.totalReps}</Text>
         </View>
-        <View className={`flex-1 ${cardBgClass} p-5 rounded-3xl relative overflow-hidden border`}>
+        <View className={`flex-1 ${isDark ? darkCardClasses.daily : cardBgClass} p-5 rounded-3xl relative overflow-hidden border`}>
           <CheckCircle2 size={32} color="#10b981" style={{ position: 'absolute', right: -8, top: -8, opacity: 0.1 }} />
-          <Text weight="bold" className={`${subTextColorClass} text-[10px] uppercase tracking-widest`}>Daily Reps</Text>
-          <Text weight="black" variant="mono" className={`text-3xl mt-1 ${textColorClass}`}>{stats.dailyReps}</Text>
+          <Text weight="bold" className={`${subTextColorClass} text-[10px] uppercase tracking-widest`}>Daily Peak</Text>
+          <Text weight="black" variant="mono" className={`text-3xl mt-1 ${textColorClass}`}>{stats.maxDailyReps || 0}</Text>
         </View>
       </View>
 
-      <View className={`${cardBgClass} p-6 rounded-3xl mb-8 relative border`}>
+      <View className={`${isDark ? darkCardClasses.evolution : cardBgClass} p-6 rounded-3xl mb-8 relative border`}>
          <View className="flex-row justify-between items-end mb-3">
            <View>
              <Text weight="bold" className={`${subTextColorClass} text-[10px] uppercase tracking-widest`}>Neural Evolution</Text>
@@ -119,15 +127,15 @@ export function ProgressScreen({ theme, stats }: Props) {
              {xpInCurrentLevel} / {xpNeededToPassCurrentLevel} <Text weight="bold" className="text-[10px] opacity-50 ml-1 uppercase">XP</Text>
            </Text>
          </View>
-         <View className={`w-full h-3 ${isDark ? 'bg-slate-800' : 'bg-slate-100'} rounded-full overflow-hidden border ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+         <View className={`w-full h-3 ${isDark ? 'bg-blue-950/70 border-blue-400/25' : 'bg-slate-100 border-slate-200'} rounded-full overflow-hidden border`}>
             <MotiView 
               from={{ width: '0%' }} 
               animate={{ width: `${progressPercent}%` }} 
               transition={{ type: 'timing', duration: 800 }}
               style={{ 
                 height: '100%', 
-                backgroundColor: '#06b6d4',
-                shadowColor: '#06b6d4', 
+                backgroundColor: '#3b82f6',
+                shadowColor: '#3b82f6', 
                 shadowOpacity: 0.5, 
                 shadowRadius: 10 
               }}
@@ -135,7 +143,7 @@ export function ProgressScreen({ theme, stats }: Props) {
          </View>
       </View>
 
-      <View className={`${cardBgClass} p-6 rounded-3xl mb-8 border`}>
+      <View className={`${isDark ? darkCardClasses.matrix : cardBgClass} p-6 rounded-3xl mb-8 border`}>
         <View className="flex-row justify-between items-center mb-3">
           <Text weight="black" className={`text-[10px] ${subTextColorClass} uppercase tracking-[0.3em]`}>Activity Matrix</Text>
           <View className="flex-row gap-3 items-center">
@@ -156,7 +164,7 @@ export function ProgressScreen({ theme, stats }: Props) {
         <View className="flex-row items-center justify-between mb-6">
           <Pressable
             onPress={() => setActivityWindowIndex((prev) => prev + 1)}
-            className={`px-4 py-2.5 rounded-xl border ${isDark ? 'border-slate-700 bg-slate-950' : 'border-slate-300 bg-slate-50'}`}
+            className={`px-4 py-2.5 rounded-xl border ${isDark ? 'border-amber-300/25 bg-amber-950/35' : 'border-slate-300 bg-slate-50'}`}
           >
             <Text weight="bold" className={`text-[8px] uppercase tracking-wider ${subTextColorClass}`}>Older</Text>
           </Pressable>
@@ -166,7 +174,7 @@ export function ProgressScreen({ theme, stats }: Props) {
           <Pressable
             disabled={!canGoNewer}
             onPress={() => setActivityWindowIndex((prev) => Math.max(0, prev - 1))}
-            className={`px-4 py-2.5 rounded-xl border ${canGoNewer ? (isDark ? 'border-slate-700 bg-slate-950' : 'border-slate-300 bg-slate-50') : (isDark ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-slate-100')}`}
+            className={`px-4 py-2.5 rounded-xl border ${canGoNewer ? (isDark ? 'border-amber-300/25 bg-amber-950/35' : 'border-slate-300 bg-slate-50') : (isDark ? 'border-amber-500/15 bg-amber-950/20' : 'border-slate-200 bg-slate-100')}`}
           >
             <Text weight="bold" className={`text-[8px] uppercase tracking-wider ${canGoNewer ? subTextColorClass : (isDark ? 'text-slate-700' : 'text-slate-300')}`}>Newer</Text>
           </Pressable>
@@ -194,18 +202,18 @@ export function ProgressScreen({ theme, stats }: Props) {
         </View>
       </View>
 
-      <View className={`${cardBgClass} p-6 rounded-[2.5rem] mb-8 border shadow-sm`}>
+      <View className={`${isDark ? darkCardClasses.calibration : cardBgClass} p-6 rounded-[2.5rem] mb-8 border shadow-sm`}>
         <Text weight="black" className={`text-[10px] ${subTextColorClass} uppercase tracking-[0.3em] mb-8 text-center`}>Neural Calibration</Text>
         <View className="gap-6">
           {CATEGORIES.map(cat => {
             const strength = getStrength(cat);
             return (
-              <View key={cat} className="gap-2">
+              <View key={cat} className={`gap-2 rounded-2xl px-3 py-2 ${isDark ? 'bg-black/30' : ''}`}>
                 <View className="flex-row justify-between items-end px-1">
                   <Text weight="bold" className={`text-[9px] ${isDark ? 'text-slate-300' : 'text-slate-600'} tracking-widest uppercase`}>{cat}</Text>
                   <Text variant="mono" className={`text-[9px] ${subTextColorClass}`}>{strength}%</Text>
                 </View>
-                <View className={`w-full h-1.5 ${isDark ? 'bg-slate-950' : 'bg-slate-100'} rounded-full overflow-hidden`}>
+                <View className={`w-full h-1.5 ${isDark ? 'bg-black/40' : 'bg-slate-100'} rounded-full overflow-hidden`}>
                   <MotiView 
                     from={{ width: '0%' }} 
                     animate={{ width: `${strength}%` }} 
