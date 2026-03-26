@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Dimensions, FlatList, StyleSheet, View } from 'react-native';
+import { Dimensions, FlatList, NativeScrollEvent, NativeSyntheticEvent, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { GameType } from '../types';
 
@@ -99,6 +99,8 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const flatListRef = useRef<FlatList<Rep>>(null);
   const currentIndexRef = useRef(0);
+  const dragStartIndexRef = useRef(0);
+  const isUserDraggingRef = useRef(false);
   const insets = useSafeAreaInsets();
   const [flatListHeight, setFlatListHeight] = useState(SCREEN_HEIGHT - NAV_HEIGHT - insets.top);
 
@@ -119,7 +121,7 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
     return generated;
   }, []);
 
-  const bg = isDark ? '#020617' : '#f8fafc';
+  const bg = isDark ? '#000000' : '#f8fafc';
 
   const onScrollXpRef = useRef(onScrollXp);
   onScrollXpRef.current = onScrollXp;
@@ -143,6 +145,31 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
     }
   }).current;
 
+  const onScrollBeginDrag = React.useCallback(() => {
+    isUserDraggingRef.current = true;
+    dragStartIndexRef.current = currentIndexRef.current;
+  }, []);
+
+  const onScrollEndDrag = React.useCallback(() => {
+    isUserDraggingRef.current = false;
+  }, []);
+
+  const onMomentumScrollEnd = React.useCallback(() => {
+    dragStartIndexRef.current = currentIndexRef.current;
+  }, []);
+
+  const onScroll = React.useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!isUserDraggingRef.current) return;
+
+    const minOffset = dragStartIndexRef.current * flatListHeight;
+    const y = e.nativeEvent.contentOffset.y;
+
+    // Hard-stop any backward movement before a previous card becomes visible.
+    if (y < minOffset) {
+      flatListRef.current?.scrollToOffset({ offset: minOffset, animated: false });
+    }
+  }, [flatListHeight]);
+
   const renderItem = React.useCallback(({ item, index }: { item: Rep, index: number }) => (
     <FeedItem 
       item={item}
@@ -163,6 +190,11 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
         keyExtractor={(item) => item.id}
         pagingEnabled
         scrollEnabled={scrollEnabled}
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
         showsVerticalScrollIndicator={false}
         snapToAlignment="start"
         decelerationRate="fast"
@@ -172,6 +204,11 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
           offset: flatListHeight * index, 
           index 
         })}
+        onScrollBeginDrag={onScrollBeginDrag}
+        onScrollEndDrag={onScrollEndDrag}
+        onMomentumScrollEnd={onMomentumScrollEnd}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={{ 
           itemVisiblePercentThreshold: 80, // Be more strict about what's "active"
@@ -198,7 +235,7 @@ const styles = StyleSheet.create({
   },
   colorMemoryOffset: {
     flex: 1,
-    transform: [{ translateY: 80 }],
+    transform: [{ translateY: 10 }],
   },
   numberHuntOffset: {
     flex: 1,

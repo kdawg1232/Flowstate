@@ -190,14 +190,14 @@ module.exports = function withScreenTime(config) {
       {
         name: 'FlowStateShieldConfig',
         bundleIdSuffix: 'shield-config',
-        extensionPoint: 'com.apple.ManagedSettingsUI.shield-configuration',
+        extensionPoint: 'com.apple.ManagedSettingsUI.shield-configuration-service',
         principalClass: 'ShieldConfigurationExtension',
         sourceFile: 'ShieldConfiguration.swift'
       },
       {
         name: 'FlowStateShieldAction',
         bundleIdSuffix: 'shield-action',
-        extensionPoint: 'com.apple.ManagedSettingsUI.shield-action',
+        extensionPoint: 'com.apple.ManagedSettings.shield-action-service',
         principalClass: 'ShieldActionExtension',
         sourceFile: 'ShieldAction.swift'
       }
