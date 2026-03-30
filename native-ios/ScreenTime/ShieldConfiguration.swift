@@ -16,10 +16,11 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             return UIImage(named: "ShieldIcon") ?? UIImage(systemName: "bolt.fill")
         }()
         
-        // nil blur avoids the system material overlay that tints pure black to grey
+        // backgroundColor is applied *through* the blur material; nil blur uses the system
+        // default (light). A dark material + black tint yields a true dark shield background.
         return ShieldConfiguration(
-            backgroundBlurStyle: nil,
-            backgroundColor: .black,
+            backgroundBlurStyle: .systemThickMaterialDark,
+            backgroundColor: UIColor(white: 0, alpha: 1),
             icon: appIcon,
             title: ShieldConfiguration.Label(
                 text: "FLOWSTATE",

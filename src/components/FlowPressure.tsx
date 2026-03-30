@@ -104,7 +104,7 @@ export default function FlowPressure({ dailyReps, maxDailyReps, theme }: Props) 
                 </View>
                 <View>
                   <Text weight="black" className={`text-[11px] uppercase tracking-wider ${isUnlocked ? textColor : subTextColor}`}>
-                    {m.label} Protocol
+                    {m.label}
                   </Text>
                   <Text weight="bold" className={`text-[9px] ${subTextColor}`}>
                     {m.rewardLabel}

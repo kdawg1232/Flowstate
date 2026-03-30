@@ -267,12 +267,16 @@ module.exports = function withScreenTime(config) {
       // C. Copy Source File
       fs.copyFileSync(path.join(nativeSourceDir, ext.sourceFile), path.join(extensionRoot, ext.sourceFile));
 
-      // C2. Copy assets/icon.png into ShieldConfig extension (loose PNG is in Xcode Resources)
+      // C2. Copy shield/marketing icon into ShieldConfig (PNG with real alpha; falls back to icon.png)
       if (ext.name === 'FlowStateShieldConfig') {
-        const iconSrc = path.join(projectRoot, 'assets', 'icon.png');
+        const shieldIcon = path.join(projectRoot, 'assets', 'shield-icon.png');
+        const fallbackIcon = path.join(projectRoot, 'assets', 'icon.png');
+        const iconSrc = fs.existsSync(shieldIcon) ? shieldIcon : fallbackIcon;
         if (fs.existsSync(iconSrc)) {
           fs.copyFileSync(iconSrc, path.join(extensionRoot, 'ShieldIcon.png'));
-          console.log(`[withScreenTime] Copied assets/icon.png → ${ext.name}/ShieldIcon.png`);
+          console.log(
+            `[withScreenTime] Copied ${path.basename(iconSrc)} → ${ext.name}/ShieldIcon.png`
+          );
         }
       }
 

@@ -24,8 +24,9 @@ class ShieldActionExtension: ShieldActionDelegate {
         case .primaryButtonPressed:
             let path = "profile-dismiss"
             openApp(path: path)
-            openHostAppIfPossible(path: path)
-            completionHandler(.close)
+            // Must not call completionHandler until after we attempt openURL: finishing the handler
+            // tears the extension down; if we .close synchronously, the async main block never runs.
+            openHostAppIfPossible(path: path, completionHandler: completionHandler)
             
         case .secondaryButtonPressed:
             // "Dismiss" - just close the shield overlay
@@ -42,16 +43,29 @@ class ShieldActionExtension: ShieldActionDelegate {
         sharedDefaults?.set(Date().timeIntervalSince1970, forKey: "pendingDeepLinkTimestamp")
     }
 
-    private func openHostAppIfPossible(path: String) {
-        guard let url = URL(string: "flowstate://\(path)") else { return }
+    /// Runtime `UIApplication` + `open` so the host app can be foregrounded via `flowstate://`.
+    /// Completion is invoked after the open attempt so the extension stays alive until then.
+    private func openHostAppIfPossible(path: String, completionHandler: @escaping (ShieldActionResponse) -> Void) {
+        guard let url = URL(string: "flowstate://\(path)") else {
+            completionHandler(.close)
+            return
+        }
         DispatchQueue.main.async {
-            guard let appClass = NSClassFromString("UIApplication") else { return }
+            guard let appClass = NSClassFromString("UIApplication") else {
+                completionHandler(.close)
+                return
+            }
             let appClassObject = appClass as AnyObject
             let sel = NSSelectorFromString("sharedApplication")
             guard appClassObject.responds(to: sel),
-                  let raw = appClassObject.perform(sel) else { return }
-            guard let application = raw.takeUnretainedValue() as? UIApplication else { return }
-            application.open(url, options: [:], completionHandler: nil)
+                  let raw = appClassObject.perform(sel),
+                  let application = raw.takeUnretainedValue() as? UIApplication else {
+                completionHandler(.close)
+                return
+            }
+            application.open(url, options: [:]) { _ in
+                completionHandler(.close)
+            }
         }
     }
 }
