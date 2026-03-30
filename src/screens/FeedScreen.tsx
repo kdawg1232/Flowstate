@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, FlatList, NativeScrollEvent, NativeSyntheticEvent, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { GameType } from '../types';
@@ -24,6 +24,8 @@ type Props = {
   theme: 'light' | 'dark';
   onCompleteRep: (type: GameType, score: number, isClean?: boolean) => void;
   onScrollXp: () => void;
+  /** Fired when the visible feed game changes (e.g. for bottom nav accent). */
+  onActiveGameChange?: (gameType: GameType) => void;
 };
 
 const FeedItem = React.memo(({ 
@@ -94,7 +96,7 @@ const FeedItem = React.memo(({
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const NAV_HEIGHT = 84;
 
-export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
+export function FeedScreen({ theme, onCompleteRep, onScrollXp, onActiveGameChange }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const flatListRef = useRef<FlatList<Rep>>(null);
@@ -120,6 +122,14 @@ export function FeedScreen({ theme, onCompleteRep, onScrollXp }: Props) {
 
     return generated;
   }, []);
+
+  const onActiveGameChangeRef = useRef(onActiveGameChange);
+  onActiveGameChangeRef.current = onActiveGameChange;
+
+  useEffect(() => {
+    const t = reps[currentIndex]?.type;
+    if (t) onActiveGameChangeRef.current?.(t);
+  }, [currentIndex, reps]);
 
   const bg = isDark ? '#000000' : '#f8fafc';
 

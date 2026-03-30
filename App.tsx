@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, Pressable, StyleSheet, View, Modal, AppState, Platform, Linking } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, Modal, AppState, Platform, Linking } from 'react-native';
 import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
 
 // Disable Reanimated strict mode to silence "Reading from value during component render" warnings 
@@ -17,8 +17,8 @@ import { ProfileScreen } from './src/screens/ProfileScreen';
 import { calculateLevel, defaultStats, FLOWSTATE_AUTH_KEY, FLOWSTATE_LAST_LOGIN_KEY, FLOWSTATE_STATS_KEY, FLOWSTATE_CURRENT_USER_KEY, FLOWSTATE_USERS_KEY } from './src/initialState';
 import { getJson, getString, remove, setJson, setString } from './src/storage';
 import { useFlowstateFonts } from './src/ui/Fonts';
-import { LayoutGrid, BarChart3, User as UserIcon } from 'lucide-react-native';
-import { Text } from './src/ui/Text';
+import { BottomPillNav } from './src/components/BottomPillNav';
+import { GAME_NAV_ACCENTS } from './src/constants/gameNavAccent';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { calculateAllocatedMinutes } from './src/screentime';
@@ -39,6 +39,7 @@ export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [stats, setStats] = useState<UserStats>(() => defaultStats());
   const [showDismissScreen, setShowDismissScreen] = useState(false);
+  const [streamNavAccent, setStreamNavAccent] = useState(() => GAME_NAV_ACCENTS.pulse);
 
   // Handle deep links from shield buttons
   const handleDeepLink = useCallback((url: string | null) => {
@@ -342,6 +343,10 @@ export default function App() {
 
   const handleScrollXp = React.useCallback(() => {}, []);
 
+  const handleActiveGameChange = React.useCallback((gameType: GameType) => {
+    setStreamNavAccent(GAME_NAV_ACCENTS[gameType] ?? GAME_NAV_ACCENTS.pulse);
+  }, []);
+
   const handleRepComplete = React.useCallback((type: GameType, score: number, isClean: boolean = true) => {
     const today = formatLocalDateKey();
     setStats((prev) => {
@@ -390,18 +395,6 @@ export default function App() {
 
   const isDark = theme === 'dark';
   const bg = isDark ? '#000' : '#f8fafc';
-  const navBg = isDark ? '#020617' : '#ffffff';
-  const navBorder = isDark ? '#0f172a' : '#e2e8f0';
-  const navIconInactive = isDark ? '#475569' : '#94a3b8';
-
-  const tabs = useMemo(
-    () => [
-      { id: 'scroll' as const, label: 'Stream', icon: LayoutGrid },
-      { id: 'progress' as const, label: 'Metrics', icon: BarChart3 },
-      { id: 'profile' as const, label: 'Account', icon: UserIcon },
-    ],
-    [],
-  );
 
   if (!fontsLoaded || isBooting) {
     return (
@@ -428,7 +421,14 @@ export default function App() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={[styles.container, { backgroundColor: bg }]}>
           <View style={{ flex: 1 }}>
-            {activeTab === 'scroll' && <FeedScreen theme={theme} onCompleteRep={handleRepComplete} onScrollXp={handleScrollXp} />}
+            {activeTab === 'scroll' && (
+              <FeedScreen
+                theme={theme}
+                onCompleteRep={handleRepComplete}
+                onScrollXp={handleScrollXp}
+                onActiveGameChange={handleActiveGameChange}
+              />
+            )}
             {activeTab === 'progress' && <ProgressScreen theme={theme} stats={stats} />}
             {activeTab === 'profile' && (
               <ProfileScreen 
@@ -443,25 +443,12 @@ export default function App() {
             )}
           </View>
 
-          <View style={[styles.nav, { backgroundColor: navBg, borderTopColor: navBorder }]}>
-            {tabs.map((t) => {
-              const active = activeTab === t.id;
-              const Icon = t.icon;
-              return (
-                <Pressable
-                  key={t.id}
-                  onPress={() => setActiveTab(t.id)}
-                  className="items-center justify-center gap-1 flex-1 h-full pt-2"
-                  style={({ pressed }) => [pressed && { opacity: 0.7 }]}
-                >
-                  <Icon size={22} color={active ? '#06b6d4' : navIconInactive} />
-                  <Text weight="black" className="text-[9px] uppercase tracking-widest" style={{ color: active ? '#06b6d4' : navIconInactive }}>
-                    {t.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <BottomPillNav
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            streamAccent={streamNavAccent}
+            theme={theme}
+          />
 
           <StatusBar style={isDark ? 'light' : 'dark'} />
 
@@ -494,13 +481,5 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  nav: {
-    height: 84,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingBottom: 24,
   },
 });
