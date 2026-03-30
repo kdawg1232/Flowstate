@@ -27,6 +27,7 @@ import { formatLocalDateKey } from './src/date';
 
 import OnboardingFlow from './src/screens/onboarding/OnboardingFlow';
 import { DismissScreen } from './src/screens/DismissScreen';
+import { HoldToDismissModal } from './src/components/HoldToDismissModal';
 
 const FLOWSTATE_LAST_CALIBRATION_RESET_KEY = 'flowstate_last_calibration_reset';
 
@@ -39,14 +40,17 @@ export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [stats, setStats] = useState<UserStats>(() => defaultStats());
   const [showDismissScreen, setShowDismissScreen] = useState(false);
+  const [showHoldToDismiss, setShowHoldToDismiss] = useState(false);
   const [streamNavAccent, setStreamNavAccent] = useState(() => GAME_NAV_ACCENTS.pulse);
 
   // Handle deep links from shield buttons
   const handleDeepLink = useCallback((url: string | null) => {
     if (!url) return;
     
-    // Parse the URL - format: flowstate://dismiss or flowstate://
-    if (url.includes('dismiss')) {
+    if (url.includes('profile-dismiss')) {
+      setActiveTab('profile');
+      setShowHoldToDismiss(true);
+    } else if (url.includes('dismiss')) {
       setShowDismissScreen(true);
     }
   }, []);
@@ -439,6 +443,7 @@ export default function App() {
                 onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')} 
                 onLogout={handleLogout}
                 onDeleteAccount={handleDeleteAccount}
+                onRequestHoldToDismiss={() => setShowHoldToDismiss(true)}
               />
             )}
           </View>
@@ -452,7 +457,7 @@ export default function App() {
 
           <StatusBar style={isDark ? 'light' : 'dark'} />
 
-          {/* Dismiss Screen Modal */}
+          {/* Legacy Dismiss Screen Modal */}
           <Modal
             visible={showDismissScreen}
             animationType="slide"
@@ -467,6 +472,22 @@ export default function App() {
               }}
             />
           </Modal>
+
+          {/* Hold-to-Dismiss Modal (triggered from shield "Enter FlowState" or enforcement toggle) */}
+          <HoldToDismissModal
+            visible={showHoldToDismiss}
+            onDismissComplete={() => {
+              setShowHoldToDismiss(false);
+              setStats(prev => ({
+                ...prev,
+                screenTime: {
+                  ...prev.screenTime,
+                  isTrackingEnabled: false,
+                },
+              }));
+            }}
+            onCancel={() => setShowHoldToDismiss(false)}
+          />
         </View>
       </GestureHandlerRootView>
     </SafeAreaProvider>

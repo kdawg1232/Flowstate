@@ -21,13 +21,12 @@ class ShieldActionExtension: ShieldActionDelegate {
     private func handleAction(_ action: ShieldAction, completionHandler: @escaping (ShieldActionResponse) -> Void) {
         switch action {
         case .primaryButtonPressed:
-            // "Enter FlowState" - store intent and close shield
-            openApp(path: nil)
+            // "Enter FlowState" - navigate to profile tab with hold-to-dismiss modal
+            openApp(path: "profile-dismiss")
             completionHandler(.close)
             
         case .secondaryButtonPressed:
-            // "Dismiss Restriction" - store intent to open dismiss screen
-            openApp(path: "dismiss")
+            // "Dismiss" - just close the shield overlay
             completionHandler(.close)
             
         @unknown default:

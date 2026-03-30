@@ -18,9 +18,10 @@ type Props = {
   onToggleTheme: () => void;
   onLogout: () => void;
   onDeleteAccount: () => void;
+  onRequestHoldToDismiss?: () => void;
 };
 
-export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLogout, onDeleteAccount }: Props) {
+export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLogout, onDeleteAccount, onRequestHoldToDismiss }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
   const subTextColorClass = isDark ? 'text-slate-500' : 'text-slate-400';
@@ -53,27 +54,30 @@ export function ProfileScreen({ theme, stats, onUpdateStats, onToggleTheme, onLo
         return;
       }
       
-      // Set initial budget based on current milestone (or 0 if no milestone reached)
       const currentAllocatedMinutes = screenTime.allocatedMinutes || 0;
       console.log('[ScreenTime] Setting initial budget from Profile toggle:', currentAllocatedMinutes);
       await ScreenTime.setScreenTimeBudget(currentAllocatedMinutes);
-    } else {
-      // Turning enforcement off should immediately remove active restrictions.
-      try {
-        await ScreenTime.clearShield();
-      } catch (error) {
-        console.error('Failed to clear shield while turning off tracking:', error);
-      }
-    }
-    console.log('[ScreenTime] Setting isTrackingEnabled to', turningOn);
 
-    onUpdateStats({
-      ...stats,
-      screenTime: {
-        ...screenTime,
-        isTrackingEnabled: turningOn
+      onUpdateStats({
+        ...stats,
+        screenTime: {
+          ...screenTime,
+          isTrackingEnabled: true,
+        }
+      });
+    } else {
+      // Require 30-second hold to turn off enforcement
+      if (onRequestHoldToDismiss) {
+        onRequestHoldToDismiss();
+        return;
       }
-    });
+      // Fallback if callback not provided
+      try { await ScreenTime.clearShield(); } catch (e) { console.error('Failed to clear shield:', e); }
+      onUpdateStats({
+        ...stats,
+        screenTime: { ...screenTime, isTrackingEnabled: false }
+      });
+    }
   };
 
   const selectApps = async () => {

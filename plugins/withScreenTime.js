@@ -267,6 +267,25 @@ module.exports = function withScreenTime(config) {
       // C. Copy Source File
       fs.copyFileSync(path.join(nativeSourceDir, ext.sourceFile), path.join(extensionRoot, ext.sourceFile));
 
+      // C2. Copy app icon into ShieldConfig extension so the shield can display it
+      if (ext.name === 'FlowStateShieldConfig') {
+        const iconSrc = path.join(projectRoot, 'assets', 'icon.png');
+        if (fs.existsSync(iconSrc)) {
+          const assetCatalogDir = path.join(extensionRoot, 'ShieldIcon.xcassets', 'ShieldIcon.imageset');
+          fs.mkdirSync(assetCatalogDir, { recursive: true });
+          fs.copyFileSync(iconSrc, path.join(assetCatalogDir, 'ShieldIcon.png'));
+          const contentsJson = JSON.stringify({
+            images: [{ filename: 'ShieldIcon.png', idiom: 'universal', scale: '1x' }],
+            info: { version: 1, author: 'xcode' }
+          }, null, 2);
+          fs.writeFileSync(path.join(assetCatalogDir, 'Contents.json'), contentsJson);
+          fs.writeFileSync(path.join(extensionRoot, 'ShieldIcon.xcassets', 'Contents.json'), JSON.stringify({
+            info: { version: 1, author: 'xcode' }
+          }, null, 2));
+          console.log(`[withScreenTime] Bundled ShieldIcon.png into ${ext.name}`);
+        }
+      }
+
       // D. Get or create extension target
       let extensionTargetKey = getTargetKey(ext.name);
       
@@ -292,6 +311,72 @@ module.exports = function withScreenTime(config) {
       // E. ALWAYS add source file to extension target (not main target!)
       // This is the key fix - we must ensure source goes to extension, not main app
       addSourceFileToTarget(`${ext.name}/${ext.sourceFile}`, extensionTargetKey, null);
+
+      // E2. Add asset catalog resource to ShieldConfig extension
+      if (ext.name === 'FlowStateShieldConfig') {
+        const assetCatalogPath = `${ext.name}/ShieldIcon.xcassets`;
+        const assetCatalogFullPath = path.join(iosRoot, assetCatalogPath);
+        if (fs.existsSync(assetCatalogFullPath)) {
+          // Add asset catalog as a resource to the extension target
+          const resourceFileRefUuid = project.generateUuid();
+          const resourceBuildFileUuid = project.generateUuid();
+          
+          project.pbxFileReferenceSection()[resourceFileRefUuid] = {
+            isa: 'PBXFileReference',
+            lastKnownFileType: 'folder.assetcatalog',
+            name: '"ShieldIcon.xcassets"',
+            path: `"${assetCatalogPath}"`,
+            sourceTree: '"<group>"'
+          };
+          project.pbxFileReferenceSection()[`${resourceFileRefUuid}_comment`] = 'ShieldIcon.xcassets';
+
+          project.pbxBuildFileSection()[resourceBuildFileUuid] = {
+            isa: 'PBXBuildFile',
+            fileRef: resourceFileRefUuid,
+            fileRef_comment: 'ShieldIcon.xcassets'
+          };
+          project.pbxBuildFileSection()[`${resourceBuildFileUuid}_comment`] = 'ShieldIcon.xcassets in Resources';
+
+          // Find or create Resources build phase for the extension
+          const targets = project.pbxNativeTargetSection();
+          const extTarget = targets[extensionTargetKey];
+          if (extTarget && extTarget.buildPhases) {
+            const resourcePhases = project.hash.project.objects.PBXResourcesBuildPhase || {};
+            let resourcePhaseKey = null;
+            for (const phaseRef of extTarget.buildPhases) {
+              if (resourcePhases[phaseRef.value]) {
+                resourcePhaseKey = phaseRef.value;
+                break;
+              }
+            }
+            if (!resourcePhaseKey) {
+              resourcePhaseKey = project.generateUuid();
+              resourcePhases[resourcePhaseKey] = {
+                isa: 'PBXResourcesBuildPhase',
+                buildActionMask: 2147483647,
+                files: [],
+                runOnlyForDeploymentPostprocessing: 0
+              };
+              resourcePhases[`${resourcePhaseKey}_comment`] = 'Resources';
+              if (!project.hash.project.objects.PBXResourcesBuildPhase) {
+                project.hash.project.objects.PBXResourcesBuildPhase = resourcePhases;
+              }
+              extTarget.buildPhases.push({ value: resourcePhaseKey, comment: 'Resources' });
+            }
+            const resPhase = resourcePhases[resourcePhaseKey];
+            if (resPhase && resPhase.files) {
+              const alreadyAdded = resPhase.files.some(f => {
+                const bf = project.pbxBuildFileSection()[f.value];
+                return bf && bf.fileRef === resourceFileRefUuid;
+              });
+              if (!alreadyAdded) {
+                resPhase.files.push({ value: resourceBuildFileUuid, comment: 'ShieldIcon.xcassets in Resources' });
+                console.log('[withScreenTime] Added ShieldIcon.xcassets to ShieldConfig Resources phase');
+              }
+            }
+          }
+        }
+      }
 
       // F. Configure Build Settings for this extension
       const configurations = project.pbxXCBuildConfigurationSection();
