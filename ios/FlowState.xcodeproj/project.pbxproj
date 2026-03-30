@@ -11,6 +11,7 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		155FBFCAE65846EBB84A2CBC /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0832301EB69143D8B14F6E2E /* DeviceActivity.framework */; };
 		16948AB4E57C4D1981612085 /* ShieldConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CE6258D94AB4AE28E4F1FFC /* ShieldConfiguration.swift */; };
+		F1A2B3C4D5E6789012345012 /* ShieldIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = E2A3B4C5D6E7890123450123 /* ShieldIcon.png */; };
 		2FBB08C976B4424492199633 /* FlowStateScreenTime.m in Sources */ = {isa = PBXBuildFile; fileRef = 88C619643D68439A91A54A8B /* FlowStateScreenTime.m */; };
 		3D7409A24C953E60414F7663 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D6DA319DD2D3D87503D6EA3A /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
@@ -78,6 +79,7 @@
 		88C619643D68439A91A54A8B /* FlowStateScreenTime.m */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.objc; name = FlowStateScreenTime.m; path = FlowState/FlowStateScreenTime.m; sourceTree = "<group>"; };
 		8B36F3F7E1F2242A96C949CD /* Pods-FlowState.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FlowState.debug.xcconfig"; path = "Target Support Files/Pods-FlowState/Pods-FlowState.debug.xcconfig"; sourceTree = "<group>"; };
 		8CE6258D94AB4AE28E4F1FFC /* ShieldConfiguration.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = ShieldConfiguration.swift; path = FlowStateShieldConfig/ShieldConfiguration.swift; sourceTree = "<group>"; };
+		E2A3B4C5D6E7890123450123 /* ShieldIcon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ShieldIcon.png; path = FlowStateShieldConfig/ShieldIcon.png; sourceTree = "<group>"; };
 		96B94E83161DCB01C2D58932 /* libPods-FlowState.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-FlowState.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = FlowState/SplashScreen.storyboard; sourceTree = "<group>"; };
 		AAC87AAE482943CAB47A1BBD /* DeviceActivityMonitor.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = DeviceActivityMonitor.swift; path = FlowStateMonitor/DeviceActivityMonitor.swift; sourceTree = "<group>"; };
@@ -253,6 +255,7 @@
 			buildConfigurationList = 4D959FBAD709486C88F45E1F /* Build configuration list for PBXNativeTarget "FlowStateShieldConfig" */;
 			buildPhases = (
 				F4007E69942B3FD6ABC6BE6E /* Sources */,
+				D3A4B5C6D7E8901234501234 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -335,6 +338,14 @@
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
 				3D7409A24C953E60414F7663 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D3A4B5C6D7E8901234501234 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F1A2B3C4D5E6789012345012 /* ShieldIcon.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

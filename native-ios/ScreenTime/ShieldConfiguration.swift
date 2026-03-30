@@ -8,11 +8,18 @@ import UIKit
 class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     
     private func makeConfiguration() -> ShieldConfiguration {
-        let appIcon = UIImage(named: "ShieldIcon") ?? UIImage(systemName: "bolt.fill")
+        let appIcon: UIImage? = {
+            if let path = Bundle.main.path(forResource: "ShieldIcon", ofType: "png"),
+               let img = UIImage(contentsOfFile: path) {
+                return img
+            }
+            return UIImage(named: "ShieldIcon") ?? UIImage(systemName: "bolt.fill")
+        }()
         
+        // nil blur avoids the system material overlay that tints pure black to grey
         return ShieldConfiguration(
-            backgroundBlurStyle: .systemMaterialDark,
-            backgroundColor: UIColor(red: 0/255, green: 0/255, blue: 0/255, alpha: 1.0),
+            backgroundBlurStyle: nil,
+            backgroundColor: .black,
             icon: appIcon,
             title: ShieldConfiguration.Label(
                 text: "FLOWSTATE",

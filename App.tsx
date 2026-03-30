@@ -92,6 +92,8 @@ export default function App() {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
         checkPendingDeepLink();
+        setTimeout(() => checkPendingDeepLink(), 400);
+        setTimeout(() => checkPendingDeepLink(), 1500);
       }
     });
 
@@ -99,6 +101,14 @@ export default function App() {
       subscription.remove();
     };
   }, [checkPendingDeepLink]);
+
+  // After login + boot, poll shared defaults in case the user opened the app from the shield URL late
+  useEffect(() => {
+    if (isBooting || !isLoggedIn || Platform.OS !== 'ios') return;
+    const delays = [300, 1200, 3500];
+    const timers = delays.map((ms) => setTimeout(() => void checkPendingDeepLink(), ms));
+    return () => timers.forEach(clearTimeout);
+  }, [isBooting, isLoggedIn, checkPendingDeepLink]);
 
   useEffect(() => {
     let cancelled = false;
