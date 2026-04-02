@@ -4,6 +4,7 @@ import ManagedSettings
 import DeviceActivity
 import Combine
 import SwiftUI
+import UserNotifications
 import os
 
 @available(iOS 16.0, *)
@@ -235,6 +236,18 @@ class ScreenTimeModule: NSObject {
         sharedDefaults?.removeObject(forKey: "pendingDeepLink")
         sharedDefaults?.removeObject(forKey: "pendingDeepLinkTimestamp")
         resolve(nil)
+    }
+
+    @objc
+    func requestNotificationPermission(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if let error = error {
+                reject("NOTIFICATION_FAILED", "Failed to request notification permission: \(error.localizedDescription)", error)
+            } else {
+                self.logger.log("Notification permission \(granted ? "granted" : "denied")")
+                resolve(granted)
+            }
+        }
     }
 
     @objc

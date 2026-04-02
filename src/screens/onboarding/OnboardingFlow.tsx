@@ -15,14 +15,18 @@ import Step6Proof from './Step6Proof';
 import Step7Arsenal from './Step7Arsenal';
 import Step8Payoff from './Step8Payoff';
 import { ProgressBar } from './ProgressBar';
+import { SignUpScreen } from '../SignUpScreen';
+import { LoginScreen } from '../LoginScreen';
 
 interface Props {
-  onComplete: (screenTimeEnabled?: boolean, restrictedAppCount?: number) => void;
+  onComplete: (username: string, screenTimeEnabled?: boolean, restrictedAppCount?: number) => void;
 }
 
 const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1); // 1 for forward, -1 for back
+  const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
+  const [authUsername, setAuthUsername] = useState('FlowState User');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [screenTimeEnabled, setScreenTimeEnabled] = useState(false);
   const [restrictedAppCount, setRestrictedAppCount] = useState(0);
@@ -42,15 +46,34 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
     );
   };
 
+  const handleAuthSuccess = (username: string) => {
+    setAuthUsername(username || 'FlowState User');
+    nextStep();
+  };
+
   const renderStep = () => {
     switch (step) {
       case 0:
         return <Landing onNext={nextStep} />;
       case 1:
-        return <Step1Hook onNext={nextStep} onBack={prevStep} />;
+        return authMode === 'signup' ? (
+          <SignUpScreen
+            onSignUpSuccess={handleAuthSuccess}
+            onGoToSignIn={() => setAuthMode('signin')}
+            onBack={prevStep}
+          />
+        ) : (
+          <LoginScreen
+            onLoginSuccess={handleAuthSuccess}
+            onGoToSignUp={() => setAuthMode('signup')}
+            onBack={prevStep}
+          />
+        );
       case 2:
-        return <NewStep2Definition onNext={nextStep} onBack={prevStep} />;
+        return <Step1Hook onNext={nextStep} onBack={prevStep} />;
       case 3:
+        return <NewStep2Definition onNext={nextStep} onBack={prevStep} />;
+      case 4:
         return (
           <Step2Quiz 
             onNext={nextStep} 
@@ -59,23 +82,23 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
             toggleTag={toggleTag} 
           />
         );
-      case 4:
-        return <Step3Results onNext={nextStep} onBack={prevStep} />;
       case 5:
-        return <Step4Vision onNext={nextStep} onBack={prevStep} />;
+        return <Step3Results onNext={nextStep} onBack={prevStep} />;
       case 6:
-        return <Step5Solution onNext={nextStep} onBack={prevStep} />;
+        return <Step4Vision onNext={nextStep} onBack={prevStep} />;
       case 7:
+        return <Step5Solution onNext={nextStep} onBack={prevStep} />;
+      case 8:
         return <Step5bScreenTime onNext={nextStep} onBack={prevStep} onScreenTimeEnabled={(enabled, count) => {
           setScreenTimeEnabled(enabled);
           if (count) setRestrictedAppCount(count);
         }} />;
-      case 8:
-        return <Step6Proof onNext={nextStep} onBack={prevStep} />;
       case 9:
-        return <Step7Arsenal onNext={nextStep} onBack={prevStep} />;
+        return <Step6Proof onNext={nextStep} onBack={prevStep} />;
       case 10:
-        return <Step8Payoff onComplete={() => onComplete(screenTimeEnabled, restrictedAppCount)} onBack={prevStep} />;
+        return <Step7Arsenal onNext={nextStep} onBack={prevStep} />;
+      case 11:
+        return <Step8Payoff onComplete={() => onComplete(authUsername, screenTimeEnabled, restrictedAppCount)} onBack={prevStep} />;
       default:
         return <Landing onNext={nextStep} />;
     }
@@ -84,7 +107,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.content}>
-        {step > 0 && (
+        {step > 1 && (
           <View className="absolute top-16 left-6 right-6 flex-row items-center z-[200]">
             <Pressable 
               onPress={prevStep}
@@ -93,7 +116,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
             >
               <ArrowLeft size={24} color="#64748b" />
             </Pressable>
-            <ProgressBar progress={step / 10} />
+            <ProgressBar progress={(step - 1) / 10} />
           </View>
         )}
         

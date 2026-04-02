@@ -15,6 +15,7 @@ export interface ScreenTimeInterface {
   getUsedMinutes(): Promise<number>;
   clearShield(): Promise<boolean>;
   getPendingDeepLink(): Promise<string | null>;
+  requestNotificationPermission(): Promise<boolean>;
 }
 
 const dummyImplementation: ScreenTimeInterface = {
@@ -24,6 +25,7 @@ const dummyImplementation: ScreenTimeInterface = {
   getUsedMinutes: async () => 0,
   clearShield: async () => true,
   getPendingDeepLink: async () => null,
+  requestNotificationPermission: async () => true,
 };
 
 const ScreenTime: ScreenTimeInterface = Platform.OS === 'ios' && ScreenTimeModule 

@@ -18,6 +18,9 @@ RCT_EXTERN_METHOD(getUsedMinutes:(RCTPromiseResolveBlock)resolve
 RCT_EXTERN_METHOD(getPendingDeepLink:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(requestNotificationPermission:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+
 RCT_EXTERN_METHOD(clearShield:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 

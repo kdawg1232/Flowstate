@@ -1,47 +1,46 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, TextInput, View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Zap, ArrowRight, Lock, User, ChevronLeft } from 'lucide-react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { Text as FText } from '../ui/Text';
-import { getJson } from '../storage';
-import { FLOWSTATE_USERS_KEY } from '../initialState';
-import type { UserAccount } from '../types';
+import { requireSupabase } from '../lib/supabase';
 
 type Props = {
   onLoginSuccess: (username: string) => void;
+  onGoToSignUp: () => void;
   onBack: () => void;
 };
 
-export function LoginScreen({ onLoginSuccess, onBack }: Props) {
-  const [username, setUsername] = useState('');
+export function LoginScreen({ onLoginSuccess, onGoToSignUp, onBack }: Props) {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const canSubmit = useMemo(() => username.length > 0 && password.length > 0, [username, password]);
+  const canSubmit = useMemo(() => email.trim().length > 3 && password.length > 0, [email, password]);
 
   const submit = async () => {
     if (!canSubmit) return;
     setIsLoading(true);
 
-    // Bypass for App Store Review
-    if (username.toLowerCase() === 'admin' && password === 'admin') {
-      onLoginSuccess('admin');
-      return;
-    }
-
     try {
-      const users = await getJson<UserAccount[]>(FLOWSTATE_USERS_KEY) || [];
-      const user = users.find(u => 
-        u.username.toLowerCase() === username.toLowerCase() && 
-        u.password === password
-      );
+      const supabase = requireSupabase();
+      const normalizedEmail = email.trim().toLowerCase();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
 
-      if (user) {
-        onLoginSuccess(user.username);
-      } else {
-        Alert.alert('Access Denied', 'Invalid identity or access code. Please try again.');
+      if (error || !data.user) {
+        Alert.alert('Sign in failed', error?.message ?? 'Invalid email or password.');
+        return;
       }
-    } catch (e) {
-      Alert.alert('System Error', 'Failed to verify neural link.');
+
+      const displayName =
+        (data.user.user_metadata?.display_name as string | undefined) ||
+        data.user.email ||
+        'FlowState User';
+      onLoginSuccess(displayName);
+    } catch (e: any) {
+      Alert.alert('Sign in failed', e?.message ?? 'Something went wrong while signing in.');
     } finally {
       setIsLoading(false);
     }
@@ -50,85 +49,69 @@ export function LoginScreen({ onLoginSuccess, onBack }: Props) {
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-[#0a0a0c]"
+      className="flex-1 bg-[#f5f7f6]"
     >
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6">
         <View className="flex-1 items-center justify-center py-12">
           <Pressable 
             onPress={onBack}
-            className="absolute top-12 left-0 w-10 h-10 items-center justify-center rounded-full bg-slate-900/50 border border-slate-800"
+            className="absolute top-12 left-0 w-10 h-10 items-center justify-center rounded-full bg-white border border-[#dcdedc]"
           >
-            <ChevronLeft color="#94a3b8" size={20} />
+            <ChevronLeft color="#3f3f46" size={20} />
           </Pressable>
 
           <View className="w-full max-w-md">
-            <View className="items-center mb-12">
-              <View className="w-20 h-20 bg-cyan-500/10 border border-cyan-500/30 rounded-3xl items-center justify-center mb-6">
-                <Zap color="#06b6d4" size={40} />
-              </View>
-              <FText weight="black" className="text-white text-4xl tracking-tighter italic uppercase mb-2">
-                Sign In
+            <View className="items-center mb-8">
+              <FText weight="black" className="text-[#151515] text-3xl tracking-tight mb-2">
+                Log In
               </FText>
-              <FText variant="mono" weight="monoMedium" className="text-slate-500 text-[10px] uppercase tracking-[0.4em]">
-                Enter your credentials
+              <FText className="text-[#666] text-center">
+                Continue your FlowState journey.
               </FText>
             </View>
 
-            <View className="space-y-3">
-              <View className="relative">
-                <User color="#64748b" size={18} style={rnStyles.iconLeft} />
-                <TextInput
-                  value={username}
-                  onChangeText={setUsername}
-                  placeholder="USERNAME"
-                  placeholderTextColor="#475569"
-                  autoCapitalize="none"
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-white uppercase text-sm"
-                />
-              </View>
-              <View className="relative">
-                <Lock color="#64748b" size={18} style={rnStyles.iconLeft} />
-                <TextInput
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="PASSWORD"
-                  placeholderTextColor="#475569"
-                  secureTextEntry
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-white uppercase text-sm"
-                />
-              </View>
-
+            <View className="gap-3">
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Email"
+                placeholderTextColor="#9ca3af"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                className="w-full bg-white border border-[#d8dad8] rounded-md py-3.5 px-4 text-[#111]"
+              />
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Password"
+                placeholderTextColor="#9ca3af"
+                secureTextEntry
+                className="w-full bg-white border border-[#d8dad8] rounded-md py-3.5 px-4 text-[#111]"
+              />
               <Pressable
                 onPress={submit}
                 disabled={!canSubmit || isLoading}
-                className={`w-full py-5 rounded-2xl items-center justify-center flex-row gap-2 mt-4 ${
-                  canSubmit && !isLoading ? 'bg-cyan-500' : 'bg-cyan-500/50'
+                className={`w-full rounded-md py-3.5 items-center justify-center mt-1 ${
+                  canSubmit && !isLoading ? 'bg-[#111]' : 'bg-[#111]/40'
                 }`}
-                style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}
               >
-                <FText weight="black" className="text-black text-sm uppercase tracking-[0.2em]">
-                  {isLoading ? 'Signing In...' : 'Sign In'}
+                <FText className="text-white text-[15px]" weight="extrabold">
+                  {isLoading ? 'Logging in...' : 'Log in'}
                 </FText>
-                {!isLoading && <ArrowRight color="#001018" size={18} />}
               </Pressable>
             </View>
 
-            <FText className="mt-8 text-center text-slate-600 text-[10px] uppercase tracking-[0.2em]" weight="extrabold">
-              Authorized Personnel Only
-            </FText>
+            <View className="mt-8 items-center">
+              <FText className="text-[#5d6260] text-[14px]">
+                Don't have an account?{' '}
+                <FText className="text-[#0f766e]" weight="extrabold" onPress={onGoToSignUp}>
+                  Create one.
+                </FText>
+              </FText>
+            </View>
           </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
-const rnStyles = StyleSheet.create({
-  iconLeft: {
-    position: 'absolute',
-    left: 16,
-    top: '50%',
-    marginTop: -9,
-    zIndex: 1,
-  },
-});

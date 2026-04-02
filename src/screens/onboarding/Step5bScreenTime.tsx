@@ -37,6 +37,9 @@ const Step5bScreenTime: React.FC<Props> = ({ onNext, onBack, onScreenTimeEnabled
       console.log('Step5b: Authorization result:', result);
       if (result) {
         setAuthorized(true);
+        // Request notification permission so the shield's "Enter FlowState" button
+        // can send an immediate notification to bring the user back to the app
+        ScreenTime.requestNotificationPermission().catch(console.error);
       }
     } catch (error: any) {
       console.error('Screen Time authorization error:', error);

@@ -1,10 +1,8 @@
 import ManagedSettings
 import ManagedSettingsUI
 import Foundation
-import UIKit
+import UserNotifications
 
-// Shield Action Extension - handles button taps on the shield
-// NOTE: Class name must match NSExtensionPrincipalClass in Info.plist
 class ShieldActionExtension: ShieldActionDelegate {
     
     override func handle(action: ShieldAction, for application: ApplicationToken, completionHandler: @escaping (ShieldActionResponse) -> Void) {
@@ -23,13 +21,12 @@ class ShieldActionExtension: ShieldActionDelegate {
         switch action {
         case .primaryButtonPressed:
             let path = "profile-dismiss"
-            openApp(path: path)
-            // Must not call completionHandler until after we attempt openURL: finishing the handler
-            // tears the extension down; if we .close synchronously, the async main block never runs.
-            openHostAppIfPossible(path: path, completionHandler: completionHandler)
+            writePendingDeepLink(path: path)
+            scheduleOpenAppNotification {
+                completionHandler(.close)
+            }
             
         case .secondaryButtonPressed:
-            // "Dismiss" - just close the shield overlay
             completionHandler(.close)
             
         @unknown default:
@@ -37,35 +34,32 @@ class ShieldActionExtension: ShieldActionDelegate {
         }
     }
     
-    private func openApp(path: String?) {
+    private func writePendingDeepLink(path: String) {
         let sharedDefaults = UserDefaults(suiteName: "group.com.karthik.flowstate")
-        sharedDefaults?.set(path ?? "home", forKey: "pendingDeepLink")
+        sharedDefaults?.set(path, forKey: "pendingDeepLink")
         sharedDefaults?.set(Date().timeIntervalSince1970, forKey: "pendingDeepLinkTimestamp")
     }
 
-    /// Runtime `UIApplication` + `open` so the host app can be foregrounded via `flowstate://`.
-    /// Completion is invoked after the open attempt so the extension stays alive until then.
-    private func openHostAppIfPossible(path: String, completionHandler: @escaping (ShieldActionResponse) -> Void) {
-        guard let url = URL(string: "flowstate://\(path)") else {
-            completionHandler(.close)
-            return
-        }
-        DispatchQueue.main.async {
-            guard let appClass = NSClassFromString("UIApplication") else {
-                completionHandler(.close)
-                return
-            }
-            let appClassObject = appClass as AnyObject
-            let sel = NSSelectorFromString("sharedApplication")
-            guard appClassObject.responds(to: sel),
-                  let raw = appClassObject.perform(sel),
-                  let application = raw.takeUnretainedValue() as? UIApplication else {
-                completionHandler(.close)
-                return
-            }
-            application.open(url, options: [:]) { _ in
-                completionHandler(.close)
-            }
+    /// iOS does not allow extensions to programmatically open other apps (UIApplication.shared
+    /// doesn't exist in extension processes). Instead, we schedule an immediate local notification
+    /// that, when tapped by the user, opens FlowState. The pending deep-link stored in shared
+    /// UserDefaults ensures the app shows the dismiss-restrictions flow on launch.
+    private func scheduleOpenAppNotification(completion: @escaping () -> Void) {
+        let content = UNMutableNotificationContent()
+        content.title = "Enter FlowState"
+        content.body = "Tap to open the app"
+        content.sound = .default
+        content.userInfo = ["deepLink": "profile-dismiss"]
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "flowstate-open-app",
+            content: content,
+            trigger: trigger
+        )
+        
+        UNUserNotificationCenter.current().add(request) { _ in
+            completion()
         }
     }
 }

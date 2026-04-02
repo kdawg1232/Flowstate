@@ -1,50 +1,80 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, TextInput, View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Zap, ArrowRight, User, Lock, ChevronLeft, ShieldAlert } from 'lucide-react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Apple, ChevronLeft, Mail } from 'lucide-react-native';
 import { Text as FText } from '../ui/Text';
-import { getJson, setJson } from '../storage';
-import { FLOWSTATE_USERS_KEY } from '../initialState';
-import type { UserAccount } from '../types';
+import { requireSupabase } from '../lib/supabase';
 
 type Props = {
   onSignUpSuccess: (username: string) => void;
+  onGoToSignIn: () => void;
   onBack: () => void;
 };
 
-export function SignUpScreen({ onSignUpSuccess, onBack }: Props) {
-  const [username, setUsername] = useState('');
+export function SignUpScreen({ onSignUpSuccess, onGoToSignIn, onBack }: Props) {
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const canSubmit = useMemo(() => 
-    username.length >= 3 && 
-    password.length >= 4 && 
-    password === confirmPassword, 
-  [username, password, confirmPassword]);
+  const canSubmit = useMemo(
+    () =>
+      fullName.trim().length >= 2 &&
+      email.trim().length > 3 &&
+      password.length >= 6 &&
+      password === confirmPassword,
+    [fullName, email, password, confirmPassword],
+  );
 
   const handleSignUp = async () => {
     if (!canSubmit) return;
     setIsLoading(true);
 
     try {
-      const users = await getJson<UserAccount[]>(FLOWSTATE_USERS_KEY) || [];
-      
-      if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-        Alert.alert('Identity Conflict', 'This identity already exists in the neural network.');
-        setIsLoading(false);
+      const supabase = requireSupabase();
+      const normalizedEmail = email.trim().toLowerCase();
+      const displayName = fullName.trim();
+      const { data, error } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          data: { display_name: displayName },
+        },
+      });
+
+      if (error) {
+        Alert.alert('Sign up failed', error.message);
         return;
       }
 
-      const newUser: UserAccount = {
-        username: username.trim(),
-        password: password
-      };
+      if (data.user?.id) {
+        try {
+          // Optional app profile row: requires a matching "profiles" table in Supabase.
+          await supabase.from('profiles').upsert(
+            {
+              id: data.user.id,
+              email: normalizedEmail,
+              display_name: displayName,
+            },
+            { onConflict: 'id' },
+          );
+        } catch {
+          // If profiles table is not configured yet, auth still succeeds.
+        }
+      }
 
-      await setJson(FLOWSTATE_USERS_KEY, [...users, newUser]);
-      onSignUpSuccess(newUser.username);
-    } catch (e) {
-      Alert.alert('System Error', 'Failed to initialize neural link.');
+      if (data.session) {
+        onSignUpSuccess(displayName || normalizedEmail);
+      } else {
+        Alert.alert(
+          'Account created',
+          'Check your inbox to confirm your email, then sign in to continue.',
+        );
+        onGoToSignIn();
+      }
+    } catch (e: any) {
+      Alert.alert('Sign up failed', e?.message ?? 'Something went wrong while creating your account.');
     } finally {
       setIsLoading(false);
     }
@@ -59,77 +89,121 @@ export function SignUpScreen({ onSignUpSuccess, onBack }: Props) {
         <View className="flex-1 items-center justify-center py-12">
           <Pressable 
             onPress={onBack}
-            className="absolute top-12 left-0 w-10 h-10 items-center justify-center rounded-full bg-slate-900/50 border border-slate-800"
+            className="absolute top-12 left-0 w-10 h-10 items-center justify-center rounded-full bg-slate-900/70 border border-slate-800"
           >
             <ChevronLeft color="#94a3b8" size={20} />
           </Pressable>
 
           <View className="w-full max-w-md">
-            <View className="items-center mb-10">
-              <View className="w-20 h-20 bg-indigo-500/10 border border-indigo-500/30 rounded-3xl items-center justify-center mb-6">
-                <Zap color="#818cf8" size={40} />
-              </View>
-              <FText weight="black" className="text-white text-3xl tracking-tighter italic uppercase mb-2">
-                Sign Up
+            <View className="items-center mb-8">
+              <FText weight="black" className="text-white text-4xl tracking-tight mb-4 italic uppercase">
+                FlowState
               </FText>
-              <FText variant="mono" weight="monoMedium" className="text-slate-500 text-[10px] uppercase tracking-[0.4em]">
-                Create your account
+              <FText weight="black" className="text-white text-4xl leading-tight text-center mb-3">
+                Smart focus for high performers.
+              </FText>
+              <FText className="text-slate-400 text-base text-center">
+                Get started by creating your account.
               </FText>
             </View>
 
-            <View className="space-y-3">
-              <View className="relative">
-                <User color="#64748b" size={18} style={rnStyles.iconLeft} />
-                <TextInput
-                  value={username}
-                  onChangeText={setUsername}
-                  placeholder="USERNAME"
-                  placeholderTextColor="#475569"
-                  autoCapitalize="none"
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-white uppercase text-sm"
-                />
+            {!showEmailForm ? (
+              <View className="gap-3">
+                <Pressable
+                  onPress={() => Alert.alert('Google sign up', 'OAuth can be enabled next by adding Supabase Google provider config.')}
+                  className="w-full bg-slate-900/60 border border-slate-700 rounded-xl py-3.5 px-4 flex-row items-center justify-center gap-3"
+                >
+                  <Mail color="#ef4444" size={18} />
+                  <FText className="text-white text-[15px]" weight="extrabold">
+                    Sign up with Google
+                  </FText>
+                </Pressable>
+                <Pressable
+                  onPress={() => setShowEmailForm(true)}
+                  className="w-full bg-cyan-500 border border-cyan-400 rounded-xl py-3.5 px-4 flex-row items-center justify-center gap-3"
+                >
+                  <Mail color="#001018" size={18} />
+                  <FText className="text-black text-[15px]" weight="black">
+                    Sign up with email
+                  </FText>
+                </Pressable>
+                <Pressable
+                  onPress={() => Alert.alert('Apple sign up', 'OAuth can be enabled next by adding Supabase Apple provider config.')}
+                  className="w-full bg-slate-900/60 border border-slate-700 rounded-xl py-3.5 px-4 flex-row items-center justify-center gap-3"
+                >
+                  <Apple color="#f8fafc" size={18} />
+                  <FText className="text-white text-[15px]" weight="extrabold">
+                    Sign up with Apple
+                  </FText>
+                </Pressable>
               </View>
-              <View className="relative">
-                <Lock color="#64748b" size={18} style={rnStyles.iconLeft} />
+            ) : (
+              <View className="gap-3">
+                <TextInput
+                  value={fullName}
+                  onChangeText={setFullName}
+                  placeholder="Full name"
+                  placeholderTextColor="#64748b"
+                  autoCapitalize="words"
+                  className="w-full bg-slate-900/60 border border-slate-700 rounded-xl py-3.5 px-4 text-white"
+                />
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Email"
+                  placeholderTextColor="#64748b"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  className="w-full bg-slate-900/60 border border-slate-700 rounded-xl py-3.5 px-4 text-white"
+                />
                 <TextInput
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="PASSWORD"
-                  placeholderTextColor="#475569"
+                  placeholder="Password"
+                  placeholderTextColor="#64748b"
                   secureTextEntry
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-white uppercase text-sm"
+                  className="w-full bg-slate-900/60 border border-slate-700 rounded-xl py-3.5 px-4 text-white"
                 />
-              </View>
-              <View className="relative">
-                <ShieldAlert color="#64748b" size={18} style={rnStyles.iconLeft} />
                 <TextInput
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
-                  placeholder="CONFIRM PASSWORD"
-                  placeholderTextColor="#475569"
+                  placeholder="Confirm password"
+                  placeholderTextColor="#64748b"
                   secureTextEntry
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-white uppercase text-sm"
+                  className="w-full bg-slate-900/60 border border-slate-700 rounded-xl py-3.5 px-4 text-white"
                 />
+
+                <Pressable
+                  onPress={handleSignUp}
+                  disabled={!canSubmit || isLoading}
+                  className={`w-full rounded-xl py-3.5 items-center justify-center ${
+                    canSubmit && !isLoading ? 'bg-cyan-500' : 'bg-cyan-500/40'
+                  }`}
+                >
+                  <FText className="text-black text-[15px]" weight="black">
+                    {isLoading ? 'Creating account...' : 'Create account'}
+                  </FText>
+                </Pressable>
+                <Pressable
+                  onPress={() => setShowEmailForm(false)}
+                  className="py-2"
+                >
+                  <FText className="text-slate-400 text-center text-sm" weight="bold">
+                    Back to sign up options
+                  </FText>
+                </Pressable>
               </View>
+            )}
 
-              <Pressable
-                onPress={handleSignUp}
-                disabled={!canSubmit || isLoading}
-                className={`w-full py-5 rounded-2xl items-center justify-center flex-row gap-2 mt-4 ${
-                  canSubmit && !isLoading ? 'bg-indigo-500' : 'bg-indigo-500/30'
-                }`}
-                style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}
-              >
-                <FText weight="black" className="text-white text-sm uppercase tracking-[0.2em]">
-                  {isLoading ? 'Creating Account...' : 'Sign Up'}
+            <View className="mt-8 items-center">
+              <FText className="text-slate-400 text-[14px]">
+                Already have an account?{' '}
+                <FText className="text-cyan-400" weight="extrabold" onPress={onGoToSignIn}>
+                  Sign in.
                 </FText>
-                {!isLoading && <ArrowRight color="white" size={18} />}
-              </Pressable>
-            </View>
-
-            <View className="mt-10 items-center">
-              <FText className="text-slate-600 text-[10px] uppercase tracking-[0.2em]">
-                Local-only encryption active
+              </FText>
+              <FText className="text-slate-500 text-[11px] mt-7 text-center">
+                By creating an account, you accept FlowState's Terms of Service.
               </FText>
             </View>
           </View>
@@ -138,13 +212,3 @@ export function SignUpScreen({ onSignUpSuccess, onBack }: Props) {
     </KeyboardAvoidingView>
   );
 }
-
-const rnStyles = StyleSheet.create({
-  iconLeft: {
-    position: 'absolute',
-    left: 16,
-    top: '50%',
-    marginTop: -9,
-    zIndex: 1,
-  },
-});

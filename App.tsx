@@ -24,6 +24,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { calculateAllocatedMinutes } from './src/screentime';
 import ScreenTime from './src/native/ScreenTime';
 import { formatLocalDateKey } from './src/date';
+import { isSupabaseConfigured, supabase } from './src/lib/supabase';
 
 import OnboardingFlow from './src/screens/onboarding/OnboardingFlow';
 import { DismissScreen } from './src/screens/DismissScreen';
@@ -113,12 +114,25 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const auth = await getString(FLOWSTATE_AUTH_KEY);
-      const savedStats = await getJson<UserStats>(FLOWSTATE_STATS_KEY);
-      const savedUsername = await getString(FLOWSTATE_CURRENT_USER_KEY);
+      const [legacyAuth, savedStats, savedUsername, sessionResult] = await Promise.all([
+        getString(FLOWSTATE_AUTH_KEY),
+        getJson<UserStats>(FLOWSTATE_STATS_KEY),
+        getString(FLOWSTATE_CURRENT_USER_KEY),
+        isSupabaseConfigured && supabase ? supabase.auth.getSession() : Promise.resolve({ data: { session: null } }),
+      ]);
       if (cancelled) return;
 
-      if (auth === 'true') {
+      const sessionUser = sessionResult.data.session?.user;
+      if (sessionUser) {
+        const sessionUsername =
+          (sessionUser.user_metadata?.display_name as string | undefined) ||
+          sessionUser.email ||
+          'FlowState User';
+        setIsLoggedIn(true);
+        setUsername(sessionUsername);
+        await setString(FLOWSTATE_AUTH_KEY, 'true');
+        await setString(FLOWSTATE_CURRENT_USER_KEY, sessionUsername);
+      } else if (legacyAuth === 'true') {
         setIsLoggedIn(true);
         if (savedUsername) setUsername(savedUsername);
       }
@@ -320,9 +334,17 @@ export default function App() {
   }, [isBooting, isLoggedIn, runDailyResetIfNeeded]);
 
   const handleLoginSuccess = async (username: string, screenTimeEnabled?: boolean, restrictedAppCount?: number) => {
+    const userResult = isSupabaseConfigured && supabase ? await supabase.auth.getUser() : null;
+    const supabaseUser = userResult?.data.user;
+    const resolvedUsername =
+      (supabaseUser?.user_metadata?.display_name as string | undefined) ||
+      supabaseUser?.email ||
+      username ||
+      'FlowState User';
+
     await setString(FLOWSTATE_AUTH_KEY, 'true');
-    await setString(FLOWSTATE_CURRENT_USER_KEY, username);
-    setUsername(username);
+    await setString(FLOWSTATE_CURRENT_USER_KEY, resolvedUsername);
+    setUsername(resolvedUsername);
     setIsLoggedIn(true);
     
     if (screenTimeEnabled) {
@@ -338,6 +360,9 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    if (isSupabaseConfigured && supabase) {
+      await supabase.auth.signOut();
+    }
     await remove(FLOWSTATE_AUTH_KEY);
     await remove(FLOWSTATE_CURRENT_USER_KEY);
     setIsLoggedIn(false);
@@ -345,6 +370,9 @@ export default function App() {
 
   const handleDeleteAccount = async () => {
     // App Store Review Guideline 5.1.1(v): delete all associated data
+    if (isSupabaseConfigured && supabase) {
+      await supabase.auth.signOut();
+    }
     await remove(FLOWSTATE_AUTH_KEY);
     await remove(FLOWSTATE_STATS_KEY);
     await remove(FLOWSTATE_LAST_LOGIN_KEY);
@@ -423,7 +451,7 @@ export default function App() {
       <SafeAreaProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <OnboardingFlow 
-            onComplete={(screenTimeEnabled, restrictedAppCount) => handleLoginSuccess('FlowState User', screenTimeEnabled, restrictedAppCount)}
+            onComplete={(username, screenTimeEnabled, restrictedAppCount) => handleLoginSuccess(username, screenTimeEnabled, restrictedAppCount)}
           />
         </GestureHandlerRootView>
       </SafeAreaProvider>
